@@ -53,6 +53,31 @@ export function GenerateClient() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  const [library, setLibrary] = useState<UploadedPhoto[] | null>(null);
+  const [showLibrary, setShowLibrary] = useState(false);
+
+  async function toggleLibrary() {
+    const next = !showLibrary;
+    setShowLibrary(next);
+    if (next && library === null) {
+      try {
+        const res = await fetch("/api/brand/library");
+        const json = await res.json();
+        setLibrary(
+          (json.items ?? []).map((i: { id: string; previewUrl: string }) => ({
+            assetId: i.id,
+            previewUrl: i.previewUrl,
+          }))
+        );
+      } catch {
+        setLibrary([]);
+      }
+    }
+  }
+
+  function addFromLibrary(item: UploadedPhoto) {
+    setPhotos((p) => (p.some((x) => x.assetId === item.assetId) ? p : [...p, item]));
+  }
 
   async function onUpload(files: FileList | null) {
     if (!files?.length) return;
@@ -209,7 +234,16 @@ export function GenerateClient() {
           </div>
 
           <div>
-            <Label>Photos</Label>
+            <div className="flex items-center justify-between">
+              <Label>Photos</Label>
+              <button
+                type="button"
+                onClick={toggleLibrary}
+                className="mb-1.5 text-xs font-semibold text-gold-deep hover:underline"
+              >
+                {showLibrary ? "Hide brand library" : "Use brand library"}
+              </button>
+            </div>
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl2 border-2 border-dashed border-paper-line py-8 text-center hover:border-gold/60">
               <span className="text-sm text-ink-soft">
                 {uploading ? "Uploading…" : "Click to upload listing photos"}
@@ -222,6 +256,41 @@ export function GenerateClient() {
                 onChange={(e) => onUpload(e.target.files)}
               />
             </label>
+
+            {showLibrary && (
+              <div className="mt-3 rounded-lg border border-paper-line p-3">
+                <p className="mb-2 text-xs text-ink-muted">
+                  Reusable company imagery — tap to add to this post.
+                </p>
+                {library === null ? (
+                  <p className="text-xs text-ink-muted">Loading…</p>
+                ) : library.length === 0 ? (
+                  <p className="text-xs text-ink-muted">
+                    No library images yet. Add some under Library.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {library.map((item) => {
+                      const selected = photos.some((p) => p.assetId === item.assetId);
+                      return (
+                        <button
+                          key={item.assetId}
+                          type="button"
+                          onClick={() => addFromLibrary(item)}
+                          className={`relative h-16 w-16 overflow-hidden rounded-lg border-2 ${
+                            selected ? "border-gold" : "border-transparent"
+                          }`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {photos.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {photos.map((p) => (

@@ -3,7 +3,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
-const PROTECTED = ["/dashboard", "/generate", "/calendar", "/brand", "/team", "/settings"];
+const PROTECTED = ["/dashboard", "/generate", "/calendar", "/brand", "/library", "/team", "/settings"];
 
 /**
  * Refresh the Supabase session on every request and gate the app routes.
