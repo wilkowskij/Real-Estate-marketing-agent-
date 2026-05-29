@@ -50,6 +50,28 @@ Then sign up, complete your brand kit, and create a campaign at `/generate`.
 - `lib/social/` — publisher interface (manual-export fallback until API approvals)
 - `supabase/migrations/` — schema, RLS, storage policies, new-user bootstrap
 
+## Deployment (Vercel via GitHub Actions)
+
+CI (`.github/workflows/ci.yml`) typechecks, tests, and builds on every push.
+Deploy (`.github/workflows/deploy.yml`) ships to Vercel on push to `main`.
+
+**Required GitHub repository secrets:**
+
+| Secret | Used by | Notes |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | CI build | Public; also set in Vercel env. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | CI build | Public (publishable key). |
+| `SUPABASE_SERVICE_ROLE_KEY` | runtime (cron, OAuth callback) | **Secret** — set in **Vercel** env, never `NEXT_PUBLIC_`. |
+| `CRON_SECRET` | cron auth | Set in Vercel env too. |
+| `VERCEL_TOKEN` | deploy workflow | From Vercel account → Settings → Tokens. |
+| `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` | deploy workflow | From `.vercel/project.json` after `vercel link`. |
+
+**Important:** GitHub Actions secrets are available to *workflows* only. The
+running app on Vercel reads its env from **Vercel → Project → Settings →
+Environment Variables** — add the Supabase, Anthropic, OpenAI, `CRON_SECRET`,
+and `SOCIAL_TOKEN_ENC_KEY` values there. The deploy workflow needs the three
+`VERCEL_*` secrets in GitHub.
+
 ## Status / roadmap
 
 - ✅ Foundation, branding, core generator (copy + branded graphic), auth
