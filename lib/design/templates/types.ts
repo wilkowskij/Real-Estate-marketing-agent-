@@ -34,6 +34,18 @@ export function badgeLabel(type: CampaignType): string {
       return "NEW LISTING";
     case "open_house":
       return "OPEN HOUSE";
+    case "market_stat":
+      return "MARKET UPDATE";
+    case "neighborhood_spotlight":
+      return "NEIGHBORHOOD";
+    case "deal_of_week":
+      return "DEAL OF THE WEEK";
+    case "before_after":
+      return "BEFORE & AFTER";
+    case "educational":
+      return "GOOD TO KNOW";
+    case "testimonial":
+      return "CLIENT STORY";
     default:
       return "FEATURED";
   }

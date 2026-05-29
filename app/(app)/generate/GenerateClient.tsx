@@ -8,14 +8,37 @@ import { Badge } from "@/components/ui/Badge";
 import { Label, Input, Textarea, Select } from "@/components/ui/Field";
 import { PLATFORM_SIZES } from "@/lib/design/platforms";
 
-type CampaignType = "just_sold" | "new_listing" | "open_house" | "custom";
+type CampaignType =
+  | "just_sold"
+  | "new_listing"
+  | "open_house"
+  | "market_stat"
+  | "neighborhood_spotlight"
+  | "deal_of_week"
+  | "before_after"
+  | "educational"
+  | "testimonial"
+  | "custom";
 
 const TYPES: { value: CampaignType; label: string }[] = [
   { value: "just_sold", label: "Just Sold" },
   { value: "new_listing", label: "New Listing" },
   { value: "open_house", label: "Open House" },
+  { value: "market_stat", label: "Market Stat" },
+  { value: "neighborhood_spotlight", label: "Neighborhood" },
+  { value: "deal_of_week", label: "Deal of the Week" },
+  { value: "before_after", label: "Before / After" },
+  { value: "educational", label: "Educational" },
+  { value: "testimonial", label: "Testimonial" },
   { value: "custom", label: "Custom" },
 ];
+
+const FORMAT_LABEL: Record<string, string> = {
+  reel: "🎬 Reel",
+  carousel: "🎠 Carousel",
+  infographic: "📊 Infographic",
+  single_image: "🖼 Single image",
+};
 
 interface UploadedPhoto {
   assetId: string;
@@ -30,6 +53,9 @@ interface Result {
     cta: string;
     hashtags: string[];
     compliance_notes: string[];
+    format?: "reel" | "carousel" | "infographic" | "single_image";
+    reel_script?: string[];
+    carousel_slides?: string[];
   };
 }
 
@@ -343,7 +369,42 @@ export function GenerateClient() {
         {result && (
           <Card>
             <CardBody className="space-y-3">
-              <h3 className="font-display text-lg text-navy">{result.copy.headline}</h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-display text-lg text-navy">{result.copy.headline}</h3>
+                {result.copy.format && (
+                  <Badge>{FORMAT_LABEL[result.copy.format] ?? result.copy.format}</Badge>
+                )}
+              </div>
+
+              {result.copy.reel_script && result.copy.reel_script.length > 0 && (
+                <div className="rounded-lg bg-paper p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    Reel script / shot list
+                  </p>
+                  <ol className="mt-1 list-decimal space-y-1 pl-4 text-sm text-ink-soft">
+                    {result.copy.reel_script.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {result.copy.carousel_slides && result.copy.carousel_slides.length > 0 && (
+                <div className="rounded-lg bg-paper p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    Carousel slides ({result.copy.carousel_slides.length})
+                  </p>
+                  <ol className="mt-1 list-decimal space-y-1 pl-4 text-sm text-ink-soft">
+                    {result.copy.carousel_slides.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Caption
+              </p>
               <p className="whitespace-pre-wrap text-sm text-ink-soft">
                 {result.copy.caption}
               </p>

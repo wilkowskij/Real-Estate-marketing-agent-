@@ -12,7 +12,18 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const Body = z.object({
-  type: z.enum(["just_sold", "new_listing", "open_house", "custom"]),
+  type: z.enum([
+    "just_sold",
+    "new_listing",
+    "open_house",
+    "market_stat",
+    "neighborhood_spotlight",
+    "deal_of_week",
+    "before_after",
+    "educational",
+    "testimonial",
+    "custom",
+  ]),
   listing: z
     .object({
       address: z.string().optional(),

@@ -2,7 +2,26 @@
 // In a full build these are generated via `supabase gen types typescript`.
 
 export type MemberRole = "owner" | "admin" | "member";
-export type CampaignType = "just_sold" | "new_listing" | "open_house" | "custom";
+export type CampaignType =
+  | "just_sold"
+  | "new_listing"
+  | "open_house"
+  // High-traffic content types from the NJ / Monmouth County market research.
+  | "market_stat"
+  | "neighborhood_spotlight"
+  | "deal_of_week"
+  | "before_after"
+  | "educational"
+  | "testimonial"
+  | "custom";
+
+/**
+ * Delivery format. Research ranks short video (Reels) > carousel > data
+ * infographic > single image. The agent recommends a format per content type;
+ * the design layer renders accordingly (Reels/carousels produce a script /
+ * slide breakdown rather than a single static graphic).
+ */
+export type PostFormat = "reel" | "carousel" | "infographic" | "single_image";
 export type PostState = "draft" | "approved" | "scheduled" | "published" | "failed";
 export type ListingStatus = "active" | "pending" | "sold" | "coming_soon";
 export type BrandOwner = "org" | "member";
@@ -69,6 +88,18 @@ export interface CopyPackage {
   cta: string;
   hashtags: string[];
   compliance_notes: string[];
+  /** Recommended delivery format for this content (research-driven). */
+  format?: PostFormat;
+  /**
+   * For format === "reel": an ordered shot list / spoken script (each line is a
+   * beat: on-screen text + what to film/say). Empty for non-video formats.
+   */
+  reel_script?: string[];
+  /**
+   * For format === "carousel": one entry per slide (6-13 slides perform best).
+   * Empty for non-carousel formats.
+   */
+  carousel_slides?: string[];
 }
 
 export interface Asset {
