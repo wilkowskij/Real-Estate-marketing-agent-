@@ -6,6 +6,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label, Input } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
+import { ImageUpload } from "./ImageUpload";
 import type { ResolvedBrand } from "@/lib/branding/resolveBrand";
 
 /**
@@ -16,10 +17,16 @@ export function BrandClient({
   brand,
   canEditBrand,
   lockedFields,
+  logoLightUrl,
+  logoDarkUrl,
+  headshotUrl,
 }: {
   brand: ResolvedBrand;
   canEditBrand: boolean;
   lockedFields: string[];
+  logoLightUrl: string | null;
+  logoDarkUrl: string | null;
+  headshotUrl: string | null;
 }) {
   const router = useRouter();
   const [name, setName] = useState(brand.name ?? "");
@@ -106,12 +113,33 @@ export function BrandClient({
                 disabled={brandDisabled}
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <ImageUpload
+                slot="logo_light"
+                label="Logo (light bg)"
+                currentUrl={logoLightUrl}
+                disabled={brandDisabled}
+              />
+              <ImageUpload
+                slot="logo_dark"
+                label="Logo (dark bg)"
+                currentUrl={logoDarkUrl}
+                disabled={brandDisabled}
+                dark
+              />
+            </div>
+            {brandDisabled && (
+              <p className="text-xs text-ink-muted">
+                Company logos are managed by your org admin.
+              </p>
+            )}
           </CardBody>
         </Card>
 
         <Card>
           <CardBody className="space-y-4">
             <h3 className="text-lg text-navy">Agent details</h3>
+            <ImageUpload slot="headshot" label="Headshot" currentUrl={headshotUrl} />
             <div>
               <Label>Full name</Label>
               <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Jane Wilkowski" />
