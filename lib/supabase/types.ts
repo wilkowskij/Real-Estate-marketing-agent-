@@ -70,3 +70,66 @@ export interface CopyPackage {
   hashtags: string[];
   compliance_notes: string[];
 }
+
+export interface Asset {
+  id: string;
+  org_id: string;
+  listing_id: string | null;
+  storage_path: string;
+  kind: "photo" | "ai_enhanced" | "rendered";
+  width: number | null;
+  height: number | null;
+  meta: Record<string, unknown>;
+}
+
+export interface Campaign {
+  id: string;
+  org_id: string;
+  created_by: string;
+  listing_id: string | null;
+  type: CampaignType;
+  copy: CopyPackage;
+  brand_kit_id: string | null;
+  rendered_asset_id: string | null;
+  status: string;
+}
+
+export type Platform = "instagram" | "facebook" | "linkedin" | "x";
+
+export interface Post {
+  id: string;
+  org_id: string;
+  campaign_id: string | null;
+  platform: Platform;
+  caption: string | null;
+  media_paths: string[];
+  scheduled_at: string | null;
+  state: PostState;
+  platform_post_id: string | null;
+  error: string | null;
+}
+
+export interface SocialAccount {
+  id: string;
+  org_id: string;
+  owner: BrandOwner;
+  membership_id: string | null;
+  platform: Platform;
+  account_label: string | null;
+  access_token_enc: string | null;
+  refresh_token_enc: string | null;
+  expires_at: string | null;
+  /** Platform identifiers the publishers need (igUserId, pageId, personUrn, …). */
+  meta: Record<string, unknown>;
+}
+
+export interface RecurringJob {
+  id: string;
+  org_id: string;
+  kind: "local_news" | "trend_watch";
+  cadence: string;
+  config: Record<string, unknown>;
+  auto_publish: boolean;
+  enabled: boolean;
+  last_run_at: string | null;
+}
