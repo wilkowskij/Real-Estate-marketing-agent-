@@ -1,10 +1,14 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Editorial / luxury design tokens.
- * Palette: deep navy + warm charcoal grounds, ivory paper, brushed-gold accent.
- * Type: serif display (Fraunces) for headings, refined sans (Inter) for body.
- * These mirror the Figma design-system tokens so code and design stay in sync.
+ * Luxe Ivory & Gold design tokens — per the brand guide.
+ * Palette: ivory/cream base, warm beige cards, soft metallic gold accent,
+ * deep charcoal text & structure. Ratios ~ ivory 60 / beige 20 / gold 10-15 / charcoal 10.
+ * Type: elegant serif (Playfair Display) for headings, clean sans (Inter) for body.
+ *
+ * Token names are kept stable (navy/gold/paper/ink) so existing classNames
+ * don't churn; `navy` now carries the charcoal "text & structure" role from
+ * the guide (headings, dark sections, footer).
  */
 const config: Config = {
   content: [
@@ -16,25 +20,26 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#11151c", // near-black charcoal text
-          soft: "#3a4250",
-          muted: "#6b7480",
+          DEFAULT: "#2C2C2C", // deep charcoal — body text
+          soft: "#4a4a4a",
+          muted: "#8a8a8a",
         },
         navy: {
-          DEFAULT: "#0e1a2b", // deep editorial navy
-          900: "#0a1320",
-          800: "#13243a",
-          700: "#1d3454",
+          // Charcoal "structure" role: headings, nav bar, dark sections.
+          DEFAULT: "#2C2C2C",
+          900: "#1F1F1F", // dark-mode background
+          800: "#262626",
+          700: "#333333",
         },
         gold: {
-          DEFAULT: "#b08d4f", // brushed gold accent
-          soft: "#c9a86a",
-          deep: "#8a6d39",
+          DEFAULT: "#C9A96E", // soft metallic gold — primary accent & CTAs
+          soft: "#D8BE8A",
+          deep: "#A8884E", // darker gold for text/links on light bg (contrast)
         },
         paper: {
-          DEFAULT: "#f7f4ee", // ivory
-          card: "#fffdf9",
-          line: "#e7e1d6",
+          DEFAULT: "#F8F4EE", // ivory / cream — main background
+          card: "#EDE4D5", // warm beige — cards, subtle sections
+          line: "#F0F0F0", // light gray — dividers
         },
       },
       fontFamily: {
@@ -45,8 +50,8 @@ const config: Config = {
         editorial: "0.18em",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(16,21,28,0.04), 0 12px 32px -12px rgba(16,21,28,0.18)",
-        lift: "0 24px 60px -24px rgba(14,26,43,0.45)",
+        card: "0 1px 2px rgba(44,44,44,0.04), 0 12px 32px -12px rgba(44,44,44,0.18)",
+        lift: "0 24px 60px -24px rgba(44,44,44,0.35)",
       },
       borderRadius: {
         xl2: "1.25rem",

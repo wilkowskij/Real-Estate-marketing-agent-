@@ -79,8 +79,9 @@ create table brand_kits (
   name text not null default 'Default',
   logo_light_path text,
   logo_dark_path text,
-  colors jsonb not null default '{"primary":"#0f172a","secondary":"#334155","accent":"#2563eb"}'::jsonb,
-  fonts jsonb not null default '{"heading":"Inter","body":"Inter"}'::jsonb,
+  -- Luxe Ivory & Gold defaults: charcoal primary, beige secondary, gold accent
+  colors jsonb not null default '{"primary":"#2C2C2C","secondary":"#EDE4D5","accent":"#C9A96E"}'::jsonb,
+  fonts jsonb not null default '{"heading":"Playfair Display","body":"Inter"}'::jsonb,
   disclaimer text,
   layout_theme text not null default 'classic',
   -- org-level kits can lock fields so members cannot override them
