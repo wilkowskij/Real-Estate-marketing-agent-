@@ -3,9 +3,25 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
 }
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  /* Small caps editorial eyebrow label */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-editorial text-gold-deep;
+  }
+  .hairline {
+    @apply border-t border-paper-line;
+  }
 }

@@ -1,4 +1,4 @@
-import { getAnthropic, FAST_MODEL, cachedSystem } from "@/lib/anthropic/client";
+import { getAnthropic, FAST_MODEL, cachedSystem, extractText } from "@/lib/anthropic/client";
 
 /**
  * Content Strategist / Orchestrator Agent — owns WHEN & WHETHER to post.
@@ -46,10 +46,7 @@ Should a real estate agent in this area post about this? Return ONLY JSON:
     ],
   });
 
-  const text = msg.content
-    .filter((b): b is { type: "text"; text: string } => b.type === "text")
-    .map((b) => b.text)
-    .join("");
+  const text = extractText(msg.content);
   const match = text.match(/\{[\s\S]*\}/);
   const raw = match ? JSON.parse(match[0]) : {};
   return {

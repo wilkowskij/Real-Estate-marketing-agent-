@@ -27,3 +27,10 @@ export function cachedSystem(text: string): Anthropic.TextBlockParam[] {
     },
   ];
 }
+
+/** Concatenate all text blocks from a message response. */
+export function extractText(content: Anthropic.ContentBlock[]): string {
+  return content
+    .map((b) => (b.type === "text" ? b.text : ""))
+    .join("");
+}

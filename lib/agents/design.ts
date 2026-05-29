@@ -1,4 +1,4 @@
-import { getAnthropic, FAST_MODEL, cachedSystem } from "@/lib/anthropic/client";
+import { getAnthropic, FAST_MODEL, cachedSystem, extractText } from "@/lib/anthropic/client";
 
 /**
  * Design Agent — owns HOW it looks.
@@ -70,10 +70,7 @@ Return ONLY JSON: {"heroIndex": number, "reason": string, "enhancementPrompt": s
     messages: [{ role: "user", content }],
   });
 
-  const text = msg.content
-    .filter((b): b is { type: "text"; text: string } => b.type === "text")
-    .map((b) => b.text)
-    .join("");
+  const text = extractText(msg.content);
   const match = text.match(/\{[\s\S]*\}/);
   const raw = match ? JSON.parse(match[0]) : { heroIndex: 0 };
   const idx = Math.min(Math.max(0, Number(raw.heroIndex) || 0), args.photos.length - 1);

@@ -1,0 +1,312 @@
+"use client";
+
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Label, Input, Textarea, Select } from "@/components/ui/Field";
+import { PLATFORM_SIZES } from "@/lib/design/platforms";
+
+type CampaignType = "just_sold" | "new_listing" | "open_house" | "custom";
+
+const TYPES: { value: CampaignType; label: string }[] = [
+  { value: "just_sold", label: "Just Sold" },
+  { value: "new_listing", label: "New Listing" },
+  { value: "open_house", label: "Open House" },
+  { value: "custom", label: "Custom" },
+];
+
+interface UploadedPhoto {
+  assetId: string;
+  previewUrl: string;
+}
+
+interface Result {
+  previewUrl: string | null;
+  copy: {
+    headline: string;
+    caption: string;
+    cta: string;
+    hashtags: string[];
+    compliance_notes: string[];
+  };
+}
+
+export function GenerateClient() {
+  const params = useSearchParams();
+  const initialType = (params.get("type") as CampaignType) || "just_sold";
+
+  const [type, setType] = useState<CampaignType>(initialType);
+  const [listing, setListing] = useState({
+    address: "",
+    town: "",
+    price: "",
+    beds: "",
+    baths: "",
+    sqft: "",
+  });
+  const [instructions, setInstructions] = useState("");
+  const [sizeKey, setSizeKey] = useState("ig_portrait");
+  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<Result | null>(null);
+
+  async function onUpload(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    setError(null);
+    try {
+      for (const file of Array.from(files)) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Upload failed");
+        setPhotos((p) => [...p, { assetId: json.assetId, previewUrl: json.previewUrl }]);
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onGenerate() {
+    if (photos.length === 0) {
+      setError("Add at least one photo first.");
+      return;
+    }
+    setGenerating(true);
+    setError(null);
+    setResult(null);
+    try {
+      const num = (v: string) => (v.trim() === "" ? null : Number(v));
+      const res = await fetch("/api/campaigns/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          sizeKey,
+          instructions: instructions || undefined,
+          listing: {
+            address: listing.address || undefined,
+            town: listing.town || undefined,
+            price: num(listing.price),
+            beds: num(listing.beds),
+            baths: num(listing.baths),
+            sqft: num(listing.sqft),
+          },
+          photoAssetIds: photos.map((p) => p.assetId),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Generation failed");
+      setResult(json);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_460px]">
+      {/* Form */}
+      <Card>
+        <CardBody className="space-y-6">
+          <div>
+            <Label>Campaign type</Label>
+            <div className="flex flex-wrap gap-2">
+              {TYPES.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setType(t.value)}
+                  className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                    type === t.value
+                      ? "border-gold bg-gold/10 text-gold-deep"
+                      : "border-paper-line text-ink-soft hover:border-gold/50"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label>Address</Label>
+              <Input
+                value={listing.address}
+                onChange={(e) => setListing({ ...listing, address: e.target.value })}
+                placeholder="14 Riverside Ave"
+              />
+            </div>
+            <div>
+              <Label>Town</Label>
+              <Input
+                value={listing.town}
+                onChange={(e) => setListing({ ...listing, town: e.target.value })}
+                placeholder="Red Bank"
+              />
+            </div>
+            <div>
+              <Label>Price ($)</Label>
+              <Input
+                type="number"
+                value={listing.price}
+                onChange={(e) => setListing({ ...listing, price: e.target.value })}
+                placeholder="1250000"
+              />
+            </div>
+            <div>
+              <Label>Beds</Label>
+              <Input
+                type="number"
+                value={listing.beds}
+                onChange={(e) => setListing({ ...listing, beds: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Baths</Label>
+              <Input
+                type="number"
+                value={listing.baths}
+                onChange={(e) => setListing({ ...listing, baths: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Sq Ft</Label>
+              <Input
+                type="number"
+                value={listing.sqft}
+                onChange={(e) => setListing({ ...listing, sqft: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Output size</Label>
+              <Select value={sizeKey} onChange={(e) => setSizeKey(e.target.value)}>
+                {Object.values(PLATFORM_SIZES).map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label>Notes for the marketing agent (optional)</Label>
+            <Textarea
+              rows={3}
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder="Walk to the train, renovated kitchen, deep lot…"
+            />
+          </div>
+
+          <div>
+            <Label>Photos</Label>
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl2 border-2 border-dashed border-paper-line py-8 text-center hover:border-gold/60">
+              <span className="text-sm text-ink-soft">
+                {uploading ? "Uploading…" : "Click to upload listing photos"}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => onUpload(e.target.files)}
+              />
+            </label>
+            {photos.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {photos.map((p) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={p.assetId}
+                    src={p.previewUrl}
+                    alt=""
+                    className="h-16 w-16 rounded-lg object-cover"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <Button
+            variant="gold"
+            size="lg"
+            onClick={onGenerate}
+            disabled={generating}
+            className="w-full"
+          >
+            {generating ? "Your agents are working…" : "Generate campaign"}
+          </Button>
+        </CardBody>
+      </Card>
+
+      {/* Preview */}
+      <div className="space-y-4">
+        <Card className="overflow-hidden">
+          <CardBody>
+            <p className="eyebrow mb-3">Preview</p>
+            {result?.previewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={result.previewUrl}
+                alt="Generated campaign"
+                className="w-full rounded-lg"
+              />
+            ) : (
+              <div className="flex aspect-[4/5] items-center justify-center rounded-lg bg-paper text-sm text-ink-muted">
+                Your finished graphic appears here.
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        {result && (
+          <Card>
+            <CardBody className="space-y-3">
+              <h3 className="font-display text-lg text-navy">{result.copy.headline}</h3>
+              <p className="whitespace-pre-wrap text-sm text-ink-soft">
+                {result.copy.caption}
+              </p>
+              <p className="text-sm font-medium text-navy">{result.copy.cta}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {result.copy.hashtags.map((h) => (
+                  <span key={h} className="text-xs text-gold-deep">
+                    {h.startsWith("#") ? h : `#${h}`}
+                  </span>
+                ))}
+              </div>
+              {result.copy.compliance_notes.length > 0 && (
+                <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                  <p className="font-semibold">Compliance notes</p>
+                  <ul className="mt-1 list-disc pl-4">
+                    {result.copy.compliance_notes.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {result.previewUrl && (
+                <a href={result.previewUrl} download className="block">
+                  <Button variant="secondary" className="w-full">
+                    Download graphic
+                  </Button>
+                </a>
+              )}
+            </CardBody>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}

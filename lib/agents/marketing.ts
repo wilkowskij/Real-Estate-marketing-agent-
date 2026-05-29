@@ -1,4 +1,4 @@
-import { getAnthropic, MODEL, cachedSystem } from "@/lib/anthropic/client";
+import { getAnthropic, MODEL, cachedSystem, extractText } from "@/lib/anthropic/client";
 import type { CampaignType, CopyPackage, Listing } from "@/lib/supabase/types";
 
 /**
@@ -84,10 +84,7 @@ export async function runMarketingAgent(
     messages: [{ role: "user", content: userContent }],
   });
 
-  const text = msg.content
-    .filter((b): b is { type: "text"; text: string } => b.type === "text")
-    .map((b) => b.text)
-    .join("");
+  const text = extractText(msg.content);
 
   const copy = parseCopy(text);
   return {
