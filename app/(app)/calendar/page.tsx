@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/Badge";
 import { getOrgContext } from "@/lib/org";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { QueueItem } from "./QueueItem";
+import { RecurringJobControls, type RecurringJobRow } from "./RecurringJobControls";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,10 @@ export default async function CalendarPage() {
 
   const [{ data: jobs }, { data: queue }] = ctx
     ? await Promise.all([
-        supabase.from("recurring_jobs").select("id, kind, cadence, enabled").eq("org_id", ctx.orgId),
+        supabase
+          .from("recurring_jobs")
+          .select("id, kind, cadence, config, auto_publish, enabled")
+          .eq("org_id", ctx.orgId),
         supabase
           .from("posts")
           .select("id, platform, caption, state, scheduled_at")
@@ -70,10 +74,10 @@ export default async function CalendarPage() {
                   <Badge>{job?.enabled === false ? "Paused" : meta.cadence}</Badge>
                 </div>
                 <p className="mt-3 text-sm text-ink-muted">{meta.blurb}</p>
-                <div className="mt-4 flex gap-2">
-                  <Button variant="secondary" size="sm">Configure</Button>
-                  <Button variant="ghost" size="sm">{job?.enabled === false ? "Resume" : "Pause"}</Button>
-                </div>
+                <RecurringJobControls
+                  kind={kind}
+                  job={(job as RecurringJobRow | undefined) ?? null}
+                />
               </CardBody>
             </Card>
           );

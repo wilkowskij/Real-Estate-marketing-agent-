@@ -1,13 +1,42 @@
-import { Card, CardBody } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { redirect } from "next/navigation";
+import { getOrgContext } from "@/lib/org";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { TeamClient, type TeamMember } from "./TeamClient";
+
+export const dynamic = "force-dynamic";
 
 /**
  * Team / org management. Owners & admins invite agents, set roles, and lock
- * brand fields so the whole brokerage stays on-brand. Solo accounts are an
- * org-of-one and can ignore this screen.
+ * brand fields so the whole brokerage stays on-brand. A solo account is an
+ * org-of-one and still renders (just one owner row).
  */
-export default function TeamPage() {
+export default async function TeamPage() {
+  const ctx = await getOrgContext();
+  if (!ctx) redirect("/login");
+
+  const isAdmin = ctx.role === "owner" || ctx.role === "admin";
+
+  // No FK join helper, so load memberships then their profiles and map together.
+  const supabase = createSupabaseServerClient();
+  const { data: memberships } = await supabase
+    .from("memberships")
+    .select("id, role, user_id")
+    .eq("org_id", ctx.orgId)
+    .order("created_at", { ascending: true });
+
+  const userIds = (memberships ?? []).map((m) => m.user_id);
+  const { data: profiles } = userIds.length
+    ? await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds)
+    : { data: [] };
+
+  const nameByUser = new Map((profiles ?? []).map((p) => [p.user_id, p.full_name]));
+  const members: TeamMember[] = (memberships ?? []).map((m) => ({
+    membershipId: m.id,
+    userId: m.user_id,
+    role: m.role,
+    fullName: nameByUser.get(m.user_id) ?? null,
+  }));
+
   return (
     <div className="mx-auto max-w-4xl">
       <p className="eyebrow">Team</p>
@@ -17,37 +46,12 @@ export default function TeamPage() {
         which stay locked to the company standard.
       </p>
 
-      <Card className="mt-8">
-        <CardBody>
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg text-navy">Members</h3>
-            <Button variant="gold" size="sm">Invite agent</Button>
-          </div>
-          <div className="mt-4 divide-y divide-paper-line">
-            <div className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-gold to-gold-deep" />
-                <div>
-                  <p className="text-sm font-medium text-ink">You</p>
-                  <p className="text-xs text-ink-muted">Owner</p>
-                </div>
-              </div>
-              <Badge>Owner</Badge>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-
-      <Card className="mt-6">
-        <CardBody>
-          <h3 className="text-lg text-navy">Locked brand fields</h3>
-          <p className="mt-3 text-sm text-ink-muted">
-            Logo, colors, fonts, and disclaimer can be locked so members inherit
-            them and cannot override. Personal details (headshot, contact) always
-            belong to each agent.
-          </p>
-        </CardBody>
-      </Card>
+      <TeamClient
+        members={members}
+        currentUserId={ctx.userId}
+        isAdmin={isAdmin}
+        lockedFields={ctx.orgKit.locked_fields ?? []}
+      />
     </div>
   );
 }
