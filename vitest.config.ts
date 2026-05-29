@@ -7,4 +7,8 @@ export default defineConfig({
       "@": resolve(__dirname, "."),
     },
   },
+  test: {
+    environment: "node",
+    include: ["lib/**/*.test.ts"],
+  },
 });
