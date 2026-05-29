@@ -1,10 +1,10 @@
 import { Card, CardBody } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { getOrgContext } from "@/lib/org";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { QueueItem } from "./QueueItem";
 import { RecurringJobControls, type RecurringJobRow } from "./RecurringJobControls";
+import { PlanMonthButton } from "./PlanMonthButton";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +59,7 @@ export default async function CalendarPage() {
           <p className="eyebrow">Calendar</p>
           <h1 className="mt-2 text-4xl text-navy">Keep the feed alive.</h1>
         </div>
-        <Button variant="gold">New scheduled post</Button>
+        <PlanMonthButton />
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
