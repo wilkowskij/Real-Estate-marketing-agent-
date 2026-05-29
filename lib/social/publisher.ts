@@ -64,3 +64,36 @@ export function getPublisher(platform: string): SocialPublisher {
 export function registerPublisher(publisher: SocialPublisher) {
   registry[publisher.platform] = publisher;
 }
+
+/**
+ * Promote a platform to its live publisher only when the platform's OAuth app
+ * is configured (env credentials present). Until App Review approval lands and
+ * credentials are set, the ManualExportPublisher stays registered — the queue
+ * and callers don't change. This runs lazily on first use of getActivePublisher.
+ */
+let promoted = false;
+function promoteLivePublishers() {
+  if (promoted) return;
+  promoted = true;
+  // Imported lazily to avoid pulling platform SDK code on cold paths.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { isConfigured } = require("./oauth") as typeof import("./oauth");
+  if (isConfigured("instagram")) {
+    const { InstagramPublisher } = require("./publishers/meta") as typeof import("./publishers/meta");
+    registry.instagram = new InstagramPublisher();
+  }
+  if (isConfigured("facebook")) {
+    const { FacebookPublisher } = require("./publishers/meta") as typeof import("./publishers/meta");
+    registry.facebook = new FacebookPublisher();
+  }
+  if (isConfigured("linkedin")) {
+    const { LinkedInPublisher } = require("./publishers/linkedin") as typeof import("./publishers/linkedin");
+    registry.linkedin = new LinkedInPublisher();
+  }
+}
+
+/** Get the publisher for a platform, promoting to live if configured. */
+export function getActivePublisher(platform: string): SocialPublisher {
+  promoteLivePublishers();
+  return getPublisher(platform);
+}
