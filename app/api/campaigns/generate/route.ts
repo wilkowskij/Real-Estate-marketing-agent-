@@ -37,6 +37,8 @@ const Body = z.object({
   instructions: z.string().optional(),
   photoAssetIds: z.array(z.string().uuid()).min(1),
   sizeKey: z.string().optional(),
+  /** When true, AI-enhance the hero photo (sky/lawn/exposure) before rendering. */
+  enhance: z.boolean().optional(),
 });
 
 /**
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
   // Load the chosen photos (RLS guarantees they belong to this org).
   const { data: assets, error: assetErr } = await supabase
     .from("assets")
-    .select("id, storage_path")
+    .select("id, storage_path, listing_id")
     .in("id", input.photoAssetIds);
   if (assetErr || !assets?.length) {
     return NextResponse.json({ error: "Photos not found" }, { status: 404 });
@@ -84,9 +86,35 @@ export async function POST(req: NextRequest) {
   // Fall back to the first uploaded photo if the design agent's hero id isn't
   // among the loaded assets (defensive — should always match).
   const heroAsset = assets.find((a) => a.id === design.heroAssetId) ?? assets[0];
-  const heroUrl = await signedUrl(supabase, heroAsset.storage_path);
+  let heroUrl = await signedUrl(supabase, heroAsset.storage_path);
   if (!heroUrl) {
     return NextResponse.json({ error: "Could not load the hero photo." }, { status: 500 });
+  }
+
+  // Optional AI enhancement of the hero photo. Best-effort: if the provider is
+  // a stub or errors, fall back to the original photo rather than failing.
+  let enhanced = false;
+  if (input.enhance && design.enhancementPrompt) {
+    try {
+      const { getImageProvider } = await import("@/lib/design/imageProvider");
+      const out = await getImageProvider().enhance({ imageUrl: heroUrl, prompt: design.enhancementPrompt });
+      const enhPath = orgPath(ctx.orgId, "ai", `${crypto.randomUUID()}.png`);
+      const up = await supabase.storage
+        .from(MEDIA_BUCKET)
+        .upload(enhPath, out.bytes, { contentType: out.contentType, upsert: true });
+      if (!up.error) {
+        await supabase.from("assets").insert({
+          org_id: ctx.orgId,
+          storage_path: enhPath,
+          kind: "ai_enhanced",
+          listing_id: heroAsset.listing_id ?? null,
+        });
+        const enhUrl = await signedUrl(supabase, enhPath);
+        if (enhUrl) { heroUrl = enhUrl; enhanced = true; }
+      }
+    } catch {
+      // Enhancement is optional polish — keep the original hero on any failure.
+    }
   }
   const [logoUrl, headshotUrl] = await Promise.all([
     signedUrl(supabase, ctx.brand.logoLightPath),
@@ -160,5 +188,6 @@ export async function POST(req: NextRequest) {
     copy: marketing.copy,
     design,
     previewUrl,
+    enhanced,
   });
 }

@@ -57,6 +57,7 @@ interface Result {
     reel_script?: string[];
     carousel_slides?: string[];
   };
+  enhanced?: boolean;
 }
 
 export function GenerateClient() {
@@ -74,6 +75,7 @@ export function GenerateClient() {
   });
   const [instructions, setInstructions] = useState("");
   const [sizeKey, setSizeKey] = useState("ig_portrait");
+  const [enhance, setEnhance] = useState(false);
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -141,6 +143,7 @@ export function GenerateClient() {
         body: JSON.stringify({
           type,
           sizeKey,
+          enhance,
           instructions: instructions || undefined,
           listing: {
             address: listing.address || undefined,
@@ -332,6 +335,30 @@ export function GenerateClient() {
             )}
           </div>
 
+          <button
+            type="button"
+            onClick={() => setEnhance((v) => !v)}
+            className="flex w-full items-center justify-between rounded-xl2 border border-paper-line bg-white px-4 py-3 text-left hover:border-gold/60"
+          >
+            <span>
+              <span className="block text-sm font-medium text-ink">✨ AI-enhance the hero photo</span>
+              <span className="block text-xs text-ink-muted">
+                Sky, lawn & exposure cleanup via AI before the graphic is rendered.
+              </span>
+            </span>
+            <span
+              className={`relative h-6 w-11 rounded-full transition-colors ${
+                enhance ? "bg-gold" : "bg-paper-line"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  enhance ? "translate-x-5" : "translate-x-0.5"
+                }`}
+              />
+            </span>
+          </button>
+
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <Button
@@ -371,9 +398,12 @@ export function GenerateClient() {
             <CardBody className="space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-display text-lg text-navy">{result.copy.headline}</h3>
-                {result.copy.format && (
-                  <Badge>{FORMAT_LABEL[result.copy.format] ?? result.copy.format}</Badge>
-                )}
+                <span className="flex gap-1.5">
+                  {result.enhanced && <Badge>✨ AI-enhanced</Badge>}
+                  {result.copy.format && (
+                    <Badge>{FORMAT_LABEL[result.copy.format] ?? result.copy.format}</Badge>
+                  )}
+                </span>
               </div>
 
               {result.copy.reel_script && result.copy.reel_script.length > 0 && (
