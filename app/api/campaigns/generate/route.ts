@@ -35,6 +35,8 @@ const Body = z.object({
       sqft: z.number().nullable().optional(),
     })
     .optional(),
+  /** Reuse an existing listing instead of creating one from `listing`. */
+  listingId: z.string().uuid().optional(),
   instructions: z.string().optional(),
   photoAssetIds: z.array(z.string().uuid()).min(1),
   sizeKey: z.string().optional(),
@@ -72,6 +74,37 @@ export async function POST(req: NextRequest) {
       url: (await signedUrl(supabase, a.storage_path)) ?? "",
     }))
   );
+
+  // Resolve the listing this campaign is about. Reuse an explicit listingId,
+  // else persist a new listings row when an address was provided (so campaigns
+  // and their photos are tied to a real property record, not just inline text).
+  let listingId: string | null = input.listingId ?? null;
+  if (!listingId && input.listing?.address) {
+    const { data: listing } = await supabase
+      .from("listings")
+      .insert({
+        org_id: ctx.orgId,
+        created_by: ctx.userId,
+        address: input.listing.address,
+        town: input.listing.town ?? null,
+        price: input.listing.price ?? null,
+        beds: input.listing.beds ?? null,
+        baths: input.listing.baths ?? null,
+        sqft: input.listing.sqft ?? null,
+        status: input.type === "just_sold" ? "sold" : "active",
+      })
+      .select("id")
+      .single();
+    listingId = listing?.id ?? null;
+    // Backfill the uploaded photos with the new listing id.
+    if (listingId) {
+      await supabase
+        .from("assets")
+        .update({ listing_id: listingId })
+        .in("id", input.photoAssetIds)
+        .is("listing_id", null);
+    }
+  }
 
   // 1) Copy + 2) hero photo — run in parallel.
   const [marketing, design] = await Promise.all([
@@ -162,6 +195,7 @@ export async function POST(req: NextRequest) {
     .insert({
       org_id: ctx.orgId,
       created_by: ctx.userId,
+      listing_id: listingId,
       type: input.type,
       copy: marketing.copy,
       brand_kit_id: ctx.memberKit?.id ?? ctx.orgKit.id,
@@ -187,6 +221,7 @@ export async function POST(req: NextRequest) {
   const previewUrl = await signedUrl(supabase, renderPath);
   return NextResponse.json({
     campaignId: campaign?.id,
+    listingId,
     copy: marketing.copy,
     design,
     previewUrl,
