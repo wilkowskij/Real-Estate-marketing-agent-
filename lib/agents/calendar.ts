@@ -113,8 +113,11 @@ export function buildSchedule(count: number, start: Date): Omit<PlannedPost, "an
   cursor.setHours(0, 0, 0, 0);
   let slotIdx = 0;
   // Walk forward day by day; on a day that matches a platform's best DOW, place
-  // the next slot there. Cap the search so we always terminate.
-  for (let day = 0; day < 120 && slotIdx < interleaved.length; day++) {
+  // the next slot there. The cap scales with the slot count (≥1 posting day per
+  // 7-day window) plus a margin, so we always place every slot yet still
+  // terminate even if the platform DOWs were ever narrowed.
+  const maxDays = interleaved.length * 7 + 14;
+  for (let day = 0; day < maxDays && slotIdx < interleaved.length; day++) {
     const d = new Date(cursor);
     d.setDate(cursor.getDate() + day);
     const dow = d.getDay();

@@ -7,6 +7,12 @@ describe("buildSchedule", () => {
     expect(buildSchedule(8, new Date("2026-06-01")).length).toBe(8);
   });
 
+  it("never drops slots at large counts (cap scales with count)", () => {
+    // Well beyond what a fixed 120-day window allowed for.
+    expect(buildSchedule(60, new Date("2026-06-01")).length).toBe(60);
+    expect(buildSchedule(120, new Date("2026-06-01")).length).toBe(120);
+  });
+
   it("allocates buckets roughly to their target shares (largest-remainder, exact total)", () => {
     const n = 20;
     const slots = buildSchedule(n, new Date("2026-06-01"));
