@@ -7,6 +7,7 @@ import { runMarketingAgent } from "@/lib/agents/marketing";
 import { runDesignAgent } from "@/lib/agents/design";
 import { renderCampaignPng } from "@/lib/design/render";
 import { PLATFORM_SIZES, DEFAULT_SIZE } from "@/lib/design/platforms";
+import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -178,6 +179,7 @@ export async function POST(req: NextRequest) {
       output: marketing.copy,
       input_tokens: marketing.usage.input,
       output_tokens: marketing.usage.output,
+      cost_usd: estimateCostUsd(MODEL, marketing.usage.input, marketing.usage.output),
     },
     { org_id: ctx.orgId, agent: "design", output: design as any },
   ]);

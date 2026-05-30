@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrgContext } from "@/lib/org";
 import { planContentCalendar } from "@/lib/agents/calendar";
+import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
     output: { planned: posts.length } as any,
     input_tokens: usage.input,
     output_tokens: usage.output,
+    cost_usd: estimateCostUsd(MODEL, usage.input, usage.output),
   });
 
   return NextResponse.json({ planned: inserted?.length ?? 0, posts });

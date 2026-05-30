@@ -115,3 +115,53 @@ export async function exchangeCode(platform: Platform, code: string): Promise<To
   const json = await res.json();
   return { accessToken: json.access_token, expiresIn: json.expires_in };
 }
+
+/**
+ * Refresh / extend an access token before it expires.
+ * - Meta has no refresh token; instead the long-lived token is re-exchanged via
+ *   the fb_exchange_token grant, which returns a fresh long-lived token.
+ * - LinkedIn uses the refresh_token grant (only if a refresh token was issued —
+ *   which requires the appropriate API program). Without one, returns null and
+ *   the account must be reconnected.
+ */
+export async function refreshAccessToken(
+  platform: Platform,
+  current: { accessToken?: string; refreshToken?: string }
+): Promise<TokenResponse | null> {
+  const c = getOAuthConfig(platform);
+
+  if (platform === "linkedin") {
+    if (!current.refreshToken) return null;
+    const body = new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: current.refreshToken,
+      client_id: c.clientId,
+      client_secret: c.clientSecret,
+    });
+    const res = await fetch(c.tokenUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    if (!res.ok) throw new Error(`LinkedIn token refresh failed: ${await res.text()}`);
+    const json = await res.json();
+    return {
+      accessToken: json.access_token,
+      refreshToken: json.refresh_token ?? current.refreshToken,
+      expiresIn: json.expires_in,
+    };
+  }
+
+  // Meta: extend the long-lived token.
+  if (!current.accessToken) return null;
+  const body = new URLSearchParams({
+    grant_type: "fb_exchange_token",
+    client_id: c.clientId,
+    client_secret: c.clientSecret,
+    fb_exchange_token: current.accessToken,
+  });
+  const res = await fetch(`${c.tokenUrl}?${body.toString()}`);
+  if (!res.ok) throw new Error(`Meta token refresh failed: ${await res.text()}`);
+  const json = await res.json();
+  return { accessToken: json.access_token, expiresIn: json.expires_in };
+}

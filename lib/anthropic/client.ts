@@ -34,3 +34,22 @@ export function extractText(content: Anthropic.ContentBlock[]): string {
     .map((b) => (b.type === "text" ? b.text : ""))
     .join("");
 }
+
+/**
+ * Per-model token pricing in USD per 1M tokens (input, output). Used to estimate
+ * the cost of an agent run for the agent_runs audit log. Update when Anthropic
+ * pricing changes; unknown models fall back to the Opus rate (conservative).
+ */
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  "claude-opus-4-8": { input: 5, output: 25 },
+  "claude-sonnet-4-6": { input: 3, output: 15 },
+  "claude-haiku-4-5-20251001": { input: 1, output: 5 },
+};
+
+/** Estimate the USD cost of a call from its model + token usage. */
+export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+  const p = MODEL_PRICING[model] ?? MODEL_PRICING["claude-opus-4-8"];
+  const cost = (inputTokens / 1_000_000) * p.input + (outputTokens / 1_000_000) * p.output;
+  // Round to 6 decimals — sub-cent precision without float noise.
+  return Math.round(cost * 1e6) / 1e6;
+}
