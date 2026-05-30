@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Label, Input } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
 import { ImageUpload } from "./ImageUpload";
+import { BrandImport } from "./BrandImport";
 import type { ResolvedBrand } from "@/lib/branding/resolveBrand";
 
 /**
@@ -75,6 +76,21 @@ export function BrandClient({
 
   return (
     <>
+      {canEditBrand && (
+        <BrandImport
+          onApply={(e) => {
+            if (e.name) setName(e.name);
+            setColors((c) => ({
+              primary: e.colors.primary ?? c.primary,
+              secondary: e.colors.secondary ?? c.secondary,
+              accent: e.colors.accent ?? c.accent,
+            }));
+            if (e.disclaimer) setDisclaimer(e.disclaimer);
+            setMsg("Imported from your brand guide — review and Save to apply.");
+          }}
+        />
+      )}
+
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <Card>
           <CardBody className="space-y-4">
