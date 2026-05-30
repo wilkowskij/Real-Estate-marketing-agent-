@@ -57,7 +57,14 @@ Should a real estate agent in this area post about this? Return ONLY JSON:
 
   const text = extractText(msg.content);
   const match = text.match(/\{[\s\S]*\}/);
-  const raw = match ? JSON.parse(match[0]) : {};
+  let raw: any = {};
+  if (match) {
+    try {
+      raw = JSON.parse(match[0]);
+    } catch {
+      raw = {}; // malformed → treat as not worth posting rather than crash the cron
+    }
+  }
   return {
     worthPosting: Boolean(raw.worthPosting),
     relevance: Number(raw.relevance) || 0,

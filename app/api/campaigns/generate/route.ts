@@ -81,8 +81,13 @@ export async function POST(req: NextRequest) {
     runDesignAgent({ photos: photoRefs, campaignType: input.type }),
   ]);
 
-  const heroPath = assets.find((a) => a.id === design.heroAssetId)!.storage_path;
-  const heroUrl = (await signedUrl(supabase, heroPath))!;
+  // Fall back to the first uploaded photo if the design agent's hero id isn't
+  // among the loaded assets (defensive — should always match).
+  const heroAsset = assets.find((a) => a.id === design.heroAssetId) ?? assets[0];
+  const heroUrl = await signedUrl(supabase, heroAsset.storage_path);
+  if (!heroUrl) {
+    return NextResponse.json({ error: "Could not load the hero photo." }, { status: 500 });
+  }
   const [logoUrl, headshotUrl] = await Promise.all([
     signedUrl(supabase, ctx.brand.logoLightPath),
     signedUrl(supabase, ctx.brand.agent.headshotPath),

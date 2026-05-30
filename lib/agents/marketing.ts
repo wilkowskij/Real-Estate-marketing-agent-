@@ -179,7 +179,12 @@ export async function runMarketingAgent(
 export function parseCopy(text: string, fallbackFormat: PostFormat): CopyPackage {
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("Marketing agent returned no JSON");
-  const raw = JSON.parse(match[0]);
+  let raw: any;
+  try {
+    raw = JSON.parse(match[0]);
+  } catch {
+    throw new Error("Marketing agent returned malformed JSON");
+  }
   const format: PostFormat = FORMATS.includes(raw.format) ? raw.format : fallbackFormat;
   return {
     format,

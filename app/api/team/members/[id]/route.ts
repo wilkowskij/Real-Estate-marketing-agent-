@@ -60,7 +60,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { error } = await loaded.supabase
     .from("memberships")
     .update({ role: parsed.data.role })
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("org_id", loaded.ctx.orgId); // defense-in-depth: never touch another org's row
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });
@@ -71,7 +72,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const loaded = await loadTarget(params.id);
   if (loaded.error) return loaded.error;
 
-  const { error } = await loaded.supabase.from("memberships").delete().eq("id", params.id);
+  const { error } = await loaded.supabase
+    .from("memberships")
+    .delete()
+    .eq("id", params.id)
+    .eq("org_id", loaded.ctx.orgId); // defense-in-depth
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });

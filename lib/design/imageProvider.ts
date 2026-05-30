@@ -55,6 +55,15 @@ class OpenAIImageProvider implements ImageProvider {
     };
   }
 
+  /** Pull the first image's base64 out of an OpenAI images response, validated. */
+  private decodeFirst(json: any): { bytes: ArrayBuffer; contentType: string } {
+    const b64 = json?.data?.[0]?.b64_json;
+    if (typeof b64 !== "string") {
+      throw new Error(`OpenAI image response missing data[0].b64_json: ${JSON.stringify(json).slice(0, 200)}`);
+    }
+    return this.decode(b64);
+  }
+
   async generate(input: { prompt: string; width: number; height: number }) {
     this.assertKey();
     const res = await fetch(`${this.base}/images/generations`, {
@@ -69,7 +78,7 @@ class OpenAIImageProvider implements ImageProvider {
     });
     if (!res.ok) throw new Error(`OpenAI image generate failed (${res.status}): ${await res.text()}`);
     const json = await res.json();
-    return this.decode(json.data[0].b64_json);
+    return this.decodeFirst(json);
   }
 
   async enhance(input: { imageUrl: string; prompt: string }) {
@@ -90,7 +99,7 @@ class OpenAIImageProvider implements ImageProvider {
     });
     if (!res.ok) throw new Error(`OpenAI image edit failed (${res.status}): ${await res.text()}`);
     const json = await res.json();
-    return this.decode(json.data[0].b64_json);
+    return this.decodeFirst(json);
   }
 }
 

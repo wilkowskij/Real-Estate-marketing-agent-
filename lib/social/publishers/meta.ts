@@ -14,7 +14,10 @@ export class InstagramPublisher implements SocialPublisher {
 
   async publish(input: PublishInput, auth: PlatformAuth): Promise<PublishResult> {
     const igUserId = auth.meta?.igUserId as string | undefined;
-    const token = auth.accessToken;
+    // IG/FB Graph endpoints are page-scoped and need the PAGE access token
+    // (stored in meta at connect time), not the user token. Fall back to the
+    // user token only if a page token wasn't captured.
+    const token = (auth.meta?.pageAccessToken as string | undefined) ?? auth.accessToken;
     if (!igUserId || !token) {
       return { ok: false, error: "Instagram account not fully connected (missing igUserId/token)." };
     }
@@ -51,7 +54,8 @@ export class FacebookPublisher implements SocialPublisher {
 
   async publish(input: PublishInput, auth: PlatformAuth): Promise<PublishResult> {
     const pageId = auth.meta?.pageId as string | undefined;
-    const token = auth.accessToken;
+    // Page-scoped endpoint → prefer the page access token captured at connect.
+    const token = (auth.meta?.pageAccessToken as string | undefined) ?? auth.accessToken;
     if (!pageId || !token) {
       return { ok: false, error: "Facebook Page not fully connected (missing pageId/token)." };
     }

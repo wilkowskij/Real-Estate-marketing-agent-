@@ -72,7 +72,14 @@ Return ONLY JSON: {"heroIndex": number, "reason": string, "enhancementPrompt": s
 
   const text = extractText(msg.content);
   const match = text.match(/\{[\s\S]*\}/);
-  const raw = match ? JSON.parse(match[0]) : { heroIndex: 0 };
+  let raw: any = { heroIndex: 0 };
+  if (match) {
+    try {
+      raw = JSON.parse(match[0]);
+    } catch {
+      raw = { heroIndex: 0 }; // fall back to the first photo on malformed JSON
+    }
+  }
   const idx = Math.min(Math.max(0, Number(raw.heroIndex) || 0), args.photos.length - 1);
 
   return {
