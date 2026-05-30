@@ -14,14 +14,36 @@ import { signedUrl } from "@/lib/storage";
  */
 export async function publishPost(
   supabase: SupabaseClient,
-  postId: string
-): Promise<{ ok: boolean; state: string; error?: string; platformPostId?: string; exportUrl?: string }> {
+  postId: string,
+  opts: { overrideCompliance?: boolean } = {}
+): Promise<{ ok: boolean; state: string; error?: string; platformPostId?: string; exportUrl?: string; complianceNotes?: string[] }> {
   const { data: post, error } = await supabase
     .from("posts")
-    .select("id, org_id, platform, caption, media_paths, state")
+    .select("id, org_id, platform, caption, media_paths, state, campaign_id")
     .eq("id", postId)
     .single();
   if (error || !post) return { ok: false, state: "failed", error: "Post not found" };
+
+  // Fair-Housing review gate: if the source campaign flagged compliance notes,
+  // do not publish until a human explicitly overrides. Protects the agent's
+  // license and keeps non-compliant copy from going live automatically.
+  if (post.campaign_id && !opts.overrideCompliance) {
+    const { data: campaign } = await supabase
+      .from("campaigns")
+      .select("copy")
+      .eq("id", post.campaign_id)
+      .maybeSingle();
+    const notes = (campaign?.copy as { compliance_notes?: unknown })?.compliance_notes;
+    const flagged = Array.isArray(notes) ? notes.map(String).filter(Boolean) : [];
+    if (flagged.length > 0) {
+      return {
+        ok: false,
+        state: post.state,
+        error: "Blocked by Fair-Housing review: resolve or override the compliance notes before publishing.",
+        complianceNotes: flagged,
+      };
+    }
+  }
 
   const { data: account } = await supabase
     .from("social_accounts")

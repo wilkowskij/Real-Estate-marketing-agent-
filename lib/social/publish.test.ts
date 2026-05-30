@@ -25,7 +25,7 @@ beforeAll(() => {
  * makes: posts.select().eq().single(), social_accounts...maybeSingle(),
  * posts.update().eq().
  */
-function mockSupabase(opts: { post: any; account: any }) {
+function mockSupabase(opts: { post: any; account: any; campaign?: any }) {
   const updates: any[] = [];
   const api: any = {
     from(table: string) {
@@ -44,10 +44,17 @@ function mockSupabase(opts: { post: any; account: any }) {
         },
         single: async () =>
           table === "posts" ? { data: opts.post, error: null } : { data: null, error: null },
-        maybeSingle: async () => ({ data: opts.account, error: null }),
+        maybeSingle: async () =>
+          table === "campaigns"
+            ? { data: opts.campaign ?? null, error: null }
+            : { data: opts.account, error: null },
         update(values: any) {
           updates.push({ table, values });
-          return { eq: async () => ({ data: null, error: null }) };
+          // Support both .update().eq() and .update().eq().eq() chains.
+          const result = { data: null, error: null };
+          const chain: any = Promise.resolve(result);
+          chain.eq = () => chain;
+          return { eq: () => chain };
         },
       };
     },
@@ -89,6 +96,34 @@ describe("publishPost", () => {
       meta: { igUserId: "123" },
     };
     const sb = mockSupabase({ post: basePost, account });
+    const res = await publishPost(sb, "post-1");
+    expect(res.ok).toBe(true);
+  });
+
+  it("blocks publishing when the source campaign has Fair-Housing notes", async () => {
+    const post = { ...basePost, campaign_id: "camp-1" };
+    const campaign = { copy: { compliance_notes: ["Avoid 'great for families' (familial status)."] } };
+    const sb = mockSupabase({ post, account: null, campaign });
+    const res = await publishPost(sb, "post-1");
+    expect(res.ok).toBe(false);
+    expect(res.complianceNotes).toHaveLength(1);
+    // Must NOT have flipped the post to published.
+    expect(sb._updates.find((u: any) => u.values.state === "published")).toBeUndefined();
+  });
+
+  it("publishes past the gate when overrideCompliance is set", async () => {
+    const post = { ...basePost, campaign_id: "camp-1" };
+    const campaign = { copy: { compliance_notes: ["flagged"] } };
+    const sb = mockSupabase({ post, account: null, campaign });
+    const res = await publishPost(sb, "post-1", { overrideCompliance: true });
+    expect(res.ok).toBe(true);
+    expect(res.state).toBe("published");
+  });
+
+  it("allows publishing when the campaign has no compliance notes", async () => {
+    const post = { ...basePost, campaign_id: "camp-1" };
+    const campaign = { copy: { compliance_notes: [] } };
+    const sb = mockSupabase({ post, account: null, campaign });
     const res = await publishPost(sb, "post-1");
     expect(res.ok).toBe(true);
   });

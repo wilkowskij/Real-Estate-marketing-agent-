@@ -18,8 +18,9 @@ export function QueueItem({ post }: { post: QueuePost }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<string[] | null>(null);
 
-  async function call(action: "approve" | "publish") {
+  async function call(action: "approve" | "publish", overrideCompliance = false) {
     setBusy(true);
     setError(null);
     try {
@@ -31,9 +32,19 @@ export function QueueItem({ post }: { post: QueuePost }) {
         });
         if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
       } else {
-        const res = await fetch(`/api/posts/${post.id}/publish`, { method: "POST" });
+        const res = await fetch(`/api/posts/${post.id}/publish`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ overrideCompliance }),
+        });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Publish failed");
+        if (!res.ok) {
+          // Fair-Housing gate: offer an explicit override instead of a dead end.
+          if (Array.isArray(json.complianceNotes) && json.complianceNotes.length) {
+            setBlocked(json.complianceNotes);
+          }
+          throw new Error(json.error ?? "Publish failed");
+        }
       }
       router.refresh();
     } catch (e: any) {
@@ -65,6 +76,23 @@ export function QueueItem({ post }: { post: QueuePost }) {
         </div>
       </div>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {blocked && blocked.length > 0 && (
+        <div className="mt-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+          <p className="font-semibold">Fair-Housing review — resolve before publishing:</p>
+          <ul className="mt-1 list-disc pl-4">
+            {blocked.map((n, i) => (
+              <li key={i}>{n}</li>
+            ))}
+          </ul>
+          <button
+            onClick={() => call("publish", true)}
+            disabled={busy}
+            className="mt-2 font-semibold text-amber-900 underline disabled:opacity-50"
+          >
+            I&apos;ve reviewed — publish anyway
+          </button>
+        </div>
+      )}
     </div>
   );
 }
