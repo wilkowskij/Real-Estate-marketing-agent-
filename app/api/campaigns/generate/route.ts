@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 1) Copy + 2) hero photo — run in parallel.
+  // 1) Copy (always) + 2) hero-photo selection (only when photos exist).
   const [marketing, design] = await Promise.all([
     runMarketingAgent({
       type: input.type,
@@ -126,21 +126,65 @@ export async function POST(req: NextRequest) {
       instructions: input.instructions,
       agentName: ctx.brand.agent.fullName ?? undefined,
     }),
-    runDesignAgent({ photos: photoRefs, campaignType: input.type }),
+    photoRefs.length > 0
+      ? runDesignAgent({ photos: photoRefs, campaignType: input.type })
+      : Promise.resolve(null),
   ]);
 
-  // Fall back to the first uploaded photo if the design agent's hero id isn't
-  // among the loaded assets (defensive — should always match).
-  const heroAsset = assets.find((a) => a.id === design.heroAssetId) ?? assets[0];
-  let heroUrl = await signedUrl(supabase, heroAsset.storage_path);
-  if (!heroUrl) {
-    return NextResponse.json({ error: "Could not load the hero photo." }, { status: 500 });
+  let heroAsset: { id: string; storage_path: string; listing_id: string | null } | null = null;
+  let heroUrl: string | null = null;
+  let enhanced = false;
+  let generatedImage = false;
+
+  // AI image generation path — make the post graphic from scratch (no photo).
+  if (useGeneratedImage) {
+    try {
+      const { buildImagePrompt } = await import("@/lib/agents/imagePrompt");
+      const { getImageProvider } = await import("@/lib/design/imageProvider");
+      const size0 = (input.sizeKey && PLATFORM_SIZES[input.sizeKey]) || DEFAULT_SIZE;
+      const { prompt } = await buildImagePrompt({
+        type: input.type,
+        headline: marketing.copy.headline,
+        area: input.listing?.town ? `${input.listing.town}, NJ` : "Monmouth County, NJ",
+        colors: ctx.brand.colors,
+        instructions: input.instructions,
+      });
+      const out = await getImageProvider().generate({ prompt, width: size0.width, height: size0.height });
+      const genPath = orgPath(ctx.orgId, "ai", `${crypto.randomUUID()}.png`);
+      const up = await supabase.storage
+        .from(MEDIA_BUCKET)
+        .upload(genPath, out.bytes, { contentType: out.contentType, upsert: true });
+      if (up.error) throw new Error(up.error.message);
+      const { data: genAsset } = await supabase
+        .from("assets")
+        .insert({ org_id: ctx.orgId, storage_path: genPath, kind: "ai_generated", listing_id: listingId })
+        .select("id, storage_path, listing_id")
+        .single();
+      heroAsset = genAsset ?? null;
+      heroUrl = await signedUrl(supabase, genPath);
+      generatedImage = true;
+    } catch (e: any) {
+      // If there is no uploaded photo to fall back to, this is fatal.
+      if (assets.length === 0) {
+        return NextResponse.json({ error: `AI image generation failed: ${e.message}` }, { status: 502 });
+      }
+    }
   }
 
-  // Optional AI enhancement of the hero photo. Best-effort: if the provider is
-  // a stub or errors, fall back to the original photo rather than failing.
-  let enhanced = false;
-  if (input.enhance && design.enhancementPrompt) {
+  // Photo path (or generation fell back to an uploaded photo).
+  if (!heroUrl) {
+    heroAsset = (design && assets.find((a) => a.id === design.heroAssetId)) || assets[0] || null;
+    if (!heroAsset) {
+      return NextResponse.json({ error: "No image available to render." }, { status: 400 });
+    }
+    heroUrl = await signedUrl(supabase, heroAsset.storage_path);
+    if (!heroUrl) {
+      return NextResponse.json({ error: "Could not load the hero photo." }, { status: 500 });
+    }
+  }
+
+  // Optional AI enhancement of an uploaded hero photo. Best-effort.
+  if (input.enhance && design?.enhancementPrompt && heroAsset) {
     try {
       const { getImageProvider } = await import("@/lib/design/imageProvider");
       const out = await getImageProvider().enhance({ imageUrl: heroUrl, prompt: design.enhancementPrompt });
