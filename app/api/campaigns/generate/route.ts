@@ -38,10 +38,15 @@ const Body = z.object({
   /** Reuse an existing listing instead of creating one from `listing`. */
   listingId: z.string().uuid().optional(),
   instructions: z.string().optional(),
-  photoAssetIds: z.array(z.string().uuid()).min(1),
+  /** Uploaded photos. Optional when generateImage is true (AI makes the graphic). */
+  photoAssetIds: z.array(z.string().uuid()).default([]),
   sizeKey: z.string().optional(),
   /** When true, AI-enhance the hero photo (sky/lawn/exposure) before rendering. */
   enhance: z.boolean().optional(),
+  /** When true, generate the post image from scratch with AI (no photo needed). */
+  generateImage: z.boolean().optional(),
+}).refine((b) => b.photoAssetIds.length > 0 || b.generateImage, {
+  message: "Provide at least one photo, or enable AI image generation.",
 });
 
 /**
@@ -59,14 +64,21 @@ export async function POST(req: NextRequest) {
   const input = parsed.data;
   const supabase = createSupabaseServerClient();
 
-  // Load the chosen photos (RLS guarantees they belong to this org).
-  const { data: assets, error: assetErr } = await supabase
-    .from("assets")
-    .select("id, storage_path, listing_id")
-    .in("id", input.photoAssetIds);
-  if (assetErr || !assets?.length) {
-    return NextResponse.json({ error: "Photos not found" }, { status: 404 });
+  // Load the chosen photos (RLS guarantees they belong to this org). May be
+  // empty when the user opts for an AI-generated graphic instead.
+  let assets: { id: string; storage_path: string; listing_id: string | null }[] = [];
+  if (input.photoAssetIds.length > 0) {
+    const { data, error: assetErr } = await supabase
+      .from("assets")
+      .select("id, storage_path, listing_id")
+      .in("id", input.photoAssetIds);
+    if (assetErr || !data?.length) {
+      return NextResponse.json({ error: "Photos not found" }, { status: 404 });
+    }
+    assets = data;
   }
+  // AI generation kicks in when explicitly requested or when no photo exists.
+  const useGeneratedImage = input.generateImage || assets.length === 0;
 
   const photoRefs = await Promise.all(
     assets.map(async (a) => ({
@@ -160,7 +172,7 @@ export async function POST(req: NextRequest) {
   const png = await renderCampaignPng({
     type: input.type,
     brand: ctx.brand,
-    photoUrl: heroUrl,
+    photoUrl: heroUrl as string,
     logoUrl,
     headshotUrl,
     listing: input.listing,
@@ -226,5 +238,6 @@ export async function POST(req: NextRequest) {
     design,
     previewUrl,
     enhanced,
+    generatedImage,
   });
 }
