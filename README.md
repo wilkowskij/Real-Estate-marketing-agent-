@@ -1,92 +1,109 @@
 # Marquee — Real Estate Marketing Studio
 
-Turn listing photos into ready-to-publish social media content. Built for
-real estate agents in **New Jersey & Monmouth County**.
+Turn listing photos into ready-to-publish social content. A **multi-tenant SaaS**
+for real-estate brokerages and solo agents, with deep specialization for
+**New Jersey / Monmouth County**.
 
-Agents upload photos and pick a campaign type (**Just Sold**, **New Listing**,
-**Open House**, or custom). Three specialized agents collaborate:
+A company uploads its **brand guide** (or sets brand by hand), invites its
+**agents**, and each agent uploads their own **listings + photos** to generate
+on-brand posts. Three Claude-powered agents collaborate:
 
-- **Marketing Agent** — an NJ / Monmouth County specialist that writes the copy
-  (headline, caption, CTA, hashtags) with Fair-Housing-compliant language.
-- **Design Agent** — picks the hero photo and renders an on-brand graphic;
-  supports AI image enhancement via a pluggable provider.
-- **Strategy / Orchestrator Agent** — runs recurring local-market posts and a
-  viral-trend watcher, queuing drafts for review.
+- **Marketing Agent** — NJ / Monmouth specialist; writes the copy package
+  (headline, caption, CTA, hashtags) in a research-tuned, Fair-Housing-compliant
+  voice, and picks the winning format (Reel / carousel / infographic / image).
+- **Design Agent** — selects the hero photo and renders an on-brand graphic;
+  optional AI photo enhancement via a pluggable image provider (OpenAI `gpt-image-1`).
+- **Strategy / Orchestrator Agent** — plans a 30-day content calendar balanced to
+  proven content-mix ratios, runs recurring local-market posts, and watches for
+  viral angles; everything lands in an approval queue.
+
+→ **New here? Read [`docs/ONBOARDING.md`](docs/ONBOARDING.md)** for the company
+and agent walkthrough, and [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for deploy
++ env setup.
 
 ## Stack
 
-- **Next.js 14** (App Router, TypeScript) + **Tailwind** (editorial/luxury theme)
-- **Supabase** — Postgres + RLS, Auth, Storage
-- **Claude API** (`@anthropic-ai/sdk`) with prompt caching
+- **Next.js 14** (App Router, TypeScript) + **Tailwind** (Luxe Ivory & Gold theme)
+- **Supabase** — Postgres + Row Level Security, Auth, Storage
+- **Claude API** (`@anthropic-ai/sdk`) with prompt caching on the big knowledge prompts
 - **@vercel/og** for deterministic, brand-driven graphic rendering
-- **Vercel** deploy + Cron for automation
+- **Vercel** deploy (Git integration) + Vercel Cron for automation
 
 ## Branding & tenancy
 
 One schema serves **both** company brokerages and solo agents. Every user
-belongs to an org (auto-created for solo signups). Org admins set a brand kit
-and can **lock** fields (logo, colors, fonts, disclaimer); members inherit and
-layer personal details. `lib/branding/resolveBrand.ts` merges org + member into
-the single brand object templates consume.
+belongs to an **org** (auto-created for solo signups). Org admins set a brand kit
+— or **import it from a brand-guide document** (PDF / .md / .txt) — and can
+**lock** fields (logo, colors, fonts, disclaimer). Members inherit the locked
+company brand and layer personal details (headshot, contact, license).
+`lib/branding/resolveBrand.ts` merges org + member into the single brand object
+the templates consume.
 
-## Getting started
+## Getting started (local)
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in Supabase + Anthropic keys
-# apply supabase/migrations/*.sql to your Supabase project
+cp .env.example .env.local      # fill in the keys below
+# apply supabase/migrations/*.sql to your Supabase project (in order)
 npm run dev
 ```
 
-Then sign up, complete your brand kit, and create a campaign at `/generate`.
+Required env (see `.env.example` for the full list):
+
+| Var | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase client (public) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only: cron jobs + OAuth token writes (**never** `NEXT_PUBLIC_`) |
+| `ANTHROPIC_API_KEY` | The three agents |
+| `CRON_SECRET` | Bearer token the cron routes require |
+| `SOCIAL_TOKEN_ENC_KEY` | 32-byte base64 — encrypts social OAuth tokens at rest |
+| `OPENAI_API_KEY` + `IMAGE_PROVIDER=openai` | Optional — enables AI photo enhancement |
+| `META_*` / `LINKEDIN_*` | Optional — live social posting (after platform approval) |
+
+Then sign up, complete (or import) your brand kit, and create a campaign at
+`/generate`.
 
 ## Project layout
 
-- `app/` — routes (landing, auth, dashboard, generate, calendar, brand, team)
-- `app/api/` — `campaigns/generate`, `assets/upload`, `cron/recurring`
-- `lib/agents/` — marketing, design, orchestrator (Claude)
-- `lib/design/` — template renderer, platform sizes, image provider
+- `app/(app)/` — dashboard, generate, calendar, brand, team, library, settings
+- `app/api/` — campaigns/generate, calendar/plan, brand (+asset/extract/library),
+  team (invite/members/locks), social (connect/callback), posts, cron/*
+- `lib/agents/` — marketing, design, orchestrator, calendar planner, brand extractor
+- `lib/design/` — `@vercel/og` template renderer, platform sizes, image provider
 - `lib/branding/` — brand resolver (+ tests)
-- `lib/social/` — publisher interface (manual-export fallback until API approvals)
+- `lib/social/` — OAuth, token crypto, publishers (manual-export fallback + live)
 - `supabase/migrations/` — schema, RLS, storage policies, new-user bootstrap
 
-## Deployment (Vercel via GitHub Actions)
+## Automation (Vercel Cron)
 
-CI (`.github/workflows/ci.yml`) typechecks, tests, and builds on every push.
-Deploy (`.github/workflows/deploy.yml`) ships to Vercel on push to `main`.
+`vercel.json` registers three daily/weekly jobs (Hobby-plan safe):
 
-**Required GitHub repository secrets:**
-
-| Secret | Used by | Notes |
+| Path | Schedule | Does |
 | --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | CI build | Public; also set in Vercel env. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | CI build | Public (publishable key). |
-| `SUPABASE_SERVICE_ROLE_KEY` | runtime (cron, OAuth callback) | **Secret** — set in **Vercel** env, never `NEXT_PUBLIC_`. |
-| `CRON_SECRET` | cron auth | Set in Vercel env too. |
-| `VERCEL_TOKEN` | deploy workflow | From Vercel account → Settings → Tokens. |
-| `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` | deploy workflow | From `.vercel/project.json` after `vercel link`. |
+| `/api/cron/recurring` | weekly | Drafts a local-market / trend post for review |
+| `/api/cron/publish-queue` | daily | Publishes posts whose `scheduled_at` is due |
+| `/api/cron/refresh-tokens` | daily | Refreshes social OAuth tokens nearing expiry |
 
-**Important:** GitHub Actions secrets are available to *workflows* only. The
-running app on Vercel reads its env from **Vercel → Project → Settings →
-Environment Variables** — add the Supabase, Anthropic, OpenAI, `CRON_SECRET`,
-and `SOCIAL_TOKEN_ENC_KEY` values there. The deploy workflow needs the three
-`VERCEL_*` secrets in GitHub.
+## Deployment
 
-## Status / roadmap
+Connected via **Vercel's GitHub integration** — every push to the production
+branch auto-deploys; `vercel.json` pins `framework: nextjs` and the crons. Set
+all runtime env vars in **Vercel → Project → Settings → Environment Variables**
+(GitHub Actions secrets feed CI only, not the running app). Full steps in
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
-- ✅ Foundation, branding, core generator (copy + branded graphic), auth
-- ⏳ AI image enhancement provider, more template themes
-- ⏳ Live Instagram/Facebook/LinkedIn posting (pending Meta/LinkedIn app review;
-  manual export works today)
-- ⏳ Full automation UI (approval queue, scheduling)
+## Compliance
+
+Fair Housing is a first-class constraint, two layers deep: the marketing-agent
+prompt forbids steering language, and a **publish gate** blocks any post whose
+campaign carries unresolved compliance notes unless an admin explicitly
+overrides after review.
 
 ## Verification
 
 ```bash
-npm run typecheck
-npm run test        # brand resolver inheritance + lock precedence
+npm run test     # 40 tests: brand resolver, token crypto, publish gate,
+                 # calendar scheduler, copy parsing, cost math, route auth
+npx tsc --noEmit
 npm run build
 ```
-
-Fair Housing compliance is a first-class constraint in the marketing agent
-prompt and a review gate — not an afterthought.
