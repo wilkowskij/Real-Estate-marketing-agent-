@@ -59,6 +59,7 @@ interface Result {
     carousel_slides?: string[];
   };
   enhanced?: boolean;
+  generatedImage?: boolean;
 }
 
 export function GenerateClient() {
