@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Label, Input, Textarea, Select } from "@/components/ui/Field";
 import { PLATFORM_SIZES } from "@/lib/design/platforms";
+import { PhotoEditor, type EditResult } from "./PhotoEditor";
 
 type CampaignType =
   | "just_sold"
@@ -77,6 +78,8 @@ export function GenerateClient() {
   const [sizeKey, setSizeKey] = useState("ig_portrait");
   const [enhance, setEnhance] = useState(false);
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
+  const [editing, setEditing] = useState<UploadedPhoto | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +130,28 @@ export function GenerateClient() {
     }
   }
 
+  // Upload the edited photo as a NEW asset and replace the edited one in the
+  // list (the original asset is preserved in storage).
+  async function onSaveEdit(result: EditResult) {
+    if (!editing) return;
+    setSavingEdit(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", new File([result.blob], "edited.png", { type: "image/png" }));
+      const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Could not save the edited photo");
+      const edited = { assetId: json.assetId, previewUrl: json.previewUrl };
+      setPhotos((p) => p.map((x) => (x.assetId === editing.assetId ? edited : x)));
+      setEditing(null);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   async function onGenerate() {
     if (photos.length === 0) {
       setError("Add at least one photo first.");
@@ -167,7 +192,16 @@ export function GenerateClient() {
   }
 
   return (
-    <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_460px]">
+    <>
+      {editing && (
+        <PhotoEditor
+          src={editing.previewUrl}
+          busy={savingEdit}
+          onCancel={() => setEditing(null)}
+          onSave={onSaveEdit}
+        />
+      )}
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_460px]">
       {/* Form */}
       <Card>
         <CardBody className="space-y-6">
@@ -323,13 +357,21 @@ export function GenerateClient() {
             {photos.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {photos.map((p) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={p.assetId}
-                    src={p.previewUrl}
-                    alt=""
-                    className="h-16 w-16 rounded-lg object-cover"
-                  />
+                  <div key={p.assetId} className="group relative h-16 w-16">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.previewUrl}
+                      alt=""
+                      className="h-16 w-16 rounded-lg object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditing(p)}
+                      className="absolute inset-0 flex items-center justify-center rounded-lg bg-navy/55 text-xs font-medium text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      Edit
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -467,6 +509,7 @@ export function GenerateClient() {
           </Card>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
