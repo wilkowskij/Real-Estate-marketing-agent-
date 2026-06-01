@@ -88,6 +88,46 @@ export function GenerateClient() {
   const [result, setResult] = useState<Result | null>(null);
   const [library, setLibrary] = useState<UploadedPhoto[] | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
+  // AI-first intake: a single prompt box parses into the detailed fields, which
+  // start collapsed so the page is simple by default.
+  const [brief, setBrief] = useState("");
+  const [parsing, setParsing] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  async function onParseBrief() {
+    if (brief.trim().length < 3) return;
+    setParsing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/campaigns/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: brief }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Could not read that.");
+      const b = json.brief as {
+        type: CampaignType | null;
+        listing: Record<string, number | string | null | undefined>;
+        instructions: string | null;
+      };
+      if (b.type) setType(b.type);
+      setListing((prev) => ({
+        address: (b.listing.address as string) ?? prev.address,
+        town: (b.listing.town as string) ?? prev.town,
+        price: b.listing.price != null ? String(b.listing.price) : prev.price,
+        beds: b.listing.beds != null ? String(b.listing.beds) : prev.beds,
+        baths: b.listing.baths != null ? String(b.listing.baths) : prev.baths,
+        sqft: b.listing.sqft != null ? String(b.listing.sqft) : prev.sqft,
+      }));
+      if (b.instructions) setInstructions(b.instructions);
+      setShowDetails(true); // reveal so the agent can review the parsed fields
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setParsing(false);
+    }
+  }
 
   async function toggleLibrary() {
     const next = !showLibrary;
@@ -208,6 +248,31 @@ export function GenerateClient() {
       {/* Form */}
       <Card>
         <CardBody className="space-y-6">
+          {/* AI-first intake: describe it in one line; we fill in the rest. */}
+          <div>
+            <Label>Describe your post</Label>
+            <Textarea
+              rows={2}
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              placeholder="e.g. Just sold 14 Riverside Ave in Red Bank for $1.25M, 4 bed 3 bath, walk to the train"
+            />
+            <div className="mt-2 flex items-center gap-3">
+              <Button variant="secondary" size="sm" onClick={onParseBrief} disabled={parsing || brief.trim().length < 3}>
+                {parsing ? "Reading…" : "✨ Set it up for me"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setShowDetails((v) => !v)}
+                className="text-xs font-semibold text-gold-deep hover:underline"
+              >
+                {showDetails ? "Hide details" : "Enter details manually"}
+              </button>
+            </div>
+          </div>
+
+          {showDetails && (
+            <>
           <div>
             <Label>Campaign type</Label>
             <div className="flex flex-wrap gap-2">
@@ -298,6 +363,8 @@ export function GenerateClient() {
               placeholder="Walk to the train, renovated kitchen, deep lot…"
             />
           </div>
+            </>
+          )}
 
           <div>
             <div className="flex items-center justify-between">
