@@ -114,8 +114,13 @@ export function CampaignCard(props: TemplateProps) {
               {[listing?.town, facts.join("  •  ")].filter(Boolean).join("   |   ")}
             </div>
             {price ? (
-              <div style={{ display: "flex", marginTop: 10, fontSize: 40, fontWeight: 800, color: accent }}>
-                {price}
+              <div style={{ display: "flex", alignItems: "center", marginTop: 12 }}>
+                {/* Gold accent bar + white price reads as prestige and stays
+                    legible on any brand primary gradient. */}
+                <div style={{ display: "flex", width: 6, height: 40, backgroundColor: accent, marginRight: 14 }} />
+                <div style={{ display: "flex", fontSize: 42, fontWeight: 800, color: "#ffffff", letterSpacing: 0.5 }}>
+                  {price}
+                </div>
               </div>
             ) : null}
           </div>

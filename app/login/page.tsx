@@ -8,11 +8,23 @@ export const dynamic = "force-dynamic";
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-navy px-6">
-      <div className="w-full max-w-md">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-navy px-6">
+      {/* Warm radial glow so the page feels luxe, not stark. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(60% 50% at 50% 0%, rgba(201,169,110,0.18), transparent 70%)",
+        }}
+      />
+      <div className="relative w-full max-w-md">
         <Link href="/" className="mb-6 block text-center font-display text-3xl text-paper">
           Marquee
         </Link>
+        <p className="mb-6 text-center text-xs font-semibold uppercase tracking-editorial text-gold-soft">
+          Elevate your listings
+        </p>
         <Card>
           <CardBody className="space-y-6">
             <div>

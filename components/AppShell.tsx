@@ -31,8 +31,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   active
-                    ? "bg-gold/15 text-gold-soft"
-                    : "text-paper/70 hover:bg-white/5 hover:text-paper"
+                    ? "border-l-2 border-gold bg-gold/25 font-medium text-paper"
+                    : "border-l-2 border-transparent text-paper/70 hover:bg-white/5 hover:text-paper"
                 )}
               >
                 <span className="w-4 text-center opacity-80">{item.icon}</span>
