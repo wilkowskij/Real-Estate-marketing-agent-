@@ -8,6 +8,7 @@ import { runDesignAgent } from "@/lib/agents/design";
 import { renderCampaignPng } from "@/lib/design/render";
 import { PLATFORM_SIZES, DEFAULT_SIZE } from "@/lib/design/platforms";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
+import { aiCampaignsRemaining, recordUsage } from "@/lib/billing/subscription";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -63,6 +64,15 @@ export async function POST(req: NextRequest) {
   }
   const input = parsed.data;
   const supabase = createSupabaseServerClient();
+
+  // Plan gating: enforce the monthly AI-generation allowance for capped plans.
+  const remaining = await aiCampaignsRemaining(supabase, ctx.orgId, ctx.subscription.plan);
+  if (remaining !== null && remaining <= 0) {
+    return NextResponse.json(
+      { error: "You've used your monthly AI campaign allowance. Upgrade your plan for more." },
+      { status: 402 }
+    );
+  }
 
   // Load the chosen photos (RLS guarantees they belong to this org). May be
   // empty when the user opts for an AI-generated graphic instead.
@@ -273,6 +283,10 @@ export async function POST(req: NextRequest) {
     },
     { org_id: ctx.orgId, agent: "design", output: design as any },
   ]);
+
+  // Meter this generation against the org's plan allowance.
+  await recordUsage(supabase, ctx.orgId, "ai_generation", 1, { type: input.type });
+  if (generatedImage) await recordUsage(supabase, ctx.orgId, "image_generation", 1);
 
   const previewUrl = await signedUrl(supabase, renderPath);
   return NextResponse.json({

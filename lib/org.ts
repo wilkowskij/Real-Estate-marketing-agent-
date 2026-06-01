@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveBrand, type ResolvedBrand } from "@/lib/branding/resolveBrand";
+import { getOrgSubscription, type OrgSubscription } from "@/lib/billing/subscription";
 import type { BrandKit, Profile } from "@/lib/supabase/types";
 
 export interface OrgContext {
@@ -10,6 +11,7 @@ export interface OrgContext {
   memberKit: BrandKit | null;
   profile: Profile | null;
   brand: ResolvedBrand;
+  subscription: OrgSubscription;
 }
 
 /**
@@ -35,9 +37,10 @@ export async function getOrgContext(): Promise<OrgContext | null> {
     .single();
   if (!membership) return null;
 
-  const [{ data: kits }, { data: profile }] = await Promise.all([
+  const [{ data: kits }, { data: profile }, subscription] = await Promise.all([
     supabase.from("brand_kits").select("*").eq("org_id", membership.org_id),
     supabase.from("profiles").select("*").eq("user_id", user.id).single(),
+    getOrgSubscription(supabase, membership.org_id),
   ]);
 
   const orgKit = (kits ?? []).find((k) => k.owner === "org" && k.is_default) as BrandKit;
@@ -56,5 +59,6 @@ export async function getOrgContext(): Promise<OrgContext | null> {
     memberKit,
     profile: (profile as Profile) ?? null,
     brand,
+    subscription,
   };
 }
