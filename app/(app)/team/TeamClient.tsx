@@ -133,7 +133,7 @@ function MembersCard({
                 {busy ? "Adding…" : "Invite agent"}
               </Button>
             </div>
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+            {error && <p className="mt-2 text-sm text-error">{error}</p>}
             {msg && <p className="mt-2 text-sm text-ink-muted">{msg}</p>}
           </div>
         )}
@@ -228,7 +228,7 @@ function MemberRow({
           <Badge className="capitalize">{member.role}</Badge>
         )}
       </div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-error">{error}</p>}
     </div>
   );
 }
@@ -299,7 +299,7 @@ function LocksCard({ isAdmin, lockedFields }: { isAdmin: boolean; lockedFields: 
               ))}
             </div>
             <div className="mt-4 flex items-center justify-end gap-3">
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p className="text-sm text-error">{error}</p>}
               {msg && <p className="text-sm text-ink-muted">{msg}</p>}
               <Button variant="gold" onClick={save} disabled={busy}>
                 {busy ? "Saving…" : "Save locks"}

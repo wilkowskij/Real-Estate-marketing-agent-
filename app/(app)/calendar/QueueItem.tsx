@@ -75,9 +75,9 @@ export function QueueItem({ post }: { post: QueuePost }) {
           </Button>
         </div>
       </div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-error">{error}</p>}
       {blocked && blocked.length > 0 && (
-        <div className="mt-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+        <div className="mt-2 rounded-lg bg-warning-soft p-3 text-xs text-warning">
           <p className="font-semibold">Fair-Housing review — resolve before publishing:</p>
           <ul className="mt-1 list-disc pl-4">
             {blocked.map((n, i) => (
@@ -87,7 +87,7 @@ export function QueueItem({ post }: { post: QueuePost }) {
           <button
             onClick={() => call("publish", true)}
             disabled={busy}
-            className="mt-2 font-semibold text-amber-900 underline disabled:opacity-50"
+            className="mt-2 font-semibold text-warning underline disabled:opacity-50"
           >
             I&apos;ve reviewed — publish anyway
           </button>

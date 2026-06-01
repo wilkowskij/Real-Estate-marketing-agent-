@@ -73,7 +73,7 @@ export function BrandImport({
           />
         </label>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-error">{error}</p>}
 
         {result && (
           <div className="space-y-3 rounded-lg bg-paper p-4">

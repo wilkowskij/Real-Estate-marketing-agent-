@@ -123,7 +123,7 @@ export function RecurringJobControls({
             Auto-publish without review
           </label>
           <div className="flex items-center justify-end gap-3">
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-xs text-error">{error}</p>}
             <Button variant="gold" size="sm" onClick={saveConfig} disabled={busy}>
               {busy ? "Saving…" : "Save"}
             </Button>

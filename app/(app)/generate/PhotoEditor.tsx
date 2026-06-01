@@ -36,6 +36,7 @@ export function PhotoEditor({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const [rotation, setRotation] = useState(0); // 0/90/180/270
   const [flipH, setFlipH] = useState(false);
@@ -54,6 +55,19 @@ export function PhotoEditor({
     };
     img.src = src;
   }, [src]);
+
+  // Esc closes the modal; restore focus to whatever was focused before opening.
+  useEffect(() => {
+    const prevFocus = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      prevFocus?.focus?.();
+    };
+  }, [onCancel]);
 
   // Redraw whenever an edit param changes.
   useEffect(() => {
@@ -99,9 +113,18 @@ export function PhotoEditor({
   function save() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.toBlob((blob) => {
-      if (blob) onSave({ blob });
-    }, "image/png");
+    setExportError(null);
+    try {
+      // toBlob throws SecurityError if the canvas was tainted (cross-origin
+      // image without CORS). Surface it instead of leaving the parent stuck
+      // in a "Saving…" state forever.
+      canvas.toBlob((blob) => {
+        if (blob) onSave({ blob });
+        else setExportError("Could not export the edited image. Try a different photo.");
+      }, "image/png");
+    } catch {
+      setExportError("This image can't be edited here (cross-origin restriction).");
+    }
   }
 
   const slider = (
@@ -126,8 +149,17 @@ export function PhotoEditor({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 p-4">
-      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl2 bg-paper-card shadow-lift">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Edit photo"
+      onClick={onCancel}
+    >
+      <div
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl2 bg-paper-card shadow-lift"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between border-b border-paper-line px-6 py-4">
           <h3 className="font-display text-xl text-navy">Edit photo</h3>
           <button onClick={onCancel} className="text-ink-muted hover:text-ink" aria-label="Close">
@@ -203,6 +235,7 @@ export function PhotoEditor({
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-paper-line px-6 py-4">
+          {exportError && <p className="mr-auto text-sm text-error">{exportError}</p>}
           <Button variant="ghost" onClick={onCancel} disabled={busy}>
             Cancel
           </Button>

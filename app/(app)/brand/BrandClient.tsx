@@ -177,7 +177,7 @@ export function BrandClient({
       </div>
 
       <div className="mt-6 flex items-center justify-end gap-3">
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-error">{error}</p>}
         {msg && <p className="text-sm text-ink-muted">{msg}</p>}
         <Button variant="gold" size="lg" onClick={onSave} disabled={saving}>
           {saving ? "Saving…" : "Save brand kit"}

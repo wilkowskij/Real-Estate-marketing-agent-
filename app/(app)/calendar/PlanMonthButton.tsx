@@ -37,7 +37,7 @@ export function PlanMonthButton() {
       <Button variant="gold" onClick={plan} disabled={busy}>
         {busy ? "Planning your month…" : "Plan 30 days"}
       </Button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-error">{error}</p>}
     </div>
   );
 }

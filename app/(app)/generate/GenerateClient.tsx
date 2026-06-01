@@ -382,6 +382,8 @@ export function GenerateClient() {
 
           <button
             type="button"
+            role="switch"
+            aria-checked={enhance}
             onClick={() => setEnhance((v) => !v)}
             className="flex w-full items-center justify-between rounded-xl2 border border-paper-line bg-white px-4 py-3 text-left hover:border-gold/60"
           >
@@ -406,6 +408,8 @@ export function GenerateClient() {
 
           <button
             type="button"
+            role="switch"
+            aria-checked={aiImage}
             onClick={() => setAiImage((v) => !v)}
             className="flex w-full items-center justify-between rounded-xl2 border border-paper-line bg-white px-4 py-3 text-left hover:border-gold/60"
           >
@@ -429,7 +433,7 @@ export function GenerateClient() {
             </span>
           </button>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-error">{error}</p>}
 
           <Button
             variant="gold"
@@ -518,7 +522,7 @@ export function GenerateClient() {
                 ))}
               </div>
               {result.copy.compliance_notes.length > 0 && (
-                <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                <div className="rounded-lg bg-warning-soft p-3 text-xs text-warning">
                   <p className="font-semibold">Compliance notes</p>
                   <ul className="mt-1 list-disc pl-4">
                     {result.copy.compliance_notes.map((n, i) => (

@@ -50,7 +50,7 @@ export default async function ConnectionsPage({
         </p>
       )}
       {searchParams.error && (
-        <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="mt-4 rounded-lg bg-error-soft px-4 py-3 text-sm text-error">
           Couldn’t connect: {decodeURIComponent(searchParams.error)}
         </p>
       )}

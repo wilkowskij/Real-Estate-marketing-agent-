@@ -77,7 +77,7 @@ export function ImageUpload({
       {preview && !disabled && (
         <p className="mt-1 text-center text-xs text-ink-muted">{busy ? "Uploading…" : "Click to replace"}</p>
       )}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-error">{error}</p>}
     </div>
   );
 }

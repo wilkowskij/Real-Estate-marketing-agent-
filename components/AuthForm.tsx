@@ -81,7 +81,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           required
         />
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-error">{error}</p>}
       <Button type="submit" variant="gold" size="lg" className="w-full" disabled={loading}>
         {loading ? "…" : mode === "signup" ? "Create account" : "Sign in"}
       </Button>

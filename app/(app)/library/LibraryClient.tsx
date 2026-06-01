@@ -75,7 +75,7 @@ export function LibraryClient({
         </label>
       )}
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
       {items.length === 0 ? (
         <Card className="mt-6">

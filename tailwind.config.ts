@@ -34,7 +34,18 @@ const config: Config = {
         gold: {
           DEFAULT: "#C9A96E", // soft metallic gold — primary accent & CTAs
           soft: "#D8BE8A",
-          deep: "#A8884E", // darker gold for text/links on light bg (contrast)
+          // Darker gold for small text/links on the ivory base. #806124 hits
+          // ~4.6:1 on #F8F4EE (WCAG AA for small text); the prior #A8884E failed.
+          deep: "#806124",
+        },
+        // Brand-aligned status colors (warm, not stock red/amber).
+        error: {
+          DEFAULT: "#9B3A2E", // muted terracotta — AA on light backgrounds
+          soft: "#FBEDEA",    // tint for error backgrounds
+        },
+        warning: {
+          DEFAULT: "#8A6D1F", // deep amber-gold — readable on light
+          soft: "#F6ECD6",    // tint for warning/compliance backgrounds
         },
         paper: {
           DEFAULT: "#F8F4EE", // ivory / cream — main background
