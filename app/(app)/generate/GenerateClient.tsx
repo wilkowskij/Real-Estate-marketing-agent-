@@ -60,6 +60,7 @@ interface Result {
   };
   enhanced?: boolean;
   generatedImage?: boolean;
+  slopIssues?: string[];
 }
 
 /** Resize a photo to at most 2048 px on its longest side, output as JPEG.
@@ -690,6 +691,19 @@ export function GenerateClient() {
                   </span>
                 ))}
               </div>
+              {result.slopIssues && result.slopIssues.length > 0 && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  <p className="font-semibold">⚠ Stop Slop — generic content detected</p>
+                  <p className="mt-0.5 text-amber-700">
+                    Regenerate or edit the copy to fix these before posting:
+                  </p>
+                  <ul className="mt-1 list-disc pl-4">
+                    {result.slopIssues.map((issue, i) => (
+                      <li key={i}>{issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {result.copy.compliance_notes.length > 0 && (
                 <div className="rounded-lg bg-warning-soft p-3 text-xs text-warning">
                   <p className="font-semibold">Compliance notes</p>

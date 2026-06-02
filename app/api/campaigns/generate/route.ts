@@ -9,6 +9,7 @@ import { renderCampaignPng } from "@/lib/design/render";
 import { PLATFORM_SIZES, DEFAULT_SIZE } from "@/lib/design/platforms";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 import { aiCampaignsRemaining, recordUsage } from "@/lib/billing/subscription";
+import { detectSlop } from "@/lib/agents/stopSlop";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -289,6 +290,7 @@ export async function POST(req: NextRequest) {
   if (generatedImage) await recordUsage(supabase, ctx.orgId, "image_generation", 1);
 
   const previewUrl = await signedUrl(supabase, renderPath);
+  const slop = detectSlop(marketing.copy);
   return NextResponse.json({
     campaignId: campaign?.id,
     listingId,
@@ -297,5 +299,6 @@ export async function POST(req: NextRequest) {
     previewUrl,
     enhanced,
     generatedImage,
+    slopIssues: slop.clean ? [] : slop.issues,
   });
 }
