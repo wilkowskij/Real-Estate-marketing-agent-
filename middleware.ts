@@ -8,6 +8,7 @@ const PROTECTED = [
   "/generate",
   "/campaigns",
   "/calendar",
+  "/analytics",
   "/library",
   "/company",
   "/profile",

@@ -79,7 +79,10 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
       — `marketing_campaigns` + `campaign_messages` tables (RLS), `/campaigns`
       hub + detail page, attach social posts from the queue drawer, save
       generated email/SMS into a campaign from Create
-- [ ] **Analytics engine** — pull platform insights, store `social_metrics`
+- [x] **Analytics engine** — `social_metrics` table + per-platform fetcher
+      framework + daily refresh cron + `/analytics` dashboard (production stats
+      + content-mix actual-vs-target now; engagement populates once a platform's
+      insights API is approved)
 - [ ] **Lead capture / CRM** — landing pages, forms, QR, open-house, `leads` table
 - [ ] **Revenue attribution** — post → click → lead → deal (`opportunities`, `deals`)
 - [ ] **Video marketing engine** — scene detect → clips → reels (Shotstack + scene AI)
