@@ -6,6 +6,8 @@ import type { BrandKit, Profile } from "@/lib/supabase/types";
 export interface OrgContext {
   userId: string;
   orgId: string;
+  /** The active membership row id — used to scope per-person resources. */
+  membershipId: string;
   role: string;
   orgKit: BrandKit;
   memberKit: BrandKit | null;
@@ -54,6 +56,7 @@ export async function getOrgContext(): Promise<OrgContext | null> {
   return {
     userId: user.id,
     orgId: membership.org_id,
+    membershipId: membership.id,
     role: membership.role,
     orgKit,
     memberKit,

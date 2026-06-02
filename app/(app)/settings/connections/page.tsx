@@ -10,12 +10,14 @@ const PLATFORMS: { id: Platform; label: string; blurb: string }[] = [
   { id: "instagram", label: "Instagram", blurb: "Auto-post Reels & feed images to your IG Business account." },
   { id: "facebook", label: "Facebook", blurb: "Publish photo posts to your Facebook Page." },
   { id: "linkedin", label: "LinkedIn", blurb: "Share listings to your LinkedIn profile." },
+  { id: "twitter", label: "X (Twitter)", blurb: "Post listing updates to your X account." },
 ];
 
 /**
- * Connections settings — Buffer-style "connect an account" hub. Org admins click
- * Connect, authorize once, and we store the token. Platforms whose OAuth app
- * isn't configured yet show as "Coming soon" (manual export still works).
+ * Connections settings — Buffer-style "connect an account" hub. Connections are
+ * per-person: each agent links their own Instagram / Facebook / LinkedIn / X
+ * account and publishes from it. Platforms whose OAuth app isn't configured yet
+ * show as "Coming soon" (manual export still works).
  */
 export default async function ConnectionsPage({
   searchParams,
@@ -24,24 +26,25 @@ export default async function ConnectionsPage({
 }) {
   const ctx = await getOrgContext();
   const supabase = createSupabaseServerClient();
+  // Show only the signed-in member's own connections (per-person).
   const { data: accounts } = ctx
     ? await supabase
         .from("social_accounts")
         .select("id, platform, account_label, created_at")
         .eq("org_id", ctx.orgId)
+        .eq("membership_id", ctx.membershipId)
     : { data: [] as any[] };
 
   const connectedByPlatform = new Map((accounts ?? []).map((a) => [a.platform, a]));
-  const canManage = ctx?.role === "owner" || ctx?.role === "admin";
 
   return (
     <div className="mx-auto max-w-3xl">
       <p className="eyebrow">Settings</p>
-      <h1 className="mt-2 text-4xl text-navy">Connected accounts</h1>
+      <h1 className="mt-2 text-4xl text-navy">Your connected accounts</h1>
       <p className="mt-2 max-w-xl text-ink-soft">
-        Connect a social account once and publish straight from your studio — no
-        copy-paste. Until a platform is approved, finished posts download for you
-        to post by hand.
+        Connect your own social accounts once and publish straight from your
+        studio — no copy-paste. Each agent links their own accounts. Until a
+        platform is approved, finished posts download for you to post by hand.
       </p>
 
       {searchParams.connected && (
@@ -79,9 +82,7 @@ export default async function ConnectionsPage({
                   )}
                 </div>
                 <div className="shrink-0">
-                  {!canManage ? (
-                    <span className="text-xs text-ink-muted">Admins only</span>
-                  ) : connected ? (
+                  {connected ? (
                     <a
                       href={`/api/social/connect/${p.id}`}
                       className="text-sm text-gold-deep underline"

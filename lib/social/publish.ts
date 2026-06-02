@@ -45,14 +45,36 @@ export async function publishPost(
     }
   }
 
-  const { data: account } = await supabase
+  // Resolve the connected account to post from. Connections are per-person, so
+  // prefer the account owned by the member who created the campaign; fall back
+  // to any org/member account for the platform (most recently connected).
+  const { data: accounts } = await supabase
     .from("social_accounts")
-    .select("access_token_enc, meta")
+    .select("access_token_enc, meta, owner, membership_id")
     .eq("org_id", post.org_id)
     .eq("platform", post.platform)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
+
+  let account = accounts?.[0] ?? null;
+  if (accounts?.length && post.campaign_id) {
+    const { data: campaign } = await supabase
+      .from("campaigns")
+      .select("created_by")
+      .eq("id", post.campaign_id)
+      .maybeSingle();
+    if (campaign?.created_by) {
+      const { data: membership } = await supabase
+        .from("memberships")
+        .select("id")
+        .eq("org_id", post.org_id)
+        .eq("user_id", campaign.created_by)
+        .maybeSingle();
+      const owned = membership
+        ? accounts.find((a) => a.membership_id === membership.id)
+        : null;
+      if (owned) account = owned;
+    }
+  }
 
   const mediaUrls = (
     await Promise.all((post.media_paths ?? []).map((p: string) => signedUrl(supabase, p)))

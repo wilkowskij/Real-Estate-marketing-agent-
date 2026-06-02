@@ -25,11 +25,11 @@ beforeAll(() => {
  * makes: posts.select().eq().single(), social_accounts...maybeSingle(),
  * posts.update().eq().
  */
-function mockSupabase(opts: { post: any; account: any; campaign?: any }) {
+function mockSupabase(opts: { post: any; account: any; campaign?: any; membership?: any }) {
   const updates: any[] = [];
   const api: any = {
     from(table: string) {
-      return {
+      const builder: any = {
         select() {
           return this;
         },
@@ -42,12 +42,22 @@ function mockSupabase(opts: { post: any; account: any; campaign?: any }) {
         limit() {
           return this;
         },
+        // social_accounts is now fetched as a list (no terminal); awaiting the
+        // builder resolves to the array of connected accounts for the platform.
+        then(resolve: (v: any) => void) {
+          if (table === "social_accounts") {
+            resolve({ data: opts.account ? [opts.account] : [], error: null });
+          } else {
+            resolve({ data: null, error: null });
+          }
+        },
         single: async () =>
           table === "posts" ? { data: opts.post, error: null } : { data: null, error: null },
-        maybeSingle: async () =>
-          table === "campaigns"
-            ? { data: opts.campaign ?? null, error: null }
-            : { data: opts.account, error: null },
+        maybeSingle: async () => {
+          if (table === "campaigns") return { data: opts.campaign ?? null, error: null };
+          if (table === "memberships") return { data: opts.membership ?? null, error: null };
+          return { data: opts.account, error: null };
+        },
         update(values: any) {
           updates.push({ table, values });
           // Support both .update().eq() and .update().eq().eq() chains.
@@ -57,6 +67,7 @@ function mockSupabase(opts: { post: any; account: any; campaign?: any }) {
           return { eq: () => chain };
         },
       };
+      return builder;
     },
     _updates: updates,
   };

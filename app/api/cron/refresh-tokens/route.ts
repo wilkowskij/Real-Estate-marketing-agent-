@@ -6,7 +6,7 @@ import { encryptToken, decryptToken } from "@/lib/social/crypto";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const REFRESHABLE: Platform[] = ["instagram", "facebook", "linkedin"];
+const REFRESHABLE: Platform[] = ["instagram", "facebook", "linkedin", "twitter"];
 // Refresh anything expiring within this window so a daily cron never lets a
 // token lapse between runs.
 const WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 3 days

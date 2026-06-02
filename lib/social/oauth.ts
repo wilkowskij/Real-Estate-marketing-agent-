@@ -8,7 +8,7 @@
  * app is approved; until then publishing falls back to manual export.
  */
 
-export type Platform = "instagram" | "facebook" | "linkedin";
+export type Platform = "instagram" | "facebook" | "linkedin" | "twitter";
 
 export interface OAuthConfig {
   platform: Platform;
@@ -17,6 +17,13 @@ export interface OAuthConfig {
   scopes: string[];
   clientId: string;
   clientSecret: string;
+  /**
+   * Twitter/X uses OAuth 2.0 with PKCE (a per-request code_verifier/challenge)
+   * rather than the plain authorization-code flow Meta/LinkedIn use.
+   */
+  pkce?: boolean;
+  /** Separator the platform expects between scopes in the authorize URL. */
+  scopeSeparator: string;
 }
 
 export interface TokenResponse {
@@ -27,8 +34,25 @@ export interface TokenResponse {
   meta?: Record<string, unknown>;
 }
 
+import { createHash, randomBytes } from "crypto";
+
 function appUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+}
+
+function base64url(buf: Buffer): string {
+  return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/**
+ * Generate a PKCE verifier + S256 challenge pair (Twitter/X OAuth 2.0). The
+ * verifier is stashed in a short-lived cookie at connect time and replayed at
+ * the callback to prove the same client completed the flow.
+ */
+export function generatePkce(): { verifier: string; challenge: string } {
+  const verifier = base64url(randomBytes(32));
+  const challenge = base64url(createHash("sha256").update(verifier).digest());
+  return { verifier, challenge };
 }
 
 export function redirectUri(platform: Platform): string {
@@ -54,6 +78,7 @@ export function getOAuthConfig(platform: Platform): OAuthConfig {
         scopes,
         clientId,
         clientSecret,
+        scopeSeparator: ",",
       };
     }
     case "linkedin": {
@@ -64,6 +89,21 @@ export function getOAuthConfig(platform: Platform): OAuthConfig {
         scopes: ["openid", "profile", "w_member_social"],
         clientId: process.env.LINKEDIN_CLIENT_ID ?? "",
         clientSecret: process.env.LINKEDIN_CLIENT_SECRET ?? "",
+        scopeSeparator: " ",
+      };
+    }
+    case "twitter": {
+      // X / Twitter API v2 — OAuth 2.0 Authorization Code with PKCE.
+      // offline.access yields a refresh token so the connection survives expiry.
+      return {
+        platform,
+        authorizeUrl: "https://twitter.com/i/oauth2/authorize",
+        tokenUrl: "https://api.twitter.com/2/oauth2/token",
+        scopes: ["tweet.read", "tweet.write", "users.read", "offline.access"],
+        clientId: process.env.TWITTER_CLIENT_ID ?? "",
+        clientSecret: process.env.TWITTER_CLIENT_SECRET ?? "",
+        pkce: true,
+        scopeSeparator: " ",
       };
     }
   }
@@ -74,22 +114,66 @@ export function isConfigured(platform: Platform): boolean {
   return Boolean(c.clientId && c.clientSecret);
 }
 
-/** Build the authorize URL the user is redirected to, carrying a signed state. */
-export function buildAuthorizeUrl(platform: Platform, state: string): string {
+/**
+ * Build the authorize URL the user is redirected to, carrying a CSRF state.
+ * For PKCE platforms (Twitter/X) pass the S256 `codeChallenge`.
+ */
+export function buildAuthorizeUrl(
+  platform: Platform,
+  state: string,
+  codeChallenge?: string
+): string {
   const c = getOAuthConfig(platform);
   const params = new URLSearchParams({
     response_type: "code",
     client_id: c.clientId,
     redirect_uri: redirectUri(platform),
-    scope: c.scopes.join(platform === "linkedin" ? " " : ","),
+    scope: c.scopes.join(c.scopeSeparator),
     state,
   });
+  if (c.pkce) {
+    params.set("code_challenge", codeChallenge ?? "");
+    params.set("code_challenge_method", "S256");
+  }
   return `${c.authorizeUrl}?${params.toString()}`;
 }
 
-/** Exchange an authorization code for an access token. */
-export async function exchangeCode(platform: Platform, code: string): Promise<TokenResponse> {
+/**
+ * Exchange an authorization code for an access token. PKCE platforms must pass
+ * the `codeVerifier` that matches the challenge sent at authorize time.
+ */
+export async function exchangeCode(
+  platform: Platform,
+  code: string,
+  opts: { codeVerifier?: string } = {}
+): Promise<TokenResponse> {
   const c = getOAuthConfig(platform);
+
+  if (platform === "twitter") {
+    const body = new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri(platform),
+      client_id: c.clientId,
+      code_verifier: opts.codeVerifier ?? "",
+    });
+    const headers: Record<string, string> = {
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    // Confidential clients authenticate with HTTP Basic; public clients omit it.
+    if (c.clientSecret) {
+      headers.Authorization = `Basic ${Buffer.from(`${c.clientId}:${c.clientSecret}`).toString("base64")}`;
+    }
+    const res = await fetch(c.tokenUrl, { method: "POST", headers, body });
+    if (!res.ok) throw new Error(`Twitter token exchange failed: ${await res.text()}`);
+    const json = await res.json();
+    return {
+      accessToken: json.access_token,
+      refreshToken: json.refresh_token,
+      expiresIn: json.expires_in,
+    };
+  }
+
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
@@ -129,6 +213,29 @@ export async function refreshAccessToken(
   current: { accessToken?: string; refreshToken?: string }
 ): Promise<TokenResponse | null> {
   const c = getOAuthConfig(platform);
+
+  if (platform === "twitter") {
+    if (!current.refreshToken) return null;
+    const body = new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: current.refreshToken,
+      client_id: c.clientId,
+    });
+    const headers: Record<string, string> = {
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    if (c.clientSecret) {
+      headers.Authorization = `Basic ${Buffer.from(`${c.clientId}:${c.clientSecret}`).toString("base64")}`;
+    }
+    const res = await fetch(c.tokenUrl, { method: "POST", headers, body });
+    if (!res.ok) throw new Error(`Twitter token refresh failed: ${await res.text()}`);
+    const json = await res.json();
+    return {
+      accessToken: json.access_token,
+      refreshToken: json.refresh_token ?? current.refreshToken,
+      expiresIn: json.expires_in,
+    };
+  }
 
   if (platform === "linkedin") {
     if (!current.refreshToken) return null;

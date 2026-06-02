@@ -13,6 +13,7 @@
 import { isConfigured } from "./oauth";
 import { InstagramPublisher, FacebookPublisher } from "./publishers/meta";
 import { LinkedInPublisher } from "./publishers/linkedin";
+import { TwitterPublisher } from "./publishers/twitter";
 
 export interface PublishInput {
   caption: string;
@@ -55,7 +56,7 @@ const registry: Record<string, SocialPublisher> = {
   instagram: new ManualExportPublisher("instagram"),
   facebook: new ManualExportPublisher("facebook"),
   linkedin: new ManualExportPublisher("linkedin"),
-  x: new ManualExportPublisher("x"),
+  twitter: new ManualExportPublisher("twitter"),
 };
 
 export function getPublisher(platform: string): SocialPublisher {
@@ -82,6 +83,7 @@ function promoteLivePublishers() {
   if (isConfigured("instagram")) registry.instagram = new InstagramPublisher();
   if (isConfigured("facebook")) registry.facebook = new FacebookPublisher();
   if (isConfigured("linkedin")) registry.linkedin = new LinkedInPublisher();
+  if (isConfigured("twitter")) registry.twitter = new TwitterPublisher();
 }
 
 /** Get the publisher for a platform, promoting to live if configured. */
