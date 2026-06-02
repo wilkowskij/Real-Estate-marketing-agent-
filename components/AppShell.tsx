@@ -11,6 +11,7 @@ const NAV = [
   { href: "/campaigns", label: "Campaigns", icon: "❖" },
   { href: "/calendar", label: "Calendar", icon: "▦" },
   { href: "/analytics", label: "Analytics", icon: "▤" },
+  { href: "/leads", label: "Leads", icon: "✸" },
   { href: "/library", label: "Library", icon: "▣" },
   { href: "/company", label: "Company", icon: "⬡" },
   { href: "/profile", label: "Profile", icon: "◈" },

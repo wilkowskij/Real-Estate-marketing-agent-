@@ -210,6 +210,40 @@ export interface CampaignMessage {
   created_at: string;
 }
 
+export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost";
+
+/** A public lead-capture form / landing page. */
+export interface LeadForm {
+  id: string;
+  org_id: string;
+  created_by: string;
+  slug: string;
+  title: string;
+  kind: "general" | "open_house" | "listing";
+  listing_id: string | null;
+  marketing_campaign_id: string | null;
+  headline: string | null;
+  subhead: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+/** A captured lead with a simple CRM status pipeline. */
+export interface Lead {
+  id: string;
+  org_id: string;
+  lead_form_id: string | null;
+  listing_id: string | null;
+  marketing_campaign_id: string | null;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  message: string | null;
+  source: string | null;
+  status: LeadStatus;
+  created_at: string;
+}
+
 export interface RecurringJob {
   id: string;
   org_id: string;

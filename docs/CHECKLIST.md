@@ -83,7 +83,10 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
       framework + daily refresh cron + `/analytics` dashboard (production stats
       + content-mix actual-vs-target now; engagement populates once a platform's
       insights API is approved)
-- [ ] **Lead capture / CRM** — landing pages, forms, QR, open-house, `leads` table
+- [x] **Lead capture / CRM** — `lead_forms` + `leads` tables (RLS), public
+      `/l/<slug>` landing pages + open-house sign-in, QR codes + shareable links,
+      public capture API (service-role, honeypot), `/leads` hub with a status
+      pipeline (new → contacted → qualified → won/lost)
 - [ ] **Revenue attribution** — post → click → lead → deal (`opportunities`, `deals`)
 - [ ] **Video marketing engine** — scene detect → clips → reels (Shotstack + scene AI)
 - [ ] **Stories / Reels** publishing endpoints
