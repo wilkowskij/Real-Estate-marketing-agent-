@@ -130,17 +130,26 @@ export async function POST(req: NextRequest) {
   }
 
   // 1) Copy (always) + 2) hero-photo selection (only when photos exist).
-  const [marketing, design] = await Promise.all([
-    runMarketingAgent({
-      type: input.type,
-      listing: input.listing,
-      instructions: input.instructions,
-      agentName: ctx.brand.agent.fullName ?? undefined,
-    }),
-    photoRefs.length > 0
-      ? runDesignAgent({ photos: photoRefs, campaignType: input.type })
-      : Promise.resolve(null),
-  ]);
+  // Wrap the model calls so an upstream failure (e.g. Anthropic billing /
+  // rate-limit / invalid request) returns a readable JSON error instead of an
+  // empty 500 body that the client can't parse ("Unexpected end of JSON input").
+  let marketing: Awaited<ReturnType<typeof runMarketingAgent>>;
+  let design: Awaited<ReturnType<typeof runDesignAgent>> | null;
+  try {
+    [marketing, design] = await Promise.all([
+      runMarketingAgent({
+        type: input.type,
+        listing: input.listing,
+        instructions: input.instructions,
+        agentName: ctx.brand.agent.fullName ?? undefined,
+      }),
+      photoRefs.length > 0
+        ? runDesignAgent({ photos: photoRefs, campaignType: input.type })
+        : Promise.resolve(null),
+    ]);
+  } catch (e: any) {
+    return NextResponse.json({ error: friendlyAiError(e) }, { status: 502 });
+  }
 
   let heroAsset: { id: string; storage_path: string; listing_id: string | null } | null = null;
   let heroUrl: string | null = null;
@@ -301,4 +310,24 @@ export async function POST(req: NextRequest) {
     generatedImage,
     slopIssues: slop.clean ? [] : slop.issues,
   });
+}
+
+/**
+ * Turn an Anthropic SDK error into a clear, actionable message for the UI.
+ * The most common production failure is an account-level billing block, which
+ * the API returns as a 400 invalid_request_error — surface that plainly so the
+ * agent knows to top up credits rather than chasing a phantom code bug.
+ */
+function friendlyAiError(e: any): string {
+  const raw = String(e?.message ?? e ?? "AI generation failed");
+  if (/credit balance is too low|billing|payment/i.test(raw)) {
+    return "Your Anthropic API account is out of credits. Add credits in the Anthropic Console (Billing) to generate content.";
+  }
+  if (/rate limit|overloaded|529|429/i.test(raw)) {
+    return "The AI service is rate-limited right now. Wait a moment and try again.";
+  }
+  if (/api key|authentication|401/i.test(raw)) {
+    return "The ANTHROPIC_API_KEY is missing or invalid in the deployment settings.";
+  }
+  return `AI generation failed: ${raw.slice(0, 300)}`;
 }

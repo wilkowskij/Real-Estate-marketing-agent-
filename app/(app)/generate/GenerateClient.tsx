@@ -310,7 +310,16 @@ export function GenerateClient() {
           photoAssetIds: photos.map((p) => p.assetId),
         }),
       });
-      const json = await res.json();
+      let json: any;
+      try {
+        json = await res.json();
+      } catch {
+        throw new Error(
+          res.status === 504
+            ? "The request timed out. Try again, or use fewer photos."
+            : `Generation failed (${res.status}). Please try again.`
+        );
+      }
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Generation failed");
       setResult(json);
     } catch (e: any) {
