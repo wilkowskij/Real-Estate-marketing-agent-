@@ -2,7 +2,7 @@
 
 A living checklist of what's left. Tick a box (`[ ]` → `[x]`) and commit as you
 go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build work
-(ask Claude). Last updated: 2026-06-02.
+(ask Claude). Last updated: 2026-06-03.
 
 ---
 
@@ -15,8 +15,10 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
       `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_BROKERAGE`
 - [x] Add the webhook endpoint in Stripe → `https://<your-domain>/api/webhooks/stripe`
       (events: `checkout.session.completed`, `customer.subscription.*`, `invoice.*`)
-- [ ] Enable the Stripe **Customer Portal** (Billing → Customer portal settings)
-- [ ] Test a checkout end-to-end from `/company/subscription`
+- [x] Enable the Stripe **Customer Portal** (Billing → Customer portal settings)
+- [x] Test a checkout end-to-end from `/company/subscription` — Professional plan
+      verified in DB (`subscriptions.plan=pro`, `status=active`, `orgs.plan=pro`,
+      `current_period_end` set; full billing-event chain captured)
 
 ### Social OAuth apps (code is built — needs platform credentials + review)
 - [ ] **Meta** (Instagram + Facebook): create app, request `instagram_content_publish`,
@@ -56,6 +58,18 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [x] Social OAuth + publishers + publish queue (per-person connections, IG/FB/LI/X)
 - [x] Stripe billing module (plans, checkout, portal, webhooks, usage metering)
 - [x] Simplified UI → Company + Profile hubs
+- [x] **Stripe verified end-to-end** in production (checkout → webhook → DB)
+- [x] **Email + SMS content types** (Messaging Agent, channel switcher, previews,
+      Stop Slop, usage-metered)
+- [x] **Stop Slop quality gate** — flags real-estate clichés + missing local
+      specificity on generated social/email/SMS copy (no extra LLM call)
+- [x] **Post preview drawer** on the calendar queue — click a post to view media,
+      edit caption, reschedule, approve/publish inline
+- [x] **Content mix settings** on Plan 30 days — per-bucket sliders (educational /
+      community / listings / social proof / personal brand) + post-count control
+- [x] **Speech-to-text dictation** on the Create brief (Web Speech API)
+- [x] **Photo UX** — client-side resize (fixes 4.5 MB upload 413), multi-upload,
+      per-thumbnail delete
 
 ### Next up (net-new pillars)
 - [x] **Email + SMS** content types in the marketing agent — channel switcher on
