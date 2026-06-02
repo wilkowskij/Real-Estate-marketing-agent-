@@ -3,13 +3,35 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
-const PROTECTED = ["/dashboard", "/generate", "/calendar", "/brand", "/library", "/team", "/settings"];
+const PROTECTED = [
+  "/dashboard",
+  "/generate",
+  "/calendar",
+  "/library",
+  "/company",
+  "/profile",
+  // Legacy routes kept as redirect stubs — still gate them behind auth.
+  "/brand",
+  "/team",
+  "/settings",
+];
 
 /**
  * Refresh the Supabase session on every request and gate the app routes.
  * Unauthenticated visitors to protected routes are redirected to /login.
+ *
+ * Prefetch requests are passed through untouched: the sidebar prefetches every
+ * nav link at once, and letting each one refresh (rotate) the Supabase session
+ * concurrently can invalidate the refresh token and sign the user out. Real
+ * navigations still refresh normally.
  */
 export async function middleware(request: NextRequest) {
+  const isPrefetch =
+    request.headers.get("next-router-prefetch") === "1" ||
+    request.headers.get("purpose") === "prefetch" ||
+    request.headers.get("x-purpose") === "prefetch";
+  if (isPrefetch) return NextResponse.next({ request });
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

@@ -27,6 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   active
