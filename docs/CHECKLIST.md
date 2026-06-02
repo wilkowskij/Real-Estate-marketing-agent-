@@ -15,8 +15,8 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
       `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_BROKERAGE`
 - [x] Add the webhook endpoint in Stripe → `https://<your-domain>/api/webhooks/stripe`
       (events: `checkout.session.completed`, `customer.subscription.*`, `invoice.*`)
-- [ ] Enable the Stripe **Customer Portal** (Billing → Customer portal settings)
-- [ ] Test a checkout end-to-end from `/company/subscription`
+- [x] Enable the Stripe **Customer Portal** (Billing → Customer portal settings)
+- [x] Test a checkout end-to-end from `/company/subscription`
 
 ### Social OAuth apps (code is built — needs platform credentials + review)
 - [ ] **Meta** (Instagram + Facebook): create app, request `instagram_content_publish`,
