@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const NAV = [
   { href: "/dashboard", label: "Studio", icon: "◆" },
@@ -15,6 +16,16 @@ const NAV = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function signOut() {
+    // Clear the session everywhere (also wipes the local refresh token), then
+    // send the user to login with a fresh slate.
+    await createSupabaseBrowserClient().auth.signOut({ scope: "local" });
+    router.replace("/login");
+    router.refresh();
+  }
+
   return (
     <div className="flex min-h-screen bg-paper">
       {/* Sidebar */}
@@ -56,7 +67,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="hidden text-sm text-ink-muted sm:block">
               Welcome back
             </span>
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-gold to-gold-deep" />
+            <Link href="/profile" aria-label="Your profile">
+              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-gold to-gold-deep" />
+            </Link>
+            <button
+              onClick={signOut}
+              className="rounded-full border border-paper-line px-3.5 py-1.5 text-sm text-ink-soft transition-colors hover:bg-paper hover:text-ink"
+            >
+              Sign out
+            </button>
           </div>
         </header>
         <main className="flex-1 p-8">{children}</main>
