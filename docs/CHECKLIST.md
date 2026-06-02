@@ -9,11 +9,11 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 ## 🧑 Your setup tasks (required before going live)
 
 ### Stripe billing (code is built — needs your account wiring)
-- [ ] Create a Stripe account (or use existing) and switch to **live mode** when ready
-- [ ] Create 4 recurring products/prices: Starter $49, Pro $99, Team $249, Brokerage $499
-- [ ] Add env vars in Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+- [x] Create a Stripe account (or use existing) and switch to **live mode** when ready
+- [x] Create 4 recurring products/prices: Starter $49, Pro $99, Team $249, Brokerage $499
+- [x] Add env vars in Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
       `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_BROKERAGE`
-- [ ] Add the webhook endpoint in Stripe → `https://<your-domain>/api/webhooks/stripe`
+- [x] Add the webhook endpoint in Stripe → `https://<your-domain>/api/webhooks/stripe`
       (events: `checkout.session.completed`, `customer.subscription.*`, `invoice.*`)
 - [ ] Enable the Stripe **Customer Portal** (Billing → Customer portal settings)
 - [ ] Test a checkout end-to-end from `/company/subscription`
