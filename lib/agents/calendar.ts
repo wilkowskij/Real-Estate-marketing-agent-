@@ -28,6 +28,37 @@ export const CONTENT_MIX: MixBucket[] = [
   { bucket: "listings", share: 0.125, types: ["new_listing", "open_house", "deal_of_week"] },
 ];
 
+/** Human-friendly labels + descriptions for the mix settings UI. */
+export const MIX_LABELS: Record<string, { label: string; hint: string }> = {
+  educational: { label: "Educational", hint: "Market stats, how-to, rate explainers" },
+  community: { label: "About the community", hint: "Neighborhood spotlights, before/after" },
+  social_proof: { label: "Social proof", hint: "Just sold, testimonials, reviews" },
+  personal_brand: { label: "Personal brand", hint: "Your story, behind the scenes" },
+  listings: { label: "The house (listings)", hint: "New listings, open houses, deals" },
+};
+
+/**
+ * Resolve the content mix from optional caller-supplied weights. Each weight is
+ * a relative number (e.g. a slider 0–100); they're normalized to shares that sum
+ * to 1, so the caller never has to make them add up. Buckets omitted from
+ * `weights` fall back to their research default. Buckets explicitly set to 0 are
+ * dropped from the calendar entirely. Returns the canonical CONTENT_MIX when no
+ * weights are given.
+ */
+export function resolveMix(weights?: Record<string, number>): MixBucket[] {
+  if (!weights || Object.keys(weights).length === 0) return CONTENT_MIX;
+  const raw = CONTENT_MIX.map((b) => ({
+    ...b,
+    weight: weights[b.bucket] ?? b.share,
+  }));
+  const total = raw.reduce((s, b) => s + (b.weight > 0 ? b.weight : 0), 0);
+  // Guard against an all-zero mix → fall back to defaults rather than produce nothing.
+  if (total <= 0) return CONTENT_MIX;
+  return raw
+    .filter((b) => b.weight > 0)
+    .map(({ weight, ...b }) => ({ ...b, share: weight / total }));
+}
+
 /** Research-recommended default format per type (mirrors the marketing agent). */
 const TYPE_FORMAT: Record<CampaignType, PostFormat> = {
   just_sold: "single_image",
@@ -66,9 +97,13 @@ export interface PlannedPost {
  * (round-robin within the bucket), assign a platform + best-time date starting
  * from `start`, spreading evenly. Pure + deterministic → unit-testable.
  */
-export function buildSchedule(count: number, start: Date): Omit<PlannedPost, "angle">[] {
+export function buildSchedule(
+  count: number,
+  start: Date,
+  mix: MixBucket[] = CONTENT_MIX
+): Omit<PlannedPost, "angle">[] {
   // 1) Largest-remainder allocation of slot counts per bucket.
-  const raw = CONTENT_MIX.map((b) => ({ b, exact: b.share * count }));
+  const raw = mix.map((b) => ({ b, exact: b.share * count }));
   const alloc = raw.map((r) => ({ b: r.b, n: Math.floor(r.exact), rem: r.exact - Math.floor(r.exact) }));
   let assigned = alloc.reduce((s, a) => s + a.n, 0);
   alloc
@@ -157,8 +192,10 @@ export async function planContentCalendar(args: {
   count: number;
   start?: Date;
   area?: string;
+  /** Relative per-bucket weights (e.g. from the mix-settings sliders). */
+  mix?: Record<string, number>;
 }): Promise<{ posts: PlannedPost[]; usage: { input: number; output: number } }> {
-  const schedule = buildSchedule(args.count, args.start ?? new Date());
+  const schedule = buildSchedule(args.count, args.start ?? new Date(), resolveMix(args.mix));
   const area = args.area ?? "Monmouth County, NJ";
   const client = getAnthropic();
 

@@ -14,6 +14,8 @@ const Body = z.object({
   /** ISO date to start from (default: today). */
   start: z.string().datetime().optional(),
   area: z.string().optional(),
+  /** Relative per-bucket weights from the mix-settings sliders (0–100 each). */
+  mix: z.record(z.string(), z.number().min(0).max(100)).optional(),
 });
 
 /**
@@ -35,6 +37,7 @@ export async function POST(req: NextRequest) {
     count: parsed.data.count ?? 20,
     start: parsed.data.start ? new Date(parsed.data.start) : undefined,
     area: parsed.data.area,
+    mix: parsed.data.mix,
   });
 
   const supabase = createSupabaseServerClient();
