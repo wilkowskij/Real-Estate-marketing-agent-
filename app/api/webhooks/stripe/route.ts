@@ -101,9 +101,12 @@ async function reconcile(
   sub: Stripe.Subscription,
   deleted = false
 ) {
-  const priceId = sub.items.data[0]?.price.id;
+  const firstItem = sub.items.data[0];
+  const priceId = firstItem?.price.id;
   const plan: PlanId = deleted ? "free" : (priceId && planForPriceId(priceId)) || "free";
-  const periodEnd = (sub as any).current_period_end as number | undefined;
+  // Stripe API 2026-05-27+ moved current_period_end to the subscription item.
+  const periodEnd: number | undefined =
+    (firstItem as any)?.current_period_end ?? (sub as any).current_period_end;
 
   await supabase.from("subscriptions").upsert(
     {
