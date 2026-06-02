@@ -6,7 +6,10 @@ import {
   summarizeProduction,
   summarizeContentMix,
   summarizeEngagement,
+  summarizeRevenue,
+  summarizeFunnel,
   type MetricRow,
+  type DealRow,
 } from "@/lib/analytics/summary";
 import type { CampaignType } from "@/lib/supabase/types";
 
@@ -36,7 +39,15 @@ export default async function AnalyticsPage() {
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  const [{ data: posts }, { data: campaigns }, { count: genCount }, { data: metrics }] = ctx
+  const [
+    { data: posts },
+    { data: campaigns },
+    { count: genCount },
+    { data: metrics },
+    { data: deals },
+    { data: trackedLinks },
+    { count: leadCount },
+  ] = ctx
     ? await Promise.all([
         supabase.from("posts").select("platform, state, created_at").eq("org_id", ctx.orgId),
         supabase.from("campaigns").select("type").eq("org_id", ctx.orgId),
@@ -51,8 +62,11 @@ export default async function AnalyticsPage() {
           .select("post_id, platform, impressions, reach, likes, comments, shares, saves, clicks, captured_at")
           .eq("org_id", ctx.orgId)
           .order("captured_at", { ascending: false }),
+        supabase.from("deals").select("stage, value, source").eq("org_id", ctx.orgId),
+        supabase.from("tracked_links").select("clicks").eq("org_id", ctx.orgId),
+        supabase.from("leads").select("id", { count: "exact", head: true }).eq("org_id", ctx.orgId),
     ])
-    : [{ data: [] }, { data: [] }, { count: 0 }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { count: 0 }, { data: [] }, { data: [] }, { data: [] }, { count: 0 }];
 
   const production = summarizeProduction((posts as any) ?? []);
   const mix = summarizeContentMix(((campaigns as any) ?? []).map((c: any) => c.type as CampaignType));
@@ -64,7 +78,13 @@ export default async function AnalyticsPage() {
   }
   const engagement = summarizeEngagement([...latestByPost.values()]);
 
+  const revenue = summarizeRevenue(((deals as any) ?? []) as DealRow[]);
+  const totalClicks = ((trackedLinks as any[]) ?? []).reduce((s, l) => s + (l.clicks ?? 0), 0);
+  const funnel = summarizeFunnel(totalClicks, leadCount ?? 0, ((deals as any[]) ?? []).length, revenue.wonCount);
+
   const pct = (n: number) => `${Math.round(n * 100)}%`;
+  const usd = (n: number) =>
+    n >= 1000 ? `$${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : `$${n.toLocaleString()}`;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -177,6 +197,64 @@ export default async function AnalyticsPage() {
             </Card>
           )}
         </>
+      )}
+
+      {/* Revenue & attribution */}
+      <h2 className="mt-8 font-display text-lg text-navy">Revenue &amp; attribution</h2>
+      <p className="mt-1 text-sm text-ink-muted">From click to lead to closed deal — and what produced it.</p>
+
+      {/* Funnel */}
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Clicks", value: funnel.clicks.toLocaleString(), rate: null },
+          { label: "Leads", value: funnel.leads.toLocaleString(), rate: `${pct(funnel.clickToLead)} of clicks` },
+          { label: "Deals", value: funnel.deals.toLocaleString(), rate: `${pct(funnel.leadToDeal)} of leads` },
+          { label: "Won", value: funnel.won.toLocaleString(), rate: `${pct(funnel.dealToWon)} of deals` },
+        ].map((s) => (
+          <Card key={s.label}>
+            <CardBody>
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{s.label}</p>
+              <p className="mt-1 font-display text-3xl text-navy">{s.value}</p>
+              {s.rate && <p className="mt-1 text-xs text-ink-muted">{s.rate}</p>}
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+
+      {/* Revenue */}
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Stat label="Closed revenue" value={usd(revenue.wonValue)} hint={`${revenue.wonCount} won`} />
+        <Stat label="Open pipeline" value={usd(revenue.pipelineValue)} hint={`${revenue.openCount} active`} />
+        <Stat label="Deals lost" value={revenue.lostCount} />
+      </div>
+
+      {revenue.hasData ? (
+        <Card className="mt-4">
+          <CardBody>
+            <p className="eyebrow mb-3">Closed revenue by source</p>
+            <div className="divide-y divide-paper-line">
+              {revenue.bySource.map((r) => (
+                <div key={r.source} className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-ink-soft">{r.source}</span>
+                  <span className="flex items-center gap-3">
+                    <span className="text-xs text-ink-muted">{r.deals} deal{r.deals !== 1 ? "s" : ""}</span>
+                    <Badge>{usd(r.wonValue)}</Badge>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      ) : (
+        <Card className="mt-4">
+          <CardBody>
+            <p className="text-sm text-ink-muted">
+              No deals yet. Convert a lead into a deal from the{" "}
+              <a href="/leads" className="text-gold-deep hover:underline">Leads</a> hub, and
+              closed revenue will be attributed to its source here.
+            </p>
+          </CardBody>
+        </Card>
       )}
     </div>
   );

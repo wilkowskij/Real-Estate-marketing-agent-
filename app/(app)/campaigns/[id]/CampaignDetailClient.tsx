@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -230,6 +230,104 @@ export function CampaignDetailClient({
           ))}
         </div>
       )}
+
+      {/* Tracked links */}
+      <TrackedLinks campaignId={campaign.id} />
     </div>
+  );
+}
+
+interface LinkRow {
+  id: string;
+  slug: string;
+  destination: string;
+  label: string | null;
+  clicks: number;
+}
+
+/** Per-campaign tracked links: create a /r/<slug> short link and watch clicks. */
+function TrackedLinks({ campaignId }: { campaignId: string }) {
+  const [links, setLinks] = useState<LinkRow[]>([]);
+  const [destination, setDestination] = useState("");
+  const [label, setLabel] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  async function load() {
+    const res = await fetch(`/api/tracked-links?campaignId=${campaignId}`);
+    if (res.ok) setLinks((await res.json()).links ?? []);
+  }
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignId]);
+
+  async function create() {
+    if (!destination.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/tracked-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destination, label: label || undefined, marketingCampaignId: campaignId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Could not create");
+      setDestination("");
+      setLabel("");
+      load();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <h2 className="mt-8 font-display text-lg text-navy">Tracked links</h2>
+      <p className="mt-1 text-sm text-ink-muted">
+        Use these as your post / email CTA — clicks are counted and feed the
+        attribution funnel in Analytics.
+      </p>
+
+      <Card className="mt-3">
+        <CardBody className="space-y-4">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-[180px]">
+              <Label>Destination URL</Label>
+              <Input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="https://yoursite.com/14-riverside-ave" />
+            </div>
+            <div className="w-40">
+              <Label>Label</Label>
+              <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="IG bio" />
+            </div>
+            <Button variant="secondary" onClick={create} disabled={busy || !destination.trim()}>
+              {busy ? "Adding…" : "Add link"}
+            </Button>
+          </div>
+          {error && <p className="text-sm text-error">{error}</p>}
+
+          {links.length > 0 && (
+            <div className="divide-y divide-paper-line">
+              {links.map((l) => (
+                <div key={l.id} className="flex items-center justify-between gap-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-ink">
+                      {origin}/r/{l.slug}
+                      {l.label ? <span className="text-ink-muted"> · {l.label}</span> : null}
+                    </p>
+                    <p className="truncate text-xs text-ink-muted">→ {l.destination}</p>
+                  </div>
+                  <Badge>{l.clicks} click{l.clicks !== 1 ? "s" : ""}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+    </>
   );
 }

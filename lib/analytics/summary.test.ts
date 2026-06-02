@@ -3,6 +3,8 @@ import {
   summarizeProduction,
   summarizeContentMix,
   summarizeEngagement,
+  summarizeRevenue,
+  summarizeFunnel,
 } from "./summary";
 
 describe("summarizeProduction", () => {
@@ -69,5 +71,45 @@ describe("summarizeEngagement", () => {
     expect(s.totals.engagementRate).toBeCloseTo(83 / 1500);
     expect(s.topPosts[0].postId).toBe("a");
     expect(s.byPlatform.instagram.engagements).toBe(70);
+  });
+});
+
+describe("summarizeRevenue", () => {
+  it("splits won / pipeline / lost and attributes by source", () => {
+    const s = summarizeRevenue([
+      { stage: "closed_won", value: 12000, source: "open_house" },
+      { stage: "under_contract", value: 9000, source: "landing" },
+      { stage: "closed_lost", value: 5000, source: "landing" },
+      { stage: "prospect", value: 4000, source: null },
+    ]);
+    expect(s.hasData).toBe(true);
+    expect(s.wonValue).toBe(12000);
+    expect(s.wonCount).toBe(1);
+    expect(s.pipelineValue).toBe(13000); // 9000 + 4000
+    expect(s.openCount).toBe(2);
+    expect(s.lostCount).toBe(1);
+    const oh = s.bySource.find((r) => r.source === "Open house")!;
+    expect(oh.wonValue).toBe(12000);
+    expect(s.bySource.find((r) => r.source === "Unattributed")!.deals).toBe(1);
+  });
+
+  it("reports no data on empty input", () => {
+    expect(summarizeRevenue([]).hasData).toBe(false);
+  });
+});
+
+describe("summarizeFunnel", () => {
+  it("computes stage conversion rates", () => {
+    const f = summarizeFunnel(100, 20, 5, 2);
+    expect(f.clickToLead).toBeCloseTo(0.2);
+    expect(f.leadToDeal).toBeCloseTo(0.25);
+    expect(f.dealToWon).toBeCloseTo(0.4);
+  });
+
+  it("guards against divide-by-zero", () => {
+    const f = summarizeFunnel(0, 0, 0, 0);
+    expect(f.clickToLead).toBe(0);
+    expect(f.leadToDeal).toBe(0);
+    expect(f.dealToWon).toBe(0);
   });
 });

@@ -244,6 +244,43 @@ export interface Lead {
   created_at: string;
 }
 
+export type DealStage =
+  | "prospect"
+  | "appointment"
+  | "agreement"
+  | "under_contract"
+  | "closed_won"
+  | "closed_lost";
+
+/** A lead that progressed toward a closing, with durable attribution. */
+export interface Deal {
+  id: string;
+  org_id: string;
+  created_by: string;
+  lead_id: string | null;
+  marketing_campaign_id: string | null;
+  listing_id: string | null;
+  title: string;
+  value: number | null;
+  stage: DealStage;
+  source: string | null;
+  closed_at: string | null;
+  created_at: string;
+}
+
+/** A short link that logs a click then redirects (for post→click attribution). */
+export interface TrackedLink {
+  id: string;
+  org_id: string;
+  created_by: string;
+  slug: string;
+  destination: string;
+  label: string | null;
+  marketing_campaign_id: string | null;
+  clicks: number;
+  created_at: string;
+}
+
 export interface RecurringJob {
   id: string;
   org_id: string;

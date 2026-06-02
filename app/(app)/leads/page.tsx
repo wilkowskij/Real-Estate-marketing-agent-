@@ -1,7 +1,7 @@
 import QRCode from "qrcode";
 import { getOrgContext } from "@/lib/org";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { LeadsClient, type FormCard, type LeadRow } from "./LeadsClient";
+import { LeadsClient, type FormCard, type LeadRow, type DealItem } from "./LeadsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ export default async function LeadsPage() {
   const ctx = await getOrgContext();
   const supabase = createSupabaseServerClient();
 
-  const [{ data: forms }, { data: leads }] = ctx
+  const [{ data: forms }, { data: leads }, { data: deals }] = ctx
     ? await Promise.all([
         supabase
           .from("lead_forms")
@@ -26,8 +26,13 @@ export default async function LeadsPage() {
           .eq("org_id", ctx.orgId)
           .order("created_at", { ascending: false })
           .limit(200),
+        supabase
+          .from("deals")
+          .select("id, title, value, stage, source, created_at")
+          .eq("org_id", ctx.orgId)
+          .order("created_at", { ascending: false }),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
 
   const origin = appOrigin();
   const formCards: FormCard[] = await Promise.all(
@@ -73,7 +78,12 @@ export default async function LeadsPage() {
         and every contact lands here in your pipeline.
       </p>
 
-      <LeadsClient forms={formCards} leads={leadRows} hasOrigin={!!origin} />
+      <LeadsClient
+        forms={formCards}
+        leads={leadRows}
+        deals={((deals as any) ?? []) as DealItem[]}
+        hasOrigin={!!origin}
+      />
     </div>
   );
 }

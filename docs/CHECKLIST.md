@@ -87,7 +87,11 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
       `/l/<slug>` landing pages + open-house sign-in, QR codes + shareable links,
       public capture API (service-role, honeypot), `/leads` hub with a status
       pipeline (new → contacted → qualified → won/lost)
-- [ ] **Revenue attribution** — post → click → lead → deal (`opportunities`, `deals`)
+- [x] **Revenue attribution** — post → click → lead → deal. `deals` +
+      `tracked_links` tables (RLS), public `/r/<slug>` redirect with atomic
+      click counting, convert-lead-to-deal + deals pipeline in the Leads hub,
+      per-campaign tracked links in campaign detail, and a Revenue & attribution
+      section in Analytics (funnel + closed revenue by source)
 - [ ] **Video marketing engine** — scene detect → clips → reels (Shotstack + scene AI)
 - [ ] **Stories / Reels** publishing endpoints
 - [ ] **White-label theming** for brokerages

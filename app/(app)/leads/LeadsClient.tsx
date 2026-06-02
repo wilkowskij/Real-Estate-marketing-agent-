@@ -27,8 +27,25 @@ export interface LeadRow {
   formTitle: string | null;
   createdAt: string;
 }
+export interface DealItem {
+  id: string;
+  title: string;
+  value: number | null;
+  stage: string;
+  source: string | null;
+  created_at: string;
+}
 
 const STATUSES = ["new", "contacted", "qualified", "won", "lost"] as const;
+const DEAL_STAGES = ["prospect", "appointment", "agreement", "under_contract", "closed_won", "closed_lost"] as const;
+const DEAL_STAGE_LABEL: Record<string, string> = {
+  prospect: "Prospect",
+  appointment: "Appointment",
+  agreement: "Agreement",
+  under_contract: "Under contract",
+  closed_won: "Closed won",
+  closed_lost: "Closed lost",
+};
 const KIND_LABEL: Record<string, string> = {
   general: "Landing page",
   open_house: "Open house",
@@ -38,10 +55,12 @@ const KIND_LABEL: Record<string, string> = {
 export function LeadsClient({
   forms,
   leads,
+  deals,
   hasOrigin,
 }: {
   forms: FormCard[];
   leads: LeadRow[];
+  deals: DealItem[];
   hasOrigin: boolean;
 }) {
   const router = useRouter();
@@ -89,6 +108,25 @@ export function LeadsClient({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
+    });
+    router.refresh();
+  }
+
+  async function convertToDeal(lead: LeadRow) {
+    const title = lead.name || lead.email || lead.phone || "New deal";
+    await fetch("/api/deals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, leadId: lead.id }),
+    });
+    router.refresh();
+  }
+
+  async function updateDeal(id: string, patch: Record<string, unknown>) {
+    await fetch(`/api/deals/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
     });
     router.refresh();
   }
@@ -215,17 +253,78 @@ export function LeadsClient({
                   </p>
                   {l.message && <p className="mt-1 text-xs text-ink-soft line-clamp-2">{l.message}</p>}
                 </div>
-                <Select
-                  value={l.status}
-                  onChange={(e) => setStatus(l.id, e.target.value)}
-                  className="h-9 w-36"
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s[0].toUpperCase() + s.slice(1)}
-                    </option>
-                  ))}
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={l.status}
+                    onChange={(e) => setStatus(l.id, e.target.value)}
+                    className="h-9 w-32"
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s[0].toUpperCase() + s.slice(1)}
+                      </option>
+                    ))}
+                  </Select>
+                  <button
+                    onClick={() => convertToDeal(l)}
+                    className="whitespace-nowrap rounded-lg border border-paper-line px-2.5 py-2 text-xs font-semibold text-gold-deep hover:border-gold/60"
+                    title="Create a deal from this lead"
+                  >
+                    → Deal
+                  </button>
+                </div>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Deals pipeline */}
+      <h2 className="mt-10 font-display text-lg text-navy">Deals</h2>
+      {deals.length === 0 ? (
+        <Card className="mt-3">
+          <CardBody>
+            <p className="text-sm text-ink-muted">
+              No deals yet. Click <span className="font-medium">→ Deal</span> on a lead to start
+              tracking it toward a closing. Closed revenue is attributed by source in Analytics.
+            </p>
+          </CardBody>
+        </Card>
+      ) : (
+        <Card className="mt-3">
+          <CardBody className="divide-y divide-paper-line">
+            {deals.map((d) => (
+              <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink">{d.title}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">
+                    {d.source ? d.source.replace(/_/g, " ") : "Unattributed"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center rounded-lg border border-paper-line px-2">
+                    <span className="text-xs text-ink-muted">$</span>
+                    <input
+                      type="number"
+                      defaultValue={d.value ?? ""}
+                      placeholder="value"
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        updateDeal(d.id, { value: v === "" ? null : Number(v) });
+                      }}
+                      className="h-9 w-24 bg-transparent px-1 text-sm text-ink focus:outline-none"
+                    />
+                  </div>
+                  <Select
+                    value={d.stage}
+                    onChange={(e) => updateDeal(d.id, { stage: e.target.value })}
+                    className="h-9 w-40"
+                  >
+                    {DEAL_STAGES.map((s) => (
+                      <option key={s} value={s}>{DEAL_STAGE_LABEL[s]}</option>
+                    ))}
+                  </Select>
+                </div>
               </div>
             ))}
           </CardBody>

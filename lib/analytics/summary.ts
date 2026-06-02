@@ -150,3 +150,78 @@ export function summarizeEngagement(metrics: MetricRow[]): EngagementSummary {
 
   return { hasData: metrics.length > 0, totals, byPlatform, topPosts };
 }
+
+// ---------------------------------------------------------------------------
+// Revenue attribution: post → click → lead → deal.
+// ---------------------------------------------------------------------------
+
+export interface DealRow {
+  stage: string;
+  value: number | null;
+  source: string | null;
+}
+
+export interface RevenueSummary {
+  hasData: boolean;
+  wonValue: number;
+  wonCount: number;
+  pipelineValue: number; // value of open (non-closed) deals
+  openCount: number;
+  lostCount: number;
+  /** Won revenue + deal count grouped by attribution source. */
+  bySource: { source: string; deals: number; wonValue: number }[];
+}
+
+const SOURCE_LABEL: Record<string, string> = {
+  landing: "Landing page",
+  open_house: "Open house",
+  qr: "QR code",
+  manual: "Manual",
+};
+
+export function summarizeRevenue(deals: DealRow[]): RevenueSummary {
+  let wonValue = 0, wonCount = 0, pipelineValue = 0, openCount = 0, lostCount = 0;
+  const bySrc = new Map<string, { deals: number; wonValue: number }>();
+
+  for (const d of deals) {
+    const v = num(d.value);
+    const src = d.source ? SOURCE_LABEL[d.source] ?? d.source : "Unattributed";
+    if (!bySrc.has(src)) bySrc.set(src, { deals: 0, wonValue: 0 });
+    const row = bySrc.get(src)!;
+    row.deals += 1;
+
+    if (d.stage === "closed_won") {
+      wonValue += v; wonCount += 1; row.wonValue += v;
+    } else if (d.stage === "closed_lost") {
+      lostCount += 1;
+    } else {
+      pipelineValue += v; openCount += 1;
+    }
+  }
+
+  const bySource = [...bySrc.entries()]
+    .map(([source, r]) => ({ source, ...r }))
+    .sort((a, b) => b.wonValue - a.wonValue || b.deals - a.deals);
+
+  return { hasData: deals.length > 0, wonValue, wonCount, pipelineValue, openCount, lostCount, bySource };
+}
+
+export interface Funnel {
+  clicks: number;
+  leads: number;
+  deals: number;
+  won: number;
+  clickToLead: number;
+  leadToDeal: number;
+  dealToWon: number;
+}
+
+/** Conversion funnel across the four stages. Rates are 0 when the prior stage is 0. */
+export function summarizeFunnel(clicks: number, leads: number, deals: number, won: number): Funnel {
+  return {
+    clicks, leads, deals, won,
+    clickToLead: clicks > 0 ? leads / clicks : 0,
+    leadToDeal: leads > 0 ? deals / leads : 0,
+    dealToWon: deals > 0 ? won / deals : 0,
+  };
+}
