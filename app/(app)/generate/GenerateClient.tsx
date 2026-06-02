@@ -62,6 +62,36 @@ interface Result {
   generatedImage?: boolean;
 }
 
+/** Resize a photo to at most 2048 px on its longest side, output as JPEG.
+ *  Keeps any photo well under Vercel's 4.5 MB body limit while remaining
+ *  sharp enough for every social platform. */
+function resizeForUpload(file: File, maxPx = 2048, quality = 0.85): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { reject(new Error("Could not process image")); return; }
+          resolve(new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Could not read image")); };
+    img.src = objectUrl;
+  });
+}
+
 export function GenerateClient() {
   const params = useSearchParams();
   const initialType = (params.get("type") as CampaignType) || "just_sold";
@@ -189,10 +219,16 @@ export function GenerateClient() {
     setError(null);
     try {
       for (const file of Array.from(files)) {
+        const resized = await resizeForUpload(file);
         const fd = new FormData();
-        fd.append("file", file);
+        fd.append("file", resized);
         const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
-        const json = await res.json();
+        let json: any;
+        try {
+          json = await res.json();
+        } catch {
+          throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+        }
         if (!res.ok) throw new Error(json.error || "Upload failed");
         setPhotos((p) => [...p, { assetId: json.assetId, previewUrl: json.previewUrl }]);
       }
