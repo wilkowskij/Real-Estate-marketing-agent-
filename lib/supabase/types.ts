@@ -102,6 +102,30 @@ export interface CopyPackage {
   carousel_slides?: string[];
 }
 
+/**
+ * Marketing channel. "social" is the post pipeline (graphic + caption); "email"
+ * and "sms" are direct-to-contact nurture messages with their own copy shapes.
+ */
+export type MarketingChannel = "social" | "email" | "sms";
+
+/** Structured email copy — subject + inbox preview + body + CTA. */
+export interface EmailCopy {
+  subject: string;
+  /** Inbox preview / preheader text (~40-90 chars). */
+  preview: string;
+  /** Body with paragraph line breaks. Plain text the agent can paste or template. */
+  body: string;
+  cta: string;
+  compliance_notes: string[];
+}
+
+/** Structured SMS copy — one short message, optional follow-up. */
+export interface SmsCopy {
+  /** The text message. Kept under ~320 chars (2 SMS segments). */
+  message: string;
+  compliance_notes: string[];
+}
+
 export interface Asset {
   id: string;
   org_id: string;

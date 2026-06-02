@@ -63,6 +63,21 @@ interface Result {
   slopIssues?: string[];
 }
 
+interface MessageResult {
+  channel: "email" | "sms";
+  copy: {
+    // email
+    subject?: string;
+    preview?: string;
+    body?: string;
+    cta?: string;
+    // sms
+    message?: string;
+    compliance_notes: string[];
+  };
+  slopIssues?: string[];
+}
+
 /** Resize a photo to at most 2048 px on its longest side, output as JPEG.
  *  Keeps any photo well under Vercel's 4.5 MB body limit while remaining
  *  sharp enough for every social platform. */
@@ -97,6 +112,7 @@ export function GenerateClient() {
   const params = useSearchParams();
   const initialType = (params.get("type") as CampaignType) || "just_sold";
 
+  const [channel, setChannel] = useState<"social" | "email" | "sms">("social");
   const [type, setType] = useState<CampaignType>(initialType);
   const [listing, setListing] = useState({
     address: "",
@@ -107,6 +123,8 @@ export function GenerateClient() {
     sqft: "",
   });
   const [instructions, setInstructions] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [messageResult, setMessageResult] = useState<MessageResult | null>(null);
   const [sizeKey, setSizeKey] = useState("ig_portrait");
   const [enhance, setEnhance] = useState(false);
   const [aiImage, setAiImage] = useState(false);
@@ -302,6 +320,47 @@ export function GenerateClient() {
     }
   }
 
+  /** Generate email or SMS nurture copy (the Messaging Agent). */
+  async function onGenerateMessage() {
+    setGenerating(true);
+    setError(null);
+    setMessageResult(null);
+    try {
+      const num = (v: string) => (v.trim() === "" ? null : Number(v));
+      const res = await fetch("/api/campaigns/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel,
+          type,
+          instructions: instructions || undefined,
+          recipientName: recipientName || undefined,
+          listing: {
+            address: listing.address || undefined,
+            town: listing.town || undefined,
+            price: num(listing.price),
+            beds: num(listing.beds),
+            baths: num(listing.baths),
+            sqft: num(listing.sqft),
+          },
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Generation failed");
+      setMessageResult(json);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  const CHANNELS = [
+    { key: "social", label: "Social post", icon: "📱" },
+    { key: "email", label: "Email", icon: "✉️" },
+    { key: "sms", label: "SMS", icon: "💬" },
+  ] as const;
+
   return (
     <>
       {editing && (
@@ -316,10 +375,35 @@ export function GenerateClient() {
       {/* Form */}
       <Card>
         <CardBody className="space-y-6">
+          {/* Channel switcher — social post, email, or SMS. */}
+          <div className="flex gap-2 rounded-xl2 bg-paper p-1">
+            {CHANNELS.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setChannel(c.key)}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  channel === c.key
+                    ? "bg-white text-navy shadow-sm"
+                    : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                <span>{c.icon}</span>
+                {c.label}
+              </button>
+            ))}
+          </div>
+
           {/* AI-first intake: describe it in one line; we fill in the rest. */}
           <div>
             <div className="flex items-center justify-between">
-              <Label>Describe your post</Label>
+              <Label>
+                {channel === "social"
+                  ? "Describe your post"
+                  : channel === "email"
+                  ? "Describe your email"
+                  : "Describe your text"}
+              </Label>
               <button
                 type="button"
                 onClick={toggleListening}
@@ -452,6 +536,19 @@ export function GenerateClient() {
             </>
           )}
 
+          {channel !== "social" && (
+            <div>
+              <Label>Recipient first name (optional)</Label>
+              <Input
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+                placeholder="e.g. Sarah — personalizes the greeting"
+              />
+            </div>
+          )}
+
+          {channel === "social" && (
+          <>
           <div>
             <div className="flex items-center justify-between">
               <Label>Photos</Label>
@@ -602,23 +699,32 @@ export function GenerateClient() {
               />
             </span>
           </button>
+          </>
+          )}
 
           {error && <p className="text-sm text-error">{error}</p>}
 
           <Button
             variant="gold"
             size="lg"
-            onClick={onGenerate}
+            onClick={channel === "social" ? onGenerate : onGenerateMessage}
             disabled={generating}
             className="w-full"
           >
-            {generating ? "Your agents are working…" : "Generate campaign"}
+            {generating
+              ? "Your agents are working…"
+              : channel === "social"
+              ? "Generate campaign"
+              : channel === "email"
+              ? "Generate email"
+              : "Generate text"}
           </Button>
         </CardBody>
       </Card>
 
       {/* Preview */}
       <div className="space-y-4">
+        {channel === "social" && (
         <Card className="overflow-hidden">
           <CardBody>
             <p className="eyebrow mb-3">Preview</p>
@@ -636,8 +742,18 @@ export function GenerateClient() {
             )}
           </CardBody>
         </Card>
+        )}
 
-        {result && (
+        {/* Email / SMS preview */}
+        {channel !== "social" && (
+          <MessagePreview
+            channel={channel}
+            result={messageResult}
+            agentName=""
+          />
+        )}
+
+        {channel === "social" && result && (
           <Card>
             <CardBody className="space-y-3">
               <div className="flex items-center justify-between gap-2">
@@ -727,5 +843,113 @@ export function GenerateClient() {
       </div>
       </div>
     </>
+  );
+}
+
+/** Right-column preview for email / SMS copy, with copy-to-clipboard. */
+function MessagePreview({
+  channel,
+  result,
+}: {
+  channel: "email" | "sms";
+  result: MessageResult | null;
+  agentName: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  if (!result) {
+    return (
+      <Card>
+        <CardBody>
+          <p className="eyebrow mb-3">Preview</p>
+          <div className="flex aspect-[4/5] items-center justify-center rounded-lg bg-paper p-6 text-center text-sm text-ink-muted">
+            {channel === "email"
+              ? "Your email subject line and body will appear here."
+              : "Your text message will appear here."}
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  const c = result.copy;
+  const fullText =
+    channel === "email"
+      ? `Subject: ${c.subject}\n\n${c.body}\n\n${c.cta}`
+      : c.message ?? "";
+
+  return (
+    <Card>
+      <CardBody className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="eyebrow">{channel === "email" ? "Email preview" : "SMS preview"}</p>
+          <button
+            type="button"
+            onClick={() => copy(fullText)}
+            className="text-xs font-semibold text-gold-deep hover:underline"
+          >
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+
+        {channel === "email" ? (
+          <div className="rounded-lg border border-paper-line bg-white">
+            {/* Inbox-style header */}
+            <div className="border-b border-paper-line px-4 py-3">
+              <p className="text-sm font-semibold text-ink">{c.subject}</p>
+              <p className="mt-0.5 text-xs text-ink-muted">{c.preview}</p>
+            </div>
+            <div className="px-4 py-3">
+              <p className="whitespace-pre-wrap text-sm text-ink-soft">{c.body}</p>
+              {c.cta && <p className="mt-3 text-sm font-medium text-navy">{c.cta}</p>}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {/* iMessage-style bubble */}
+            <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-paper px-4 py-2.5 text-sm text-ink">
+              {c.message}
+            </div>
+            <p className="text-[11px] text-ink-muted">
+              {(c.message ?? "").length} characters ·{" "}
+              {Math.ceil((c.message ?? "").length / 160) || 1} SMS segment
+              {Math.ceil((c.message ?? "").length / 160) > 1 ? "s" : ""}
+            </p>
+          </div>
+        )}
+
+        {result.slopIssues && result.slopIssues.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+            <p className="font-semibold">⚠ Stop Slop — generic content detected</p>
+            <ul className="mt-1 list-disc pl-4">
+              {result.slopIssues.map((issue, i) => (
+                <li key={i}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {c.compliance_notes.length > 0 && (
+          <div className="rounded-lg bg-warning-soft p-3 text-xs text-warning">
+            <p className="font-semibold">Compliance notes</p>
+            <ul className="mt-1 list-disc pl-4">
+              {c.compliance_notes.map((n, i) => (
+                <li key={i}>{n}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardBody>
+    </Card>
   );
 }

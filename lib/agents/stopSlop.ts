@@ -46,15 +46,23 @@ const LOCAL_TERMS = [
  * in microseconds inside the generate route.
  */
 export function detectSlop(copy: Pick<CopyPackage, "headline" | "caption" | "cta">): SlopResult {
-  const text = `${copy.headline} ${copy.caption} ${copy.cta}`.toLowerCase();
+  return detectSlopInText(`${copy.headline} ${copy.caption} ${copy.cta}`);
+}
+
+/**
+ * Channel-agnostic slop scan over arbitrary copy text (email subject+body, an
+ * SMS message, etc.). Same cliché + local-specificity checks, no LLM call.
+ */
+export function detectSlopInText(raw: string, opts: { requireLocal?: boolean } = {}): SlopResult {
+  const { requireLocal = true } = opts;
+  const text = raw.toLowerCase();
   const issues: string[] = [];
 
   for (const { re, msg } of SLOP_PATTERNS) {
     if (re.test(text)) issues.push(msg);
   }
 
-  const hasLocal = LOCAL_TERMS.some((t) => text.includes(t));
-  if (!hasLocal) {
+  if (requireLocal && !LOCAL_TERMS.some((t) => text.includes(t))) {
     issues.push("No Monmouth County / NJ local specificity — add a town, landmark, or market angle");
   }
 

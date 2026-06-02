@@ -9,7 +9,7 @@ const FORMATS: PostFormat[] = ["reel", "carousel", "infographic", "single_image"
  *
  * Local expertise lives in a cached system block so repeat calls are cheap.
  */
-const LOCAL_EXPERTISE = `You are a senior real estate marketing copywriter who specializes in
+export const LOCAL_EXPERTISE = `You are a senior real estate marketing copywriter who specializes in
 New Jersey, and specifically Monmouth County. You know the local market intimately:
 
 - Towns & character: Red Bank (walkable downtown, dining, arts), Asbury Park

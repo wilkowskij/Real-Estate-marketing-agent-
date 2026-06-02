@@ -58,7 +58,9 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [x] Simplified UI → Company + Profile hubs
 
 ### Next up (net-new pillars)
-- [ ] **Email + SMS** content types in the marketing agent
+- [x] **Email + SMS** content types in the marketing agent — channel switcher on
+      Create (Social / Email / SMS), Messaging Agent reuses cached local
+      expertise, inbox + iMessage previews, Stop Slop applied, usage-metered
 - [ ] **Campaign object** grouping multi-channel assets (name + strategy + posts)
 - [ ] **Analytics engine** — pull platform insights, store `social_metrics`
 - [ ] **Lead capture / CRM** — landing pages, forms, QR, open-house, `leads` table
