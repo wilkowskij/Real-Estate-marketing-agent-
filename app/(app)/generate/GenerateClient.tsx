@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -93,6 +93,37 @@ export function GenerateClient() {
   const [brief, setBrief] = useState("");
   const [parsing, setParsing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const toggleListening = useCallback(() => {
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setError("Speech recognition is not supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.interimResults = false;
+    rec.continuous = true;
+    rec.onresult = (e: any) => {
+      const transcript = Array.from(e.results as any[])
+        .slice(e.resultIndex)
+        .map((r: any) => r[0].transcript)
+        .join(" ");
+      setBrief((prev) => (prev ? prev.trimEnd() + " " + transcript : transcript));
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    recognitionRef.current = rec;
+    rec.start();
+    setListening(true);
+  }, [listening]);
 
   async function onParseBrief() {
     if (brief.trim().length < 3) return;
@@ -250,7 +281,25 @@ export function GenerateClient() {
         <CardBody className="space-y-6">
           {/* AI-first intake: describe it in one line; we fill in the rest. */}
           <div>
-            <Label>Describe your post</Label>
+            <div className="flex items-center justify-between">
+              <Label>Describe your post</Label>
+              <button
+                type="button"
+                onClick={toggleListening}
+                aria-label={listening ? "Stop recording" : "Dictate with microphone"}
+                className={`mb-1.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                  listening
+                    ? "animate-pulse bg-error/10 text-error"
+                    : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                  <path d="M7 4a3 3 0 016 0v5a3 3 0 01-6 0V4z" />
+                  <path fillRule="evenodd" d="M5.5 9a.5.5 0 011 0 3.5 3.5 0 007 0 .5.5 0 011 0A4.5 4.5 0 0110.5 13.4V15h1a.5.5 0 010 1h-3a.5.5 0 010-1h1v-1.6A4.5 4.5 0 015.5 9z" clipRule="evenodd" />
+                </svg>
+                {listening ? "Recording…" : "Dictate"}
+              </button>
+            </div>
             <Textarea
               rows={2}
               value={brief}
