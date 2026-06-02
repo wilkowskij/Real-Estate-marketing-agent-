@@ -8,11 +8,9 @@ const NAV = [
   { href: "/dashboard", label: "Studio", icon: "◆" },
   { href: "/generate", label: "Create", icon: "✦" },
   { href: "/calendar", label: "Calendar", icon: "▦" },
-  { href: "/brand", label: "Brand kit", icon: "❖" },
   { href: "/library", label: "Library", icon: "▣" },
-  { href: "/team", label: "Team", icon: "⬡" },
-  { href: "/settings/connections", label: "Connections", icon: "⚯" },
-  { href: "/settings/billing", label: "Billing", icon: "◇" },
+  { href: "/company", label: "Company", icon: "⬡" },
+  { href: "/profile", label: "Profile", icon: "◈" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${appUrl()}/settings/billing?status=success`,
-    cancel_url: `${appUrl()}/settings/billing?status=cancelled`,
+    success_url: `${appUrl()}/company/subscription?status=success`,
+    cancel_url: `${appUrl()}/company/subscription?status=cancelled`,
     // Carry org + plan so the webhook can reconcile even if metadata on the
     // subscription is delayed.
     metadata: { org_id: ctx.orgId, plan },

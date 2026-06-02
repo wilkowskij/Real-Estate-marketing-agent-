@@ -16,7 +16,7 @@ const PLATFORMS: Platform[] = ["instagram", "facebook", "linkedin", "twitter"];
  */
 export async function GET(req: NextRequest, { params }: { params: { platform: string } }) {
   const platform = params.platform as Platform;
-  const settings = new URL("/settings/connections", req.url);
+  const settings = new URL("/profile/connections", req.url);
 
   if (!PLATFORMS.includes(platform)) {
     settings.searchParams.set("error", "unknown_platform");

@@ -6,36 +6,32 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Label, Input } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
-import { ImageUpload } from "./ImageUpload";
-import { BrandImport } from "./BrandImport";
+import { ImageUpload } from "@/components/brand/ImageUpload";
+import { BrandImport } from "@/components/brand/BrandImport";
 import type { ResolvedBrand } from "@/lib/branding/resolveBrand";
 
 /**
- * Brand kit + agent profile editor, hydrated from the resolved brand. Company
- * brand fields are disabled for non-admins and for fields the org locked.
+ * Company brand editor: name, colors, disclaimer, logos, and brand-guide import.
+ * Personal agent details (headshot/name/license) live in the user Profile, not
+ * here. Fields are disabled for non-admins and for org-locked fields.
  */
-export function BrandClient({
+export function CompanyBrandClient({
   brand,
   canEditBrand,
   lockedFields,
   logoLightUrl,
   logoDarkUrl,
-  headshotUrl,
 }: {
   brand: ResolvedBrand;
   canEditBrand: boolean;
   lockedFields: string[];
   logoLightUrl: string | null;
   logoDarkUrl: string | null;
-  headshotUrl: string | null;
 }) {
   const router = useRouter();
   const [name, setName] = useState(brand.name ?? "");
   const [colors, setColors] = useState(brand.colors);
   const [disclaimer, setDisclaimer] = useState(brand.disclaimer ?? "");
-  const [fullName, setFullName] = useState(brand.agent.fullName ?? "");
-  const [licenseNumber, setLicenseNumber] = useState(brand.agent.licenseNumber ?? "");
-  const [phone, setPhone] = useState(brand.agent.contact.phone ?? "");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,20 +44,10 @@ export function BrandClient({
     setError(null);
     setMsg(null);
     try {
-      const payload: Record<string, unknown> = {
-        fullName,
-        licenseNumber,
-        contact: { ...brand.agent.contact, phone },
-      };
-      if (canEditBrand) {
-        payload.name = name;
-        payload.colors = colors;
-        payload.disclaimer = disclaimer || null;
-      }
       const res = await fetch("/api/brand", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ name, colors, disclaimer: disclaimer || null }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Save failed");
@@ -75,7 +61,13 @@ export function BrandClient({
   }
 
   return (
-    <>
+    <div>
+      <h2 className="text-2xl text-navy">Brand &amp; documents</h2>
+      <p className="mt-1 max-w-xl text-sm text-ink-soft">
+        Upload your brand guide and set the colors, logos, and disclaimer that
+        flow into every graphic your agents create.
+      </p>
+
       {canEditBrand && (
         <BrandImport
           onApply={(e) => {
@@ -100,11 +92,7 @@ export function BrandClient({
             </div>
             <div>
               <Label>Brand name</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={brandDisabled}
-              />
+              <Input value={name} onChange={(e) => setName(e.target.value)} disabled={brandDisabled} />
             </div>
             <div className="grid grid-cols-3 gap-3">
               {(["primary", "secondary", "accent"] as const).map((k) => (
@@ -129,60 +117,32 @@ export function BrandClient({
                 disabled={brandDisabled}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <ImageUpload
-                slot="logo_light"
-                label="Logo (light bg)"
-                currentUrl={logoLightUrl}
-                disabled={brandDisabled}
-              />
-              <ImageUpload
-                slot="logo_dark"
-                label="Logo (dark bg)"
-                currentUrl={logoDarkUrl}
-                disabled={brandDisabled}
-                dark
-              />
-            </div>
-            {brandDisabled && (
-              <p className="text-xs text-ink-muted">
-                Company logos are managed by your org admin.
-              </p>
-            )}
           </CardBody>
         </Card>
 
         <Card>
           <CardBody className="space-y-4">
-            <h3 className="text-lg text-navy">Agent details</h3>
-            <ImageUpload slot="headshot" label="Headshot" currentUrl={headshotUrl} />
-            <div>
-              <Label>Full name</Label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Jane Wilkowski" />
+            <h3 className="text-lg text-navy">Logos</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <ImageUpload slot="logo_light" label="Logo (light bg)" currentUrl={logoLightUrl} disabled={brandDisabled} />
+              <ImageUpload slot="logo_dark" label="Logo (dark bg)" currentUrl={logoDarkUrl} disabled={brandDisabled} dark />
             </div>
-            <div>
-              <Label>License #</Label>
-              <Input
-                value={licenseNumber}
-                onChange={(e) => setLicenseNumber(e.target.value)}
-                placeholder="NJ-1234567"
-              />
-            </div>
-            <div>
-              <Label>Phone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(732) 555-0142" />
-            </div>
+            {brandDisabled && (
+              <p className="text-xs text-ink-muted">Company logos are managed by your org admin.</p>
+            )}
           </CardBody>
         </Card>
       </div>
 
-      <div className="mt-6 flex items-center justify-end gap-3">
-        {error && <p className="text-sm text-error">{error}</p>}
-        {msg && <p className="text-sm text-ink-muted">{msg}</p>}
-        <Button variant="gold" size="lg" onClick={onSave} disabled={saving}>
-          {saving ? "Saving…" : "Save brand kit"}
-        </Button>
-      </div>
-    </>
+      {canEditBrand && (
+        <div className="mt-6 flex items-center justify-end gap-3">
+          {error && <p className="text-sm text-error">{error}</p>}
+          {msg && <p className="text-sm text-ink-muted">{msg}</p>}
+          <Button variant="gold" size="lg" onClick={onSave} disabled={saving}>
+            {saving ? "Saving…" : "Save brand kit"}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
