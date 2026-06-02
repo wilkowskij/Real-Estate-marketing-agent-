@@ -426,10 +426,14 @@ export function GenerateClient() {
                 {showLibrary ? "Hide brand library" : "Use brand library"}
               </button>
             </div>
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl2 border-2 border-dashed border-paper-line py-8 text-center hover:border-gold/60">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl2 border-2 border-dashed border-paper-line py-8 text-center hover:border-gold/60">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-6 w-6 text-ink-muted">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
               <span className="text-sm text-ink-soft">
-                {uploading ? "Uploading…" : "Click to upload listing photos"}
+                {uploading ? "Uploading…" : "Click to upload photos"}
               </span>
+              <span className="text-xs text-ink-muted">Select one or more images at once</span>
               <input
                 type="file"
                 accept="image/*"
@@ -474,24 +478,37 @@ export function GenerateClient() {
             )}
 
             {photos.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {photos.map((p) => (
-                  <div key={p.assetId} className="group relative h-16 w-16">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={p.previewUrl}
-                      alt=""
-                      className="h-16 w-16 rounded-lg object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setEditing(p)}
-                      className="absolute inset-0 flex items-center justify-center rounded-lg bg-navy/55 text-xs font-medium text-paper opacity-0 transition-opacity group-hover:opacity-100"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                ))}
+              <div className="mt-3">
+                <p className="mb-2 text-xs text-ink-muted">{photos.length} photo{photos.length !== 1 ? "s" : ""} selected</p>
+                <div className="flex flex-wrap gap-2">
+                  {photos.map((p) => (
+                    <div key={p.assetId} className="group relative h-20 w-20">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.previewUrl}
+                        alt=""
+                        className="h-20 w-20 rounded-lg object-cover"
+                      />
+                      {/* Edit overlay — centre of thumbnail on hover */}
+                      <button
+                        type="button"
+                        onClick={() => setEditing(p)}
+                        className="absolute inset-0 flex items-end justify-center rounded-lg bg-navy/50 pb-2 text-xs font-medium text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        Edit
+                      </button>
+                      {/* Remove button — always-visible × in top-right corner */}
+                      <button
+                        type="button"
+                        aria-label="Remove photo"
+                        onClick={() => setPhotos((prev) => prev.filter((x) => x.assetId !== p.assetId))}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white shadow-sm transition-transform hover:scale-110"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
