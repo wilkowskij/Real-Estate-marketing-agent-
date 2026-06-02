@@ -75,7 +75,10 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [x] **Email + SMS** content types in the marketing agent — channel switcher on
       Create (Social / Email / SMS), Messaging Agent reuses cached local
       expertise, inbox + iMessage previews, Stop Slop applied, usage-metered
-- [ ] **Campaign object** grouping multi-channel assets (name + strategy + posts)
+- [x] **Campaign object** grouping multi-channel assets (name + strategy + posts)
+      — `marketing_campaigns` + `campaign_messages` tables (RLS), `/campaigns`
+      hub + detail page, attach social posts from the queue drawer, save
+      generated email/SMS into a campaign from Create
 - [ ] **Analytics engine** — pull platform insights, store `social_metrics`
 - [ ] **Lead capture / CRM** — landing pages, forms, QR, open-house, `leads` table
 - [ ] **Revenue attribution** — post → click → lead → deal (`opportunities`, `deals`)

@@ -178,6 +178,38 @@ export interface SocialAccount {
   meta: Record<string, unknown>;
 }
 
+export type CampaignStatus = "active" | "completed" | "archived";
+
+/**
+ * Campaign object — a named, multi-channel marketing campaign that groups social
+ * posts + email/SMS messages around a listing or theme, with a strategy.
+ */
+export interface MarketingCampaign {
+  id: string;
+  org_id: string;
+  created_by: string;
+  name: string;
+  listing_id: string | null;
+  objective: string | null;
+  status: CampaignStatus;
+  starts_on: string | null;
+  ends_on: string | null;
+  created_at: string;
+}
+
+/** A persisted email/SMS piece belonging to a campaign. */
+export interface CampaignMessage {
+  id: string;
+  org_id: string;
+  marketing_campaign_id: string | null;
+  created_by: string | null;
+  channel: "email" | "sms";
+  campaign_type: CampaignType;
+  content: EmailCopy | SmsCopy;
+  state: "draft" | "approved" | "sent";
+  created_at: string;
+}
+
 export interface RecurringJob {
   id: string;
   org_id: string;

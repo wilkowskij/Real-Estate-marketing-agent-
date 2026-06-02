@@ -15,6 +15,7 @@ interface QueuePost {
 
 interface PostDetail extends QueuePost {
   mediaUrls: string[];
+  marketing_campaign_id: string | null;
   created_at: string;
 }
 
@@ -46,22 +47,42 @@ export function QueueItem({ post }: { post: QueuePost }) {
   // Editable fields inside the drawer
   const [caption, setCaption] = useState(post.caption ?? "");
   const [scheduledAt, setScheduledAt] = useState(post.scheduled_at ?? "");
+  const [campaignId, setCampaignId] = useState("");
+  const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([]);
 
   async function openDrawer() {
     setOpen(true);
     if (detail) return;
     setLoadingDetail(true);
     try {
-      const res = await fetch(`/api/posts/${post.id}`);
+      const [res, campRes] = await Promise.all([
+        fetch(`/api/posts/${post.id}`),
+        fetch("/api/campaigns"),
+      ]);
       const json = await res.json();
       if (res.ok) {
         setDetail(json);
         setCaption(json.caption ?? "");
         setScheduledAt(json.scheduled_at ?? "");
+        setCampaignId(json.marketing_campaign_id ?? "");
+      }
+      if (campRes.ok) {
+        const cj = await campRes.json();
+        setCampaigns((cj.campaigns ?? []).map((c: any) => ({ id: c.id, name: c.name })));
       }
     } finally {
       setLoadingDetail(false);
     }
+  }
+
+  async function attachCampaign(next: string) {
+    setCampaignId(next);
+    await fetch(`/api/posts/${post.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ marketingCampaignId: next || null }),
+    });
+    router.refresh();
   }
 
   async function saveCaption() {
@@ -246,6 +267,25 @@ export function QueueItem({ post }: { post: QueuePost }) {
                   className="w-full rounded-lg border border-paper-line bg-paper px-3 py-2.5 text-sm text-ink focus:border-gold focus:outline-none"
                 />
               </div>
+
+              {/* Campaign */}
+              {campaigns.length > 0 && (
+                <div>
+                  <label className="eyebrow mb-1 block">Campaign</label>
+                  <select
+                    value={campaignId}
+                    onChange={(e) => attachCampaign(e.target.value)}
+                    className="w-full rounded-lg border border-paper-line bg-paper px-3 py-2.5 text-sm text-ink focus:border-gold focus:outline-none"
+                  >
+                    <option value="">Not in a campaign</option>
+                    {campaigns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {error && <p className="text-sm text-error">{error}</p>}
 

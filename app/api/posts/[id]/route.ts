@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const supabase = createSupabaseServerClient();
   const { data: post, error } = await supabase
     .from("posts")
-    .select("id, platform, caption, state, scheduled_at, media_paths, created_at")
+    .select("id, platform, caption, state, scheduled_at, media_paths, marketing_campaign_id, created_at")
     .eq("id", params.id)
     .eq("org_id", ctx.orgId)
     .maybeSingle();
@@ -36,9 +36,11 @@ const Body = z.object({
   state: z.enum(["draft", "approved", "scheduled"]).optional(),
   caption: z.string().optional(),
   scheduled_at: z.string().datetime().nullable().optional(),
+  /** Attach (uuid) or detach (null) this post from a campaign object. */
+  marketingCampaignId: z.string().uuid().nullable().optional(),
 });
 
-/** Update a post's state/caption/schedule from the approval queue. RLS-scoped. */
+/** Update a post's state/caption/schedule/campaign from the queue. RLS-scoped. */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const ctx = await getOrgContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -48,8 +50,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  // Map the camelCase API field to the DB column; only set provided fields.
+  const { marketingCampaignId, ...rest } = parsed.data;
+  const update: Record<string, unknown> = { ...rest };
+  if (marketingCampaignId !== undefined) update.marketing_campaign_id = marketingCampaignId;
+
   const supabase = createSupabaseServerClient();
-  const { error } = await supabase.from("posts").update(parsed.data).eq("id", params.id);
+  const { error } = await supabase
+    .from("posts")
+    .update(update)
+    .eq("id", params.id)
+    .eq("org_id", ctx.orgId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

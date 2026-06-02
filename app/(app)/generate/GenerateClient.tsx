@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -749,7 +749,7 @@ export function GenerateClient() {
           <MessagePreview
             channel={channel}
             result={messageResult}
-            agentName=""
+            campaignType={type}
           />
         )}
 
@@ -846,16 +846,40 @@ export function GenerateClient() {
   );
 }
 
-/** Right-column preview for email / SMS copy, with copy-to-clipboard. */
+/** Right-column preview for email / SMS copy, with copy + save-to-campaign. */
 function MessagePreview({
   channel,
   result,
+  campaignType,
 }: {
   channel: "email" | "sms";
   result: MessageResult | null;
-  agentName: string;
+  campaignType: CampaignType;
 }) {
   const [copied, setCopied] = useState(false);
+  const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Load the org's campaigns once so the result can be filed into one.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/campaigns")
+      .then((r) => (r.ok ? r.json() : { campaigns: [] }))
+      .then((j) => {
+        if (!cancelled) setCampaigns((j.campaigns ?? []).map((c: any) => ({ id: c.id, name: c.name })));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // A fresh result clears the saved flag so the user can save the new copy.
+  useEffect(() => {
+    setSaved(false);
+  }, [result]);
 
   async function copy(text: string) {
     try {
@@ -864,6 +888,21 @@ function MessagePreview({
       setTimeout(() => setCopied(false), 1500);
     } catch {
       /* clipboard unavailable */
+    }
+  }
+
+  async function saveToCampaign() {
+    if (!selectedCampaign || !result) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/campaigns/${selectedCampaign}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel, type: campaignType, content: result.copy }),
+      });
+      if (res.ok) setSaved(true);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -947,6 +986,34 @@ function MessagePreview({
                 <li key={i}>{n}</li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* Save into a campaign object */}
+        {campaigns.length > 0 && (
+          <div className="border-t border-paper-line pt-3">
+            <Label>Save to campaign</Label>
+            <div className="flex gap-2">
+              <Select
+                value={selectedCampaign}
+                onChange={(e) => setSelectedCampaign(e.target.value)}
+                className="flex-1"
+              >
+                <option value="">Choose a campaign…</option>
+                {campaigns.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+              <Button
+                variant="secondary"
+                onClick={saveToCampaign}
+                disabled={!selectedCampaign || saving || saved}
+              >
+                {saved ? "Saved ✓" : saving ? "Saving…" : "Save"}
+              </Button>
+            </div>
           </div>
         )}
       </CardBody>

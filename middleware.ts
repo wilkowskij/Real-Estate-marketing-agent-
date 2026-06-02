@@ -6,6 +6,7 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 const PROTECTED = [
   "/dashboard",
   "/generate",
+  "/campaigns",
   "/calendar",
   "/library",
   "/company",
