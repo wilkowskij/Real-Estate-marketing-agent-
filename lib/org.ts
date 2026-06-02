@@ -27,7 +27,19 @@ export async function getOrgContext(): Promise<OrgContext | null> {
   const supabase = createSupabaseServerClient();
   const {
     data: { user },
+    error: userErr,
   } = await supabase.auth.getUser();
+  // TEMP DIAGNOSTIC: why does the server not see the session?
+  try {
+    const { cookies } = await import("next/headers");
+    const sbCookies = cookies()
+      .getAll()
+      .map((c) => c.name)
+      .filter((n) => n.startsWith("sb-"));
+    console.log(
+      JSON.stringify({ tag: "ctx", hasUser: !!user, err: userErr?.message ?? null, sbCookies })
+    );
+  } catch {}
   if (!user) return null;
 
   const { data: membership } = await supabase

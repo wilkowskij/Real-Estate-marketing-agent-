@@ -55,9 +55,23 @@ export async function middleware(request: NextRequest) {
 
   const {
     data: { user },
+    error: userErr,
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+  // TEMP DIAGNOSTIC
+  console.log(
+    JSON.stringify({
+      tag: "mw",
+      path,
+      hasUser: !!user,
+      err: userErr?.message ?? null,
+      sbCookies: request.cookies
+        .getAll()
+        .map((c) => c.name)
+        .filter((n) => n.startsWith("sb-")),
+    })
+  );
   if (!user && PROTECTED.some((p) => path.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
