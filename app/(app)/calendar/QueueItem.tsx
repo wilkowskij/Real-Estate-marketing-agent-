@@ -359,9 +359,12 @@ export function QueueItem({ post }: { post: QueuePost }) {
 
             {/* Footer actions */}
             <div className="sticky bottom-0 border-t border-paper-line bg-white px-6 py-4">
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button variant="secondary" size="sm" onClick={saveCaption} disabled={busy}>
                   Save edits
+                </Button>
+                <Button variant="secondary" size="sm" onClick={recreate} disabled={busy}>
+                  ↻ Recreate
                 </Button>
                 {post.state === "draft" && (
                   <Button variant="secondary" size="sm" onClick={() => call("approve")} disabled={busy}>
@@ -371,6 +374,14 @@ export function QueueItem({ post }: { post: QueuePost }) {
                 <Button variant="gold" size="sm" onClick={() => call("publish")} disabled={busy}>
                   {busy ? "Publishing…" : "Publish now"}
                 </Button>
+                <button
+                  type="button"
+                  onClick={remove}
+                  disabled={busy}
+                  className="ml-auto text-sm font-semibold text-error hover:underline disabled:opacity-50"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>

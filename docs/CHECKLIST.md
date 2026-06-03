@@ -101,7 +101,7 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [ ] **Stories / Reels** publishing endpoints
 - [ ] **White-label theming** for brokerages
 - [ ] Brokerage-wide "who's connected" view (team social coverage)
-- [ ] Mobile sidebar nav (currently desktop-only)
+- [x] Mobile sidebar nav — hamburger + slide-over drawer (desktop sidebar unchanged)
 
 ---
 
