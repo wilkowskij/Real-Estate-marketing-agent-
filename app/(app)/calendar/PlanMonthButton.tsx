@@ -16,10 +16,17 @@ const DEFAULT_MIX: Record<string, number> = {
 
 const BUCKET_ORDER = ["educational", "community", "listings", "social_proof", "personal_brand"];
 
+const PLATFORMS = [
+  { key: "instagram", label: "Instagram", icon: "📸" },
+  { key: "facebook", label: "Facebook", icon: "👍" },
+  { key: "linkedin", label: "LinkedIn", icon: "💼" },
+  { key: "twitter", label: "X", icon: "𝕏" },
+] as const;
+
 /**
  * Generate a month of draft posts balanced to the content-mix ratios. A settings
- * panel lets the agent dial how much of each content type appears that month
- * (e.g. more educational, fewer listings). Everything lands in the approval
+ * panel lets the agent pick which social platforms to schedule for and dial how
+ * much of each content type appears that month. Everything lands in the approval
  * queue — nothing auto-publishes.
  */
 export function PlanMonthButton() {
@@ -29,17 +36,29 @@ export function PlanMonthButton() {
   const [showSettings, setShowSettings] = useState(false);
   const [count, setCount] = useState(20);
   const [mix, setMix] = useState<Record<string, number>>(DEFAULT_MIX);
+  const [platforms, setPlatforms] = useState<string[]>(PLATFORMS.map((p) => p.key));
 
   const total = BUCKET_ORDER.reduce((s, k) => s + (mix[k] ?? 0), 0);
 
+  function togglePlatform(key: string) {
+    setPlatforms((prev) =>
+      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]
+    );
+  }
+
   async function plan() {
+    if (platforms.length === 0) {
+      setShowSettings(true);
+      setError("Pick at least one platform.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/calendar/plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ count, mix }),
+        body: JSON.stringify({ count, mix, platforms }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Planning failed");
@@ -64,7 +83,7 @@ export function PlanMonthButton() {
         <button
           type="button"
           onClick={() => setShowSettings((v) => !v)}
-          aria-label="Content mix settings"
+          aria-label="Plan settings"
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-paper-line text-ink-soft transition-colors hover:border-gold/60 hover:text-ink"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -79,7 +98,31 @@ export function PlanMonthButton() {
 
       {showSettings && (
         <div className="absolute right-0 top-11 z-20 w-80 rounded-xl2 border border-paper-line bg-white p-4 text-left shadow-lg">
-          <div className="flex items-center justify-between">
+          {/* Platforms */}
+          <h3 className="font-display text-base text-navy">Platforms</h3>
+          <p className="mt-0.5 text-xs text-ink-muted">Where these posts get scheduled.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {PLATFORMS.map((p) => {
+              const on = platforms.includes(p.key);
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => togglePlatform(p.key)}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    on
+                      ? "border-gold bg-gold/10 text-gold-deep"
+                      : "border-paper-line text-ink-muted hover:border-gold/50"
+                  }`}
+                >
+                  <span>{p.icon}</span>
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between border-t border-paper-line pt-3">
             <h3 className="font-display text-base text-navy">Content mix</h3>
             <button
               type="button"
@@ -138,15 +181,16 @@ export function PlanMonthButton() {
           </div>
 
           {total <= 0 && (
-            <p className="mt-2 text-xs text-error">
-              Set at least one type above zero.
-            </p>
+            <p className="mt-2 text-xs text-error">Set at least one type above zero.</p>
+          )}
+          {platforms.length === 0 && (
+            <p className="mt-2 text-xs text-error">Pick at least one platform.</p>
           )}
 
           <Button
             variant="gold"
             onClick={plan}
-            disabled={busy || total <= 0}
+            disabled={busy || total <= 0 || platforms.length === 0}
             className="mt-4 w-full"
           >
             {busy ? "Planning…" : `Plan ${count} posts`}

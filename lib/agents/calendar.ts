@@ -78,7 +78,11 @@ const PLATFORM_SLOTS: { platform: string; dows: number[]; hour: number }[] = [
   { platform: "instagram", dows: [1, 3, 5], hour: 10 }, // Mon/Wed/Fri 10am
   { platform: "facebook", dows: [5, 6], hour: 10 }, // Fri/Sat
   { platform: "linkedin", dows: [2, 4], hour: 9 }, // Tue/Thu 9am
+  { platform: "twitter", dows: [1, 2, 3, 4, 5], hour: 12 }, // Weekdays noon
 ];
+
+/** Platforms the planner can schedule for (used by the UI selector). */
+export const PLANNABLE_PLATFORMS = ["instagram", "facebook", "linkedin", "twitter"] as const;
 
 export interface PlannedPost {
   /** ISO date-time the post is scheduled for. */
@@ -100,8 +104,14 @@ export interface PlannedPost {
 export function buildSchedule(
   count: number,
   start: Date,
-  mix: MixBucket[] = CONTENT_MIX
+  mix: MixBucket[] = CONTENT_MIX,
+  platforms?: string[]
 ): Omit<PlannedPost, "angle">[] {
+  // Restrict to the chosen platforms (fall back to all if none/invalid given).
+  const picked = platforms?.length
+    ? PLATFORM_SLOTS.filter((p) => platforms.includes(p.platform))
+    : PLATFORM_SLOTS;
+  const activeSlots = picked.length ? picked : PLATFORM_SLOTS;
   // 1) Largest-remainder allocation of slot counts per bucket.
   const raw = mix.map((b) => ({ b, exact: b.share * count }));
   const alloc = raw.map((r) => ({ b: r.b, n: Math.floor(r.exact), rem: r.exact - Math.floor(r.exact) }));
@@ -156,7 +166,7 @@ export function buildSchedule(
     const d = new Date(cursor);
     d.setDate(cursor.getDate() + day);
     const dow = d.getDay();
-    const match = PLATFORM_SLOTS.find((p) => p.dows.includes(dow));
+    const match = activeSlots.find((p) => p.dows.includes(dow));
     if (!match) continue;
     const slot = interleaved[slotIdx++];
     const when = new Date(d);
@@ -194,8 +204,10 @@ export async function planContentCalendar(args: {
   area?: string;
   /** Relative per-bucket weights (e.g. from the mix-settings sliders). */
   mix?: Record<string, number>;
+  /** Platforms to schedule across (default: all). */
+  platforms?: string[];
 }): Promise<{ posts: PlannedPost[]; usage: { input: number; output: number } }> {
-  const schedule = buildSchedule(args.count, args.start ?? new Date(), resolveMix(args.mix));
+  const schedule = buildSchedule(args.count, args.start ?? new Date(), resolveMix(args.mix), args.platforms);
   const area = args.area ?? "Monmouth County, NJ";
   const client = getAnthropic();
 
@@ -237,4 +249,30 @@ export async function planContentCalendar(args: {
     posts,
     usage: { input: msg.usage.input_tokens, output: msg.usage.output_tokens },
   };
+}
+
+/**
+ * Generate ONE fresh angle/hook for a single planned slot — backs the queue's
+ * "recreate" action. One cheap Claude call; falls back to a generic line.
+ */
+export async function generateAngle(args: {
+  type: CampaignType;
+  format: PostFormat;
+  area?: string;
+}): Promise<{ angle: string; usage: { input: number; output: number } }> {
+  const area = args.area ?? "Monmouth County, NJ";
+  const client = getAnthropic();
+  const msg = await client.messages.create({
+    model: MODEL,
+    max_tokens: 200,
+    system: cachedSystem(PLANNER_SYSTEM),
+    messages: [
+      {
+        role: "user",
+        content: `Area: ${area}\nWrite ONE fresh, specific, local angle/hook for a ${args.type} ${args.format} post. Different from anything generic. Return ONLY the single line of text, no quotes or JSON.`,
+      },
+    ],
+  });
+  const angle = extractText(msg.content).trim().replace(/^["']|["']$/g, "") || `${args.type} post for ${area}`;
+  return { angle, usage: { input: msg.usage.input_tokens, output: msg.usage.output_tokens } };
 }

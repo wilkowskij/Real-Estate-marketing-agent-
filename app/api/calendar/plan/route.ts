@@ -16,6 +16,8 @@ const Body = z.object({
   area: z.string().optional(),
   /** Relative per-bucket weights from the mix-settings sliders (0–100 each). */
   mix: z.record(z.string(), z.number().min(0).max(100)).optional(),
+  /** Social platforms to schedule across (default: all). */
+  platforms: z.array(z.enum(["instagram", "facebook", "linkedin", "twitter"])).optional(),
 });
 
 /**
@@ -38,6 +40,7 @@ export async function POST(req: NextRequest) {
     start: parsed.data.start ? new Date(parsed.data.start) : undefined,
     area: parsed.data.area,
     mix: parsed.data.mix,
+    platforms: parsed.data.platforms,
   });
 
   const supabase = createSupabaseServerClient();

@@ -106,6 +106,38 @@ export function QueueItem({ post }: { post: QueuePost }) {
     }
   }
 
+  async function remove() {
+    if (!confirm("Delete this post from the queue?")) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Delete failed");
+      setOpen(false);
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+      setBusy(false);
+    }
+  }
+
+  /** Regenerate a fresh angle/hook for this planned slot. */
+  async function recreate() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/recreate`, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Recreate failed");
+      if (json.caption) setCaption(json.caption);
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function call(action: "approve" | "publish", overrideCompliance = false) {
     setBusy(true);
     setError(null);
@@ -164,7 +196,16 @@ export function QueueItem({ post }: { post: QueuePost }) {
               {post.caption ?? <em>No caption yet</em>}
             </p>
           </button>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={recreate}
+              disabled={busy}
+              title="Regenerate the angle"
+              className="rounded-lg border border-paper-line px-2 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-gold/60 hover:text-ink disabled:opacity-50"
+            >
+              ↻ Recreate
+            </button>
             {post.state === "draft" && (
               <Button variant="secondary" size="sm" onClick={() => call("approve")} disabled={busy}>
                 Approve
@@ -173,6 +214,16 @@ export function QueueItem({ post }: { post: QueuePost }) {
             <Button variant="gold" size="sm" onClick={() => call("publish")} disabled={busy}>
               {busy ? "…" : "Publish"}
             </Button>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={busy}
+              aria-label="Delete post"
+              title="Delete from queue"
+              className="rounded-lg border border-paper-line px-2 py-1.5 text-xs font-semibold text-error transition-colors hover:border-error/60 disabled:opacity-50"
+            >
+              ✕
+            </button>
           </div>
         </div>
         {error && !open && <p className="mt-1 text-xs text-error">{error}</p>}

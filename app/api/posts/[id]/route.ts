@@ -64,3 +64,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+/** Remove a post from the queue. RLS-scoped. */
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const ctx = await getOrgContext();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = createSupabaseServerClient();
+  const { error } = await supabase
+    .from("posts")
+    .delete()
+    .eq("id", params.id)
+    .eq("org_id", ctx.orgId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
