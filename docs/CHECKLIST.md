@@ -102,6 +102,9 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
       section in Analytics (funnel + closed revenue by source)
 - [ ] **Video marketing engine** — scene detect → clips → reels (Shotstack + scene AI)
 - [ ] **Stories / Reels** publishing endpoints
+- [ ] **Saved listings from MLS** — persist an imported RentCast listing as a
+      reusable `listings` record (tie it to campaigns, leads & deals; "My
+      listings" picker on Create) and auto-refresh price/status changes
 - [ ] **White-label theming** for brokerages
 - [ ] Brokerage-wide "who's connected" view (team social coverage)
 - [x] Mobile sidebar nav — hamburger + slide-over drawer (desktop sidebar unchanged)
