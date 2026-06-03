@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Label, Input, Textarea, Select } from "@/components/ui/Field";
 import { PLATFORM_SIZES } from "@/lib/design/platforms";
 import { PhotoEditor, type EditResult } from "./PhotoEditor";
+import { MlsImport, type ImportedListing } from "@/components/generate/MlsImport";
 
 type CampaignType =
   | "just_sold"
@@ -209,6 +210,21 @@ export function GenerateClient() {
     }
   }
 
+  /** Fill the form from an MLS listing — sold listings become a Just Sold. */
+  function onImportListing(l: ImportedListing) {
+    setType(l.status === "Inactive" ? "just_sold" : "new_listing");
+    setListing({
+      address: l.address ?? "",
+      town: l.town ?? "",
+      price: l.price != null ? String(l.price) : "",
+      beds: l.beds != null ? String(l.beds) : "",
+      baths: l.baths != null ? String(l.baths) : "",
+      sqft: l.sqft != null ? String(l.sqft) : "",
+    });
+    setShowDetails(true);
+    setError(null);
+  }
+
   async function toggleLibrary() {
     const next = !showLibrary;
     setShowLibrary(next);
@@ -401,6 +417,15 @@ export function GenerateClient() {
                 {c.label}
               </button>
             ))}
+          </div>
+
+          {/* Two-clicks start: pull a real MLS listing to fill every field. */}
+          <div className="flex items-center justify-between rounded-xl2 border border-dashed border-gold/40 bg-gold/5 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-ink">Start from a real listing</p>
+              <p className="text-xs text-ink-muted">Pull MLS details, then Generate — two clicks.</p>
+            </div>
+            <MlsImport onSelect={onImportListing} />
           </div>
 
           {/* AI-first intake: describe it in one line; we fill in the rest. */}

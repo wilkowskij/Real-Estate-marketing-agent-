@@ -63,6 +63,9 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [x] Social OAuth + publishers + publish queue (per-person connections, IG/FB/LI/X)
 - [x] Stripe billing module (plans, checkout, portal, webhooks, usage metering)
 - [x] Simplified UI → Company + Profile hubs
+- [x] **MLS import (RentCast)** — "Import from MLS" on Create searches active /
+      recently-sold listings by address/ZIP/city and pre-fills every field, so a
+      campaign is ~2 clicks. Needs `RENTCAST_API_KEY`.
 - [x] **Stripe verified end-to-end** in production (checkout → webhook → DB)
 - [x] **Email + SMS content types** (Messaging Agent, channel switcher, previews,
       Stop Slop, usage-metered)
