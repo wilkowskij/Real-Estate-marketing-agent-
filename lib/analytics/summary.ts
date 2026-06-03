@@ -84,6 +84,27 @@ export function summarizeContentMix(types: CampaignType[]): MixRow[] {
   }));
 }
 
+/**
+ * Same as summarizeContentMix but from a `{ campaignType: count }` map (e.g. the
+ * SQL aggregation returned by the analytics_overview RPC) — so the dashboard
+ * never has to load individual campaign rows.
+ */
+export function contentMixFromCounts(typeCounts: Record<string, number>): MixRow[] {
+  const counts: Record<string, number> = {};
+  for (const [type, n] of Object.entries(typeCounts)) {
+    const bucket = TYPE_TO_BUCKET[type as CampaignType];
+    if (bucket) counts[bucket] = (counts[bucket] ?? 0) + (n ?? 0);
+  }
+  const total = Object.values(counts).reduce((s, n) => s + n, 0);
+  return CONTENT_MIX.map((b: MixBucket) => ({
+    bucket: b.bucket,
+    label: BUCKET_LABEL[b.bucket] ?? b.bucket,
+    count: counts[b.bucket] ?? 0,
+    actualShare: total > 0 ? (counts[b.bucket] ?? 0) / total : 0,
+    targetShare: b.share,
+  }));
+}
+
 export interface MetricRow {
   post_id: string;
   platform: string;

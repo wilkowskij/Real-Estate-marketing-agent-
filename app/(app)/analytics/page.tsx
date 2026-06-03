@@ -2,21 +2,17 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getOrgContext } from "@/lib/org";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  summarizeProduction,
-  summarizeContentMix,
-  summarizeEngagement,
-  summarizeRevenue,
-  summarizeFunnel,
-  type MetricRow,
-  type DealRow,
-} from "@/lib/analytics/summary";
-import type { CampaignType } from "@/lib/supabase/types";
+import { contentMixFromCounts, summarizeFunnel } from "@/lib/analytics/summary";
 
 export const dynamic = "force-dynamic";
 
 const PLATFORM_ICON: Record<string, string> = {
   instagram: "📸", facebook: "👍", linkedin: "💼", twitter: "𝕏", x: "𝕏",
+};
+
+const SOURCE_LABEL: Record<string, string> = {
+  landing: "Landing page", open_house: "Open house", qr: "QR code",
+  manual: "Manual", unattributed: "Unattributed",
 };
 
 function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
@@ -35,52 +31,60 @@ export default async function AnalyticsPage() {
   const ctx = await getOrgContext();
   const supabase = createSupabaseServerClient();
 
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  // All aggregation happens in one RLS-safe SQL call (no full-table loads).
+  const { data: overview } = ctx
+    ? await supabase.rpc("analytics_overview", { p_org: ctx.orgId })
+    : { data: null };
+  const ov = (overview as any) ?? {};
 
-  const [
-    { data: posts },
-    { data: campaigns },
-    { count: genCount },
-    { data: metrics },
-    { data: deals },
-    { data: trackedLinks },
-    { count: leadCount },
-  ] = ctx
-    ? await Promise.all([
-        supabase.from("posts").select("platform, state, created_at").eq("org_id", ctx.orgId),
-        supabase.from("campaigns").select("type").eq("org_id", ctx.orgId),
-        supabase
-          .from("usage_records")
-          .select("id", { count: "exact", head: true })
-          .eq("org_id", ctx.orgId)
-          .eq("kind", "ai_generation")
-          .gte("created_at", startOfMonth.toISOString()),
-        supabase
-          .from("social_metrics")
-          .select("post_id, platform, impressions, reach, likes, comments, shares, saves, clicks, captured_at")
-          .eq("org_id", ctx.orgId)
-          .order("captured_at", { ascending: false }),
-        supabase.from("deals").select("stage, value, source").eq("org_id", ctx.orgId),
-        supabase.from("tracked_links").select("clicks").eq("org_id", ctx.orgId),
-        supabase.from("leads").select("id", { count: "exact", head: true }).eq("org_id", ctx.orgId),
-    ])
-    : [{ data: [] }, { data: [] }, { count: 0 }, { data: [] }, { data: [] }, { data: [] }, { count: 0 }];
+  const prod = ov.production ?? {};
+  const production = {
+    totalPosts: prod.total ?? 0,
+    published: prod.published ?? 0,
+    scheduled: prod.scheduled ?? 0,
+    drafts: prod.drafts ?? 0,
+    last30: prod.last30 ?? 0,
+    byPlatform: (prod.byPlatform ?? {}) as Record<string, number>,
+  };
+  const genCount = ov.aiMonth ?? 0;
+  const mix = contentMixFromCounts(ov.typeCounts ?? {});
 
-  const production = summarizeProduction((posts as any) ?? []);
-  const mix = summarizeContentMix(((campaigns as any) ?? []).map((c: any) => c.type as CampaignType));
+  const engTotals = ov.engagement?.totals ?? {};
+  const eImp = engTotals.impressions ?? 0;
+  const engagement = {
+    hasData: ov.engagement?.hasData ?? false,
+    totals: {
+      impressions: eImp,
+      likes: engTotals.likes ?? 0,
+      comments: engTotals.comments ?? 0,
+      shares: engTotals.shares ?? 0,
+      saves: engTotals.saves ?? 0,
+      clicks: engTotals.clicks ?? 0,
+      engagementRate:
+        eImp > 0
+          ? ((engTotals.likes ?? 0) + (engTotals.comments ?? 0) + (engTotals.shares ?? 0) + (engTotals.saves ?? 0)) / eImp
+          : 0,
+    },
+    topPosts: (ov.engagement?.topPosts ?? []) as { postId: string; platform: string; engagements: number }[],
+  };
 
-  // One row per post (latest snapshot first thanks to the ordering above).
-  const latestByPost = new Map<string, MetricRow>();
-  for (const m of (metrics as any[]) ?? []) {
-    if (!latestByPost.has(m.post_id)) latestByPost.set(m.post_id, m as MetricRow);
-  }
-  const engagement = summarizeEngagement([...latestByPost.values()]);
+  const rev = ov.revenue ?? {};
+  const revenue = {
+    hasData: (ov.funnel?.deals ?? 0) > 0,
+    wonValue: Number(rev.wonValue ?? 0),
+    wonCount: rev.wonCount ?? 0,
+    pipelineValue: Number(rev.pipelineValue ?? 0),
+    openCount: rev.openCount ?? 0,
+    lostCount: rev.lostCount ?? 0,
+    bySource: ((rev.bySource ?? []) as { source: string; deals: number; wonValue: number }[]).map((r) => ({
+      source: SOURCE_LABEL[r.source] ?? r.source,
+      deals: r.deals,
+      wonValue: Number(r.wonValue ?? 0),
+    })),
+  };
 
-  const revenue = summarizeRevenue(((deals as any) ?? []) as DealRow[]);
-  const totalClicks = ((trackedLinks as any[]) ?? []).reduce((s, l) => s + (l.clicks ?? 0), 0);
-  const funnel = summarizeFunnel(totalClicks, leadCount ?? 0, ((deals as any[]) ?? []).length, revenue.wonCount);
+  const f = ov.funnel ?? {};
+  const funnel = summarizeFunnel(f.clicks ?? 0, f.leads ?? 0, f.deals ?? 0, f.won ?? 0);
 
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const usd = (n: number) =>

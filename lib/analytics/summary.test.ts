@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   summarizeProduction,
   summarizeContentMix,
+  contentMixFromCounts,
   summarizeEngagement,
   summarizeRevenue,
   summarizeFunnel,
@@ -49,6 +50,30 @@ describe("summarizeContentMix", () => {
   it("returns zeroed shares when there are no campaigns", () => {
     const rows = summarizeContentMix([]);
     expect(rows.every((r) => r.count === 0 && r.actualShare === 0)).toBe(true);
+  });
+});
+
+describe("contentMixFromCounts", () => {
+  it("matches summarizeContentMix for the same data (counts form)", () => {
+    const fromArray = summarizeContentMix(["market_stat", "educational", "new_listing", "open_house"]);
+    const fromCounts = contentMixFromCounts({ market_stat: 1, educational: 1, new_listing: 1, open_house: 1 });
+    for (let i = 0; i < fromArray.length; i++) {
+      expect(fromCounts[i].bucket).toBe(fromArray[i].bucket);
+      expect(fromCounts[i].count).toBe(fromArray[i].count);
+      expect(fromCounts[i].actualShare).toBeCloseTo(fromArray[i].actualShare);
+    }
+  });
+
+  it("aggregates multiple types in the same bucket", () => {
+    // market_stat + educational both map to the educational bucket
+    const rows = contentMixFromCounts({ market_stat: 3, educational: 2 });
+    const edu = rows.find((r) => r.bucket === "educational")!;
+    expect(edu.count).toBe(5);
+    expect(edu.actualShare).toBeCloseTo(1);
+  });
+
+  it("is empty-safe", () => {
+    expect(contentMixFromCounts({}).every((r) => r.count === 0)).toBe(true);
   });
 });
 
