@@ -2,6 +2,7 @@ import { SectionTabs } from "@/components/SectionTabs";
 
 const TABS = [
   { href: "/company", label: "Agents" },
+  { href: "/company/connections", label: "Connections" },
   { href: "/company/brand", label: "Brand & documents" },
   { href: "/company/subscription", label: "Subscription" },
 ];

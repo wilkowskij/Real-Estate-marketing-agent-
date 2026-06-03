@@ -106,7 +106,9 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
       reusable `listings` record (tie it to campaigns, leads & deals; "My
       listings" picker on Create) and auto-refresh price/status changes
 - [ ] **White-label theming** for brokerages
-- [ ] Brokerage-wide "who's connected" view (team social coverage)
+- [x] Brokerage-wide "who's connected" view — Company → Connections: per-agent
+      × platform coverage matrix, per-platform coverage bars, and company-owned
+      accounts (read-only; connecting stays per-agent)
 - [x] Mobile sidebar nav — hamburger + slide-over drawer (desktop sidebar unchanged)
 
 ---
