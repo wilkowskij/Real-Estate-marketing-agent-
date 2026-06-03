@@ -6,7 +6,12 @@ import { Card, CardBody } from "@/components/ui/Card";
 // instead of being instantiated during the static build (where they're absent).
 export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: { verify?: string };
+}) {
+  const verifyFailed = searchParams?.verify === "failed";
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-navy px-6">
       {/* Warm radial glow so the page feels luxe, not stark. */}
@@ -33,6 +38,12 @@ export default function LoginPage() {
                 Sign in to your marketing studio.
               </p>
             </div>
+            {verifyFailed && (
+              <div className="rounded-lg bg-warning-soft p-3 text-sm text-warning">
+                That confirmation link was invalid or expired. Sign in to resend a
+                new confirmation email.
+              </div>
+            )}
             <AuthForm mode="login" />
             <p className="text-center text-sm text-ink-muted">
               New here?{" "}

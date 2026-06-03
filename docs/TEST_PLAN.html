@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marquee — Product Test Plan</title>
+<style>
+  :root {
+    --navy: #1b2a4a; --gold: #b88a2e; --gold-deep: #8a6420;
+    --ink: #1f2433; --ink-soft: #3c4359; --ink-muted: #6b7280;
+    --paper: #faf7f0; --line: #e7e1d4; --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 28px 80px; }
+  .brand { font-weight: 800; font-size: 28px; color: var(--navy); letter-spacing: -0.01em; }
+  .brand .dot { color: var(--gold); }
+  .sub { color: var(--ink-muted); margin: 4px 0 28px; }
+  h1, h2, h3 { color: var(--navy); line-height: 1.25; }
+  h1 { font-size: 30px; margin: 36px 0 8px; }
+  h2 { font-size: 23px; margin: 40px 0 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+  h3 { font-size: 18px; margin: 24px 0 8px; }
+  p { margin: 10px 0; }
+  a { color: var(--gold-deep); }
+  code { background: #f1ece1; padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+  ul { padding-left: 22px; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14.5px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--navy); color: var(--paper); font-weight: 600; }
+  tbody tr:nth-child(even) { background: #fcfaf4; }
+  /* Make the rightmost "P/F" column a clear checkbox cell */
+  td:last-child { min-width: 64px; text-align: center; }
+  blockquote { margin: 14px 0; padding: 10px 16px; background: #fff8e8; border-left: 3px solid var(--gold); color: var(--ink-soft); }
+  .print-hint { margin-top: 10px; }
+  .print-hint button {
+    font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card);
+    color: var(--navy); padding: 8px 14px; border-radius: 999px;
+  }
+  @media print {
+    body { background: #fff; }
+    .wrap { padding: 0; max-width: none; }
+    .print-hint { display: none; }
+    h2 { break-before: auto; }
+    tr, table, blockquote { break-inside: avoid; }
+    th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">Marquee<span class="dot">.</span></div>
+    <p class="sub">Real Estate Marketing Studio — NJ / Monmouth County</p>
+    <div class="print-hint"><button onclick="window.print()">🖨 Print / Save as PDF</button></div>
+    <h1>Marquee — Product Test Plan (UAT)</h1>
+<p>A step-by-step script for testers (agents, team leads, brokers) to exercise the
+product and report issues. No technical knowledge required.</p>
+<ul>
+<li><strong>What you&#39;re testing:</strong> Marquee turns listing info + photos into marketing
+(social posts, email, SMS), plans a content calendar, captures leads, and
+tracks deals/revenue — tuned for NJ / Monmouth County.</li>
+<li><strong>How to test:</strong> work top to bottom. For each step, mark <strong>Pass / Fail</strong>, and
+for any Fail, jot what happened (and a screenshot if you can).</li>
+<li><strong>Test URL:</strong> <em><your team will paste the link here></em></li>
+<li><strong>Test billing card (Stripe test mode):</strong> <code>4242 4242 4242 4242</code>, any future
+expiry (e.g. 12/34), any CVC, any ZIP. <strong>No real money is charged in test mode.</strong></li>
+</ul>
+<blockquote>
+<p>Tip: Use Chrome or Safari. Some features (voice dictation) need Chrome/Edge/Safari.</p>
+</blockquote>
+<hr>
+<h2>How to log a bug</h2>
+<p>For each failure, capture:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Area / step #</td>
+<td>&quot;Create → 4.3&quot;</td>
+</tr>
+<tr>
+<td>What you did</td>
+<td>&quot;Clicked Generate email&quot;</td>
+</tr>
+<tr>
+<td>What you expected</td>
+<td>&quot;An email draft appears&quot;</td>
+</tr>
+<tr>
+<td>What happened</td>
+<td>&quot;Spinner forever, nothing showed&quot;</td>
+</tr>
+<tr>
+<td>Device / browser</td>
+<td>&quot;iPhone 15, Safari&quot;</td>
+</tr>
+<tr>
+<td>Screenshot</td>
+<td>(attach)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>1. Sign up &amp; first login</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1.1</td>
+<td>Open the test URL, click <strong>Get started / Sign up</strong></td>
+<td>Sign-up form loads</td>
+<td></td>
+</tr>
+<tr>
+<td>1.2</td>
+<td>Create an account with your email + a password</td>
+<td>You land in the app (Studio/Dashboard)</td>
+<td></td>
+</tr>
+<tr>
+<td>1.3</td>
+<td>Confirm the left sidebar shows: Studio, Create, Campaigns, Calendar, Analytics, Leads, Library, Company, Profile</td>
+<td>All nine appear</td>
+<td></td>
+</tr>
+<tr>
+<td>1.4</td>
+<td>Sign out (top-right), then sign back in</td>
+<td>You return to the dashboard, still your data</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2>2. Company profile &amp; brand</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2.1</td>
+<td>Go to <strong>Company → Brand &amp; documents</strong></td>
+<td>Brand editor loads</td>
+<td></td>
+</tr>
+<tr>
+<td>2.2</td>
+<td>Set company name, primary/secondary colors, and a disclaimer; <strong>Save</strong></td>
+<td>&quot;Saved&quot; confirmation; values persist on refresh</td>
+<td></td>
+</tr>
+<tr>
+<td>2.3</td>
+<td>Upload a logo image</td>
+<td>Logo preview appears</td>
+<td></td>
+</tr>
+<tr>
+<td>2.4</td>
+<td>(Optional) Import a brand guide (PDF/.txt)</td>
+<td>Colors/voice get suggested from the doc</td>
+<td></td>
+</tr>
+<tr>
+<td>2.5</td>
+<td>Go to <strong>Company → Subscription</strong></td>
+<td>Plans show Solo / Team / Brokerage with prices and &quot;Up to N users&quot;</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2>3. Your profile</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>3.1</td>
+<td>Go to <strong>Profile → My details</strong></td>
+<td>Personal profile form</td>
+<td></td>
+</tr>
+<tr>
+<td>3.2</td>
+<td>Add full name, license #, phone, email, headshot; <strong>Save</strong></td>
+<td>Saves; persists on refresh</td>
+<td></td>
+</tr>
+<tr>
+<td>3.3</td>
+<td>Go to <strong>Profile → Connections</strong></td>
+<td>Shows Instagram/Facebook/LinkedIn/X connect buttons</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2>4. Create content</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>4.1</td>
+<td>Go to <strong>Create</strong>. In &quot;Describe your post&quot; type: <em>&quot;Just sold 14 Riverside Ave in Red Bank for $1.25M, 4 bed 3 bath, walk to the train&quot;</em></td>
+<td>Text accepted</td>
+<td></td>
+</tr>
+<tr>
+<td>4.2</td>
+<td>Click <strong>✨ Set it up for me</strong></td>
+<td>Campaign type + listing fields auto-fill</td>
+<td></td>
+</tr>
+<tr>
+<td>4.3</td>
+<td>(Chrome/Safari) Click <strong>🎙 Dictate</strong>, allow the mic, say a sentence</td>
+<td>Your words appear in the box</td>
+<td></td>
+</tr>
+<tr>
+<td>4.4</td>
+<td>Upload 2–3 listing photos</td>
+<td>Thumbnails appear; &quot;N photos selected&quot;</td>
+<td></td>
+</tr>
+<tr>
+<td>4.5</td>
+<td>Click the <strong>✕</strong> on one thumbnail</td>
+<td>That photo is removed</td>
+<td></td>
+</tr>
+<tr>
+<td>4.6</td>
+<td>Click <strong>Generate campaign</strong></td>
+<td>A graphic + caption + hashtags appear on the right (may take ~20s)</td>
+<td></td>
+</tr>
+<tr>
+<td>4.7</td>
+<td>If a yellow <strong>&quot;⚠ Stop Slop&quot;</strong> box appears</td>
+<td>It lists generic phrases to fix (informational)</td>
+<td></td>
+</tr>
+<tr>
+<td>4.8</td>
+<td>Switch the top toggle to <strong>✉️ Email</strong>, click <strong>Generate email</strong></td>
+<td>An inbox-style email preview (subject + body) appears</td>
+<td></td>
+</tr>
+<tr>
+<td>4.9</td>
+<td>Switch to <strong>💬 SMS</strong>, <strong>Generate text</strong></td>
+<td>A short text message + character count appears</td>
+<td></td>
+</tr>
+<tr>
+<td>4.10</td>
+<td>Click <strong>Copy</strong> on the email/SMS preview</td>
+<td>&quot;Copied!&quot; — paste somewhere to confirm</td>
+<td></td>
+</tr>
+<tr>
+<td>4.11</td>
+<td>Turn on <strong>🎨 Generate image with AI</strong> (no photo) and generate</td>
+<td>An AI-made on-brand graphic appears</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2>5. Campaigns (multi-channel)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>5.1</td>
+<td>Go to <strong>Campaigns → New campaign</strong>; name it &quot;14 Riverside Ave — Just Sold&quot;; add a strategy; <strong>Create</strong></td>
+<td>Opens the campaign detail page</td>
+<td></td>
+</tr>
+<tr>
+<td>5.2</td>
+<td>Back in <strong>Create</strong>, generate an Email, then under <strong>Save to campaign</strong> pick your campaign and <strong>Save</strong></td>
+<td>&quot;Saved ✓&quot;</td>
+<td></td>
+</tr>
+<tr>
+<td>5.3</td>
+<td>Open the campaign — the email shows under <strong>Email &amp; SMS</strong></td>
+<td>The saved message appears</td>
+<td></td>
+</tr>
+<tr>
+<td>5.4</td>
+<td>On the campaign, under <strong>Tracked links</strong>, add a destination URL + label</td>
+<td>A <code>…/r/&lt;code&gt;</code> link appears with &quot;0 clicks&quot;</td>
+<td></td>
+</tr>
+<tr>
+<td>5.5</td>
+<td>Open that <code>/r/...</code> link in a new tab</td>
+<td>It redirects to your destination</td>
+<td></td>
+</tr>
+<tr>
+<td>5.6</td>
+<td>Reload the campaign</td>
+<td>The link&#39;s click count increased</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2>6. Calendar &amp; queue</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>6.1</td>
+<td>Go to <strong>Calendar</strong>, click the <strong>gear icon</strong> next to &quot;Plan 30 days&quot;</td>
+<td>Settings popover opens</td>
+<td></td>
+</tr>
+<tr>
+<td>6.2</td>
+<td>Under <strong>Platforms</strong>, deselect everything except <strong>Instagram</strong>; adjust the content-mix sliders</td>
+<td>Only Instagram selected; live counts update</td>
+<td></td>
+</tr>
+<tr>
+<td>6.3</td>
+<td>Click <strong>Plan N posts</strong></td>
+<td>Draft posts appear in the <strong>Approval queue</strong> (may take ~15s)</td>
+<td></td>
+</tr>
+<tr>
+<td>6.4</td>
+<td>Confirm the queue is <strong>grouped by platform</strong> with a count per group</td>
+<td>Group headers show (e.g. &quot;📸 Instagram · N&quot;)</td>
+<td></td>
+</tr>
+<tr>
+<td>6.5</td>
+<td>On a queue item click <strong>↻ Recreate</strong></td>
+<td>The post&#39;s angle/idea changes to a fresh one</td>
+<td></td>
+</tr>
+<tr>
+<td>6.6</td>
+<td>Click a post&#39;s text to open the <strong>preview drawer</strong></td>
+<td>Drawer shows caption editor, schedule, campaign picker</td>
+<td></td>
+</tr>
+<tr>
+<td>6.7</td>
+<td>In the drawer, edit the caption and <strong>Save edits</strong></td>
+<td>Change persists</td>
+<td></td>
+</tr>
+<tr>
+<td>6.8</td>
+<td>Click <strong>Delete</strong> (drawer or row), confirm</td>
+<td>Post disappears from the queue</td>
+<td></td>
+</tr>
+<tr>
+<td>6.9</td>
+<td>On a draft, click <strong>Approve</strong></td>
+<td>Its badge changes to &quot;approved&quot;</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2>7. Analytics</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>7.1</td>
+<td>Go to <strong>Analytics</strong></td>
+<td>Page loads quickly</td>
+<td></td>
+</tr>
+<tr>
+<td>7.2</td>
+<td>Check <strong>Production</strong> stats</td>
+<td>Total posts / published / scheduled / AI generations reflect your activity</td>
+<td></td>
+</tr>
+<tr>
+<td>7.3</td>
+<td>Check <strong>Content mix</strong></td>
+<td>Gold bars (actual) vs navy tick (target) per bucket</td>
+<td></td>
+</tr>
+<tr>
+<td>7.4</td>
+<td>Check <strong>Engagement</strong></td>
+<td>Shows an explainer until social accounts are connected (expected)</td>
+<td></td>
+</tr>
+<tr>
+<td>7.5</td>
+<td>Check <strong>Revenue &amp; attribution</strong></td>
+<td>Funnel (Clicks→Leads→Deals→Won) + revenue stats</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2>8. Leads &amp; CRM</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>8.1</td>
+<td>Go to <strong>Leads → New form</strong>; type &quot;Open house&quot;; pick <strong>Open house sign-in</strong>; add a headline; <strong>Create</strong></td>
+<td>A form card appears, marked &quot;Live&quot;</td>
+<td></td>
+</tr>
+<tr>
+<td>8.2</td>
+<td>Click <strong>Copy</strong> on the form&#39;s link; open it in a new tab (or incognito)</td>
+<td>A public sign-in page loads (no login needed)</td>
+<td></td>
+</tr>
+<tr>
+<td>8.3</td>
+<td>Fill name + email/phone, <strong>Sign in</strong></td>
+<td>&quot;Thank you!&quot; confirmation</td>
+<td></td>
+</tr>
+<tr>
+<td>8.4</td>
+<td>Click <strong>Show QR</strong> on the form card, then scan it with your phone</td>
+<td>Phone opens the same sign-in page</td>
+<td></td>
+</tr>
+<tr>
+<td>8.5</td>
+<td>Back in <strong>Leads → Pipeline</strong></td>
+<td>Your submitted lead appears</td>
+<td></td>
+</tr>
+<tr>
+<td>8.6</td>
+<td>Change the lead&#39;s status dropdown to <strong>Contacted</strong></td>
+<td>Status updates</td>
+<td></td>
+</tr>
+<tr>
+<td>8.7</td>
+<td>Click <strong>→ Deal</strong> on the lead</td>
+<td>A deal appears under <strong>Deals</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>8.8</td>
+<td>On the deal, enter a value (e.g. 12000) and set stage to <strong>Closed won</strong></td>
+<td>Saves</td>
+<td></td>
+</tr>
+<tr>
+<td>8.9</td>
+<td>Go to <strong>Analytics → Revenue</strong></td>
+<td>Closed revenue reflects the won deal, attributed to &quot;Open house&quot;</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2>9. Billing (test mode)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>9.1</td>
+<td>Go to <strong>Company → Subscription</strong>; click <strong>Upgrade</strong> on a plan</td>
+<td>Redirects to Stripe Checkout</td>
+<td></td>
+</tr>
+<tr>
+<td>9.2</td>
+<td>Pay with test card <code>4242 4242 4242 4242</code> (future expiry, any CVC/ZIP)</td>
+<td>Returns to the app with success</td>
+<td></td>
+</tr>
+<tr>
+<td>9.3</td>
+<td>Confirm the plan shows as your current plan</td>
+<td>Current plan badge updates</td>
+<td></td>
+</tr>
+<tr>
+<td>9.4</td>
+<td>Click <strong>Manage billing</strong></td>
+<td>Opens the Stripe customer portal</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2>10. Mobile</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Expected</th>
+<th>P/F</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>10.1</td>
+<td>Open the app on a phone (or a narrow browser window)</td>
+<td>Layout fits; a <strong>☰ menu</strong> button shows top-left</td>
+<td></td>
+</tr>
+<tr>
+<td>10.2</td>
+<td>Tap <strong>☰</strong></td>
+<td>A nav drawer slides in with all sections + Sign out</td>
+<td></td>
+</tr>
+<tr>
+<td>10.3</td>
+<td>Tap a section</td>
+<td>It navigates and the drawer closes</td>
+<td></td>
+</tr>
+<tr>
+<td>10.4</td>
+<td>Run a couple of the Create / Leads steps on mobile</td>
+<td>Forms and buttons are usable</td>
+<td></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Known limitations (expected — not bugs)</h2>
+<ul>
+<li><strong>Live social posting is OFF</strong> until Meta/LinkedIn/X app review completes.
+Connecting accounts and publishing may fall back to &quot;manual export&quot; (download
+image + copy caption). Engagement analytics stay empty until accounts connect.</li>
+<li><strong>AI generation needs funded API credits</strong>; if generation errors with a
+billing message, the account needs credits topped up (not a product bug).</li>
+<li>Voice <strong>Dictate</strong> works in Chrome/Edge/Safari, not Firefox.</li>
+<li>This is <strong>test/Stripe-test mode</strong> — no real charges.</li>
+</ul>
+<h2>Sign-off</h2>
+<table>
+<thead>
+<tr>
+<th>Tester</th>
+<th>Date</th>
+<th>Device/Browser</th>
+<th>Overall (Pass/Fail)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+
+  </div>
+</body>
+</html>
