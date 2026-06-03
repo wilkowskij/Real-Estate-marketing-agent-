@@ -10,9 +10,14 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 
 ### Stripe billing (code is built — needs your account wiring)
 - [x] Create a Stripe account (or use existing) and switch to **live mode** when ready
-- [x] Create 4 recurring products/prices: Starter $49, Pro $99, Team $249, Brokerage $499
-- [x] Add env vars in Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-      `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_BROKERAGE`
+- [ ] **Pricing repackaged (action needed):** create the new recurring prices —
+      Solo $59, Team $399 (base, 10 seats), Brokerage $899 (base, 25 seats), plus
+      two per-additional-user prices: Team seat $39, Brokerage seat $32.
+      See [`docs/PRICING.md`](PRICING.md). (The old Starter/Pro/Team/Brokerage
+      $49/$99/$249/$499 prices are superseded.)
+- [ ] Update env vars in Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+      `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_TEAM_SEAT`,
+      `STRIPE_PRICE_BROKERAGE`, `STRIPE_PRICE_BROKERAGE_SEAT`
 - [x] Add the webhook endpoint in Stripe → `https://<your-domain>/api/webhooks/stripe`
       (events: `checkout.session.completed`, `customer.subscription.*`, `invoice.*`)
 - [x] Enable the Stripe **Customer Portal** (Billing → Customer portal settings)

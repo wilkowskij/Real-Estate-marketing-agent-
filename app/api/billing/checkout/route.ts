@@ -3,11 +3,11 @@ import { z } from "zod";
 import { getOrgContext } from "@/lib/org";
 import { createSupabaseServerClient, createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/billing/stripe";
-import { priceIdFor, type PlanId } from "@/lib/billing/plans";
+import { priceIdFor, seatPriceIdFor, PLANS, type PlanId } from "@/lib/billing/plans";
 
 export const runtime = "nodejs";
 
-const Body = z.object({ plan: z.enum(["starter", "pro", "team", "brokerage"]) });
+const Body = z.object({ plan: z.enum(["solo", "team", "brokerage"]) });
 
 function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -59,10 +59,23 @@ export async function POST(req: NextRequest) {
       .upsert({ org_id: ctx.orgId, stripe_customer_id: customerId }, { onConflict: "org_id" });
   }
 
+  // Per-seat overage: if the org already has more members than the plan's
+  // included seats, add the additional-seat line item at the right quantity.
+  const line_items: { price: string; quantity: number }[] = [{ price: priceId, quantity: 1 }];
+  const seatPriceId = seatPriceIdFor(plan);
+  if (seatPriceId && PLANS[plan].extraSeat) {
+    const { count } = await admin
+      .from("memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", ctx.orgId);
+    const extra = Math.max(0, (count ?? 1) - PLANS[plan].seats);
+    if (extra > 0) line_items.push({ price: seatPriceId, quantity: extra });
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
+    line_items,
     success_url: `${appUrl()}/company/subscription?status=success`,
     cancel_url: `${appUrl()}/company/subscription?status=cancelled`,
     // Carry org + plan so the webhook can reconcile even if metadata on the

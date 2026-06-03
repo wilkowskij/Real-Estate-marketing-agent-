@@ -43,8 +43,10 @@ list.
 - **Analytics** — production stats + content-mix actual-vs-target (engagement
   metrics populate once social insights access is approved)
 - Multi-tenant orgs/agents, brand kit, brand-doc import, locked fields
-- **Stripe billing** — plans, checkout, customer portal, webhooks, usage
-  metering (verified end-to-end in production)
+- **Stripe billing** — seat-based plans (Free / Solo / Team-10-seats /
+  Brokerage-25-seats, no unlimited; per-additional-user pricing), checkout,
+  customer portal, webhooks, usage metering (verified end-to-end in production).
+  See [`docs/PRICING.md`](docs/PRICING.md).
 - Social OAuth + publishers + publish queue (per-person connections; IG / FB /
   LI / X) — **live posting is gated on Meta/LinkedIn app review**, so until
   approval the queue falls back to **manual export** (download image + copy
@@ -92,7 +94,8 @@ Required env (see `.env.example` for the full list):
 | `CRON_SECRET` | Bearer token the cron routes require |
 | `SOCIAL_TOKEN_ENC_KEY` | 32-byte base64 — encrypts social OAuth tokens at rest |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Billing + webhook signature verification |
-| `STRIPE_PRICE_STARTER` / `_PRO` / `_TEAM` / `_BROKERAGE` | The four plan price IDs |
+| `STRIPE_PRICE_SOLO` / `_TEAM` / `_BROKERAGE` | Base plan price IDs |
+| `STRIPE_PRICE_TEAM_SEAT` / `_BROKERAGE_SEAT` | Per-additional-user price IDs (see [`docs/PRICING.md`](docs/PRICING.md)) |
 | `OPENAI_API_KEY` + `IMAGE_PROVIDER=openai` | Optional — AI image generation / enhancement |
 | `META_*` / `LINKEDIN_*` / `TWITTER_*` | Optional — live social posting (after platform approval) |
 

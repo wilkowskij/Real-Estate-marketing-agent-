@@ -79,7 +79,7 @@ export function BillingClient({
 
       {error && <p className="mt-3 text-sm text-error">{error}</p>}
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {PLAN_ORDER.filter((id) => id !== "free").map((id) => {
           const plan = PLANS[id];
           const isCurrent = id === currentPlan;
@@ -94,6 +94,12 @@ export function BillingClient({
                 <p className="text-3xl font-semibold text-navy">
                   ${plan.monthly}
                   <span className="text-sm font-normal text-ink-muted">/mo</span>
+                </p>
+                <p className="text-xs text-ink-muted">
+                  {plan.seats === 1
+                    ? "1 user"
+                    : `Up to ${plan.seats} users`}
+                  {plan.extraSeat ? ` · +$${plan.extraSeat}/extra user` : ""}
                 </p>
                 <p className="text-sm text-ink-muted">{plan.blurb}</p>
                 <ul className="mt-1 space-y-1.5 text-sm text-ink-soft">

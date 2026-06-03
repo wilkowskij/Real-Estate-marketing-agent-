@@ -101,12 +101,19 @@ async function reconcile(
   sub: Stripe.Subscription,
   deleted = false
 ) {
-  const firstItem = sub.items.data[0];
-  const priceId = firstItem?.price.id;
+  // Find the base-plan item (its price maps to a PlanId). Any other item is the
+  // per-additional-seat add-on, whose quantity adds to the included seats.
+  const baseItem =
+    sub.items.data.find((i) => i.price?.id && planForPriceId(i.price.id)) ?? sub.items.data[0];
+  const priceId = baseItem?.price.id;
   const plan: PlanId = deleted ? "free" : (priceId && planForPriceId(priceId)) || "free";
+  const extraSeats = sub.items.data
+    .filter((i) => i !== baseItem)
+    .reduce((sum, i) => sum + (i.quantity ?? 0), 0);
+  const seats = PLANS[plan].seats + (deleted ? 0 : extraSeats);
   // Stripe API 2026-05-27+ moved current_period_end to the subscription item.
   const periodEnd: number | undefined =
-    (firstItem as any)?.current_period_end ?? (sub as any).current_period_end;
+    (baseItem as any)?.current_period_end ?? (sub as any).current_period_end;
 
   await supabase.from("subscriptions").upsert(
     {
@@ -117,7 +124,7 @@ async function reconcile(
       status: deleted ? "canceled" : sub.status,
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancel_at_period_end: sub.cancel_at_period_end ?? false,
-      seats: PLANS[plan].seats,
+      seats,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "org_id" }
