@@ -33,6 +33,7 @@ export function CompanyBrandClient({
   const [name, setName] = useState(brand.name ?? "");
   const [colors, setColors] = useState(brand.colors);
   const [disclaimer, setDisclaimer] = useState(brand.disclaimer ?? "");
+  const [whiteLabel, setWhiteLabel] = useState(brand.whiteLabel);
   const [marketState, setMarketState] = useState(brand.marketArea.state);
   const [county, setCounty] = useState(brand.marketArea.county);
   const [region, setRegion] = useState(brand.marketArea.region ?? "");
@@ -57,6 +58,7 @@ export function CompanyBrandClient({
           name,
           colors,
           disclaimer: disclaimer || null,
+          whiteLabel,
           marketArea: {
             state: marketState,
             county: county.trim(),
@@ -134,6 +136,22 @@ export function CompanyBrandClient({
                 disabled={brandDisabled}
               />
             </div>
+            <label className="flex items-start gap-3 rounded-lg border border-paper-line p-3">
+              <input
+                type="checkbox"
+                checked={whiteLabel}
+                onChange={(e) => setWhiteLabel(e.target.checked)}
+                disabled={brandDisabled}
+                className="mt-0.5 h-4 w-4 accent-gold-deep"
+              />
+              <span className="text-sm">
+                <span className="font-medium text-ink">White-label the app</span>
+                <span className="mt-0.5 block text-xs text-ink-muted">
+                  Show your logo and name across the app instead of “Marquee”. Uses your
+                  dark-background logo (or your brand name) in the sidebar.
+                </span>
+              </span>
+            </label>
           </CardBody>
         </Card>
 

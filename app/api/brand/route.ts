@@ -15,6 +15,7 @@ const Body = z.object({
     .optional(),
   disclaimer: z.string().nullable().optional(),
   layoutTheme: z.string().optional(),
+  whiteLabel: z.boolean().optional(),
   marketArea: z
     .object({
       state: z.string().min(1).max(40),
@@ -60,6 +61,7 @@ export async function PUT(req: NextRequest) {
     b.disclaimer !== undefined ||
     b.layoutTheme !== undefined ||
     b.marketArea !== undefined ||
+    b.whiteLabel !== undefined ||
     b.lockedFields !== undefined;
 
   if (wantsBrandChange) {
@@ -75,6 +77,7 @@ export async function PUT(req: NextRequest) {
     if (b.disclaimer !== undefined) kitUpdate.disclaimer = b.disclaimer;
     if (b.layoutTheme !== undefined) kitUpdate.layout_theme = b.layoutTheme;
     if (b.marketArea !== undefined) kitUpdate.market_area = normalizeMarketArea(b.marketArea);
+    if (b.whiteLabel !== undefined) kitUpdate.white_label = b.whiteLabel;
     if (b.lockedFields !== undefined) kitUpdate.locked_fields = b.lockedFields;
 
     const { error } = await supabase

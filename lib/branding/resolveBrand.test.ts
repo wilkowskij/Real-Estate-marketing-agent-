@@ -17,6 +17,7 @@ const baseKit = (over: Partial<BrandKit>): BrandKit => ({
   layout_theme: "classic",
   locked_fields: [],
   market_area: DEFAULT_MARKET_AREA,
+  white_label: false,
   is_default: true,
   ...over,
 });
@@ -58,6 +59,15 @@ describe("resolveBrand", () => {
     const r = resolveBrand({ orgKit, memberKit, profile });
     expect(r.colors.primary).toBe("#000"); // locked → org wins
     expect(r.logoLightPath).toBe("org/logo.png");
+  });
+
+  it("takes white-label from the org kit, never the member kit", () => {
+    const r = resolveBrand({
+      orgKit: baseKit({ white_label: true }),
+      memberKit: baseKit({ owner: "member", membership_id: "m", white_label: false }),
+      profile,
+    });
+    expect(r.whiteLabel).toBe(true);
   });
 
   it("always sources agent identity from the profile", () => {

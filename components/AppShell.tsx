@@ -19,6 +19,30 @@ const NAV = [
   { href: "/profile", label: "Profile", icon: "◈" },
 ];
 
+/** White-label theming passed from the server layout (undefined = default). */
+export interface ShellBrand {
+  name: string;
+  logoUrl: string | null;
+  accent: string | null;
+  areaLabel: string;
+}
+
+/** The product wordmark, or the org's logo/name when white-labeled. */
+function Wordmark({ brand, className }: { brand?: ShellBrand; className?: string }) {
+  if (brand?.logoUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={brand.logoUrl} alt={brand.name} className={cn("max-h-8 w-auto object-contain", className)} />;
+  }
+  if (brand) {
+    return (
+      <span className={cn("font-display text-2xl", className)} style={{ color: brand.accent ?? undefined }}>
+        {brand.name}
+      </span>
+    );
+  }
+  return <span className={cn("font-display text-2xl", className)}>Marquee</span>;
+}
+
 /** Shared nav link list — rendered in both the desktop sidebar and mobile drawer. */
 function NavLinks({ pathname, onNavigate }: { pathname: string | null; onNavigate?: () => void }) {
   return (
@@ -47,7 +71,7 @@ function NavLinks({ pathname, onNavigate }: { pathname: string | null; onNavigat
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, brand }: { children: React.ReactNode; brand?: ShellBrand }) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -69,13 +93,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-paper">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 flex-col border-r border-paper-line bg-navy px-5 py-7 md:flex">
-        <span className="px-2 font-display text-2xl text-paper">Marquee</span>
+        <div className="px-2">
+          <Wordmark brand={brand} className="text-paper" />
+        </div>
         <div className="mt-10">
           <NavLinks pathname={pathname} />
         </div>
         <div className="mt-auto rounded-lg bg-white/5 p-4 text-xs text-paper/60">
-          <p className="font-semibold text-paper/80">Monmouth County</p>
+          <p className="font-semibold text-paper/80">{brand?.areaLabel ?? "Monmouth County, NJ"}</p>
           <p className="mt-1">Your local marketing specialist is on call.</p>
+          {brand && <p className="mt-2 text-paper/40">Powered by Marquee</p>}
         </div>
       </aside>
 
@@ -88,7 +115,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           />
           <aside className="absolute left-0 top-0 flex h-full w-64 flex-col border-r border-paper-line bg-navy px-5 py-7">
             <div className="flex items-center justify-between px-2">
-              <span className="font-display text-2xl text-paper">Marquee</span>
+              <Wordmark brand={brand} className="text-paper" />
               <button
                 onClick={() => setMenuOpen(false)}
                 aria-label="Close menu"
@@ -125,7 +152,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <path fillRule="evenodd" d="M2.5 5.5A.75.75 0 013.25 4.75h13.5a.75.75 0 010 1.5H3.25A.75.75 0 012.5 5.5zm0 4.5a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.25A.75.75 0 012.5 10zm.75 3.75a.75.75 0 000 1.5h13.5a.75.75 0 000-1.5H3.25z" clipRule="evenodd" />
               </svg>
             </button>
-            <div className="font-display text-xl text-navy md:hidden">Marquee</div>
+            <div className="md:hidden">
+              <Wordmark brand={brand} className="text-xl text-navy" />
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-ink-muted sm:block">Welcome back</span>

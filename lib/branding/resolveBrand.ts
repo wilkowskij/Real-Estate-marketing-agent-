@@ -15,6 +15,8 @@ export interface ResolvedBrand {
   layoutTheme: string;
   /** The geographic market this brand sells in — drives the AI's local angle. */
   marketArea: MarketArea;
+  /** When true, the app shell is themed with this brand instead of "Marquee". */
+  whiteLabel: boolean;
   agent: {
     fullName: string | null;
     licenseNumber: string | null;
@@ -72,6 +74,8 @@ export function resolveBrand(args: {
     marketArea: normalizeMarketArea(
       pick("market_area", orgKit.market_area, memberKit?.market_area)
     ),
+    // White-label is an org-wide decision; members never override it.
+    whiteLabel: Boolean(orgKit.white_label),
     agent: {
       fullName: profile?.full_name ?? null,
       licenseNumber: profile?.license_number ?? null,

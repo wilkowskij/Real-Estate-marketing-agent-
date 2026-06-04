@@ -77,6 +77,8 @@ export interface BrandKit {
   layout_theme: string;
   locked_fields: string[];
   market_area: MarketArea;
+  /** When true (org kit only), the app shell shows this brand, not "Marquee". */
+  white_label: boolean;
   is_default: boolean;
 }
 
