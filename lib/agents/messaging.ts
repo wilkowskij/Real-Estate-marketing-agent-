@@ -1,6 +1,6 @@
 import { getAnthropic, MODEL, cachedSystem, extractText } from "@/lib/anthropic/client";
 import type { CampaignType, EmailCopy, SmsCopy, Listing, MarketArea } from "@/lib/supabase/types";
-import { buildLocalExpertise } from "@/lib/agents/marketing";
+import { buildLocalExpertise, attributionGuidance } from "@/lib/agents/marketing";
 import { DEFAULT_MARKET_AREA, areaLabel } from "@/lib/branding/marketArea";
 
 /**
@@ -57,6 +57,8 @@ export interface MessagingInput {
   recipientName?: string;
   /** The org's market — tailors the local angle and references. */
   marketArea?: MarketArea;
+  /** Brokerage disclaimer/license line — appended to email (not SMS, length). */
+  disclaimer?: string | null;
 }
 
 export async function runMessagingAgent(
@@ -94,6 +96,10 @@ export async function runMessagingAgent(
     input.listing ? `Listing details:\n${JSON.stringify(input.listing, null, 2)}` : "",
     input.agentName ? `Agent name: ${input.agentName}` : "",
     input.recipientName ? `Recipient first name: ${input.recipientName}` : "",
+    // Email carries the disclaimer/MLS attribution; SMS stays short (no append).
+    input.channel === "email"
+      ? attributionGuidance({ mls: area.mls, disclaimer: input.disclaimer, type: input.type })
+      : "",
     input.instructions ? `Extra instructions: ${input.instructions}` : "",
     `\nReturn ONLY a JSON object matching:\n${schema}`,
   ]

@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       agentName: ctx.profile?.full_name ?? undefined,
       recipientName: input.recipientName,
       marketArea: ctx.brand.marketArea,
+      disclaimer: ctx.brand.disclaimer,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? "Generation failed" }, { status: 502 });

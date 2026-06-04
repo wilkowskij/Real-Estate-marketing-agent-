@@ -147,6 +147,7 @@ export async function POST(req: NextRequest) {
         instructions: input.instructions,
         agentName: ctx.brand.agent.fullName ?? undefined,
         marketArea: ctx.brand.marketArea,
+        disclaimer: ctx.brand.disclaimer,
       }),
       photoRefs.length > 0
         ? runDesignAgent({ photos: photoRefs, campaignType: input.type })

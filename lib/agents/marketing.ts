@@ -79,6 +79,41 @@ VOICE: warm, professional, local, concrete. Avoid cliché ("nestled",
 "dream home", "must see"). Lead with what's genuinely distinctive.`;
 }
 
+/** Campaign types that are about a specific property (attribution applies). */
+const LISTING_TYPES: CampaignType[] = ["just_sold", "new_listing", "open_house", "deal_of_week"];
+
+/**
+ * Build the attribution/disclaimer instruction lines for a piece of copy from
+ * the agent's MLS + brokerage disclaimer. Conservative by design: it appends
+ * the user-controlled disclaimer verbatim and only references the MLS as a data
+ * source on listing posts — it never invents a listing brokerage or agent.
+ * Returns "" when there's nothing to attribute. Exported for unit testing.
+ */
+export function attributionGuidance(opts: {
+  mls?: string;
+  disclaimer?: string | null;
+  type: CampaignType;
+}): string {
+  const mls = opts.mls?.trim();
+  const disclaimer = opts.disclaimer?.trim();
+  if (!mls && !disclaimer) return "";
+
+  const lines: string[] = ["BRAND & ATTRIBUTION:"];
+  if (mls) lines.push(`- The agent is a member of ${mls}.`);
+  if (disclaimer)
+    lines.push(`- Brokerage disclaimer — append it VERBATIM on its own line at the very end: "${disclaimer}"`);
+
+  if (LISTING_TYPES.includes(opts.type)) {
+    lines.push(
+      "- This is a listing post. Include the disclaimer above. If an MLS is named you may add a brief \"Listing information via <MLS>\" line, but NEVER fabricate a listing brokerage, co-agent, or claim a listing you were not given.",
+      "- Note in compliance_notes that the disclaimer/attribution was included."
+    );
+  } else {
+    lines.push("- Append the disclaimer above if present. Do not add MLS attribution to non-listing content.");
+  }
+  return lines.join("\n");
+}
+
 /**
  * Per-type guidance + the research-recommended default format. The agent may
  * override the format when the inputs clearly call for something else.
@@ -142,6 +177,8 @@ export interface MarketingInput {
   agentName?: string;
   /** The org's market — tailors the local angle, towns, and hashtags. */
   marketArea?: MarketArea;
+  /** Brokerage disclaimer/license line to append verbatim (compliance). */
+  disclaimer?: string | null;
   /** When true, allow the web_search tool for current market data. */
   allowWebSearch?: boolean;
 }
@@ -163,6 +200,7 @@ export async function runMarketingAgent(
     } Make every local reference, town, and hashtag specific to THIS market.`,
     input.listing ? `Listing details:\n${JSON.stringify(input.listing, null, 2)}` : "",
     input.agentName ? `Agent name: ${input.agentName}` : "",
+    attributionGuidance({ mls: area.mls, disclaimer: input.disclaimer, type: input.type }),
     input.instructions ? `Extra instructions: ${input.instructions}` : "",
     `\nReturn ONLY a JSON object matching:
 {
