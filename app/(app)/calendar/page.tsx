@@ -38,7 +38,7 @@ const JOB_LABEL: Record<string, { title: string; cadence: string; blurb: string 
     title: "Recurring: local market",
     cadence: "Weekly · review first",
     blurb:
-      "Your strategy agent searches Monmouth County real-estate news each week and drafts a post. Nothing publishes without your approval unless you opt in.",
+      "Your strategy agent searches your market's real-estate news each week and drafts a post. Nothing publishes without your approval unless you opt in.",
   },
   trend_watch: {
     title: "Trend watch",
