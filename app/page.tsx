@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 const FEATURES = [
   {
@@ -24,7 +28,15 @@ const FEATURES = [
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // The landing page doubles as the front door to the app: once a visitor is
+  // signed in, "/" is their dashboard — so send them straight there.
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) redirect("/dashboard");
+
   return (
     <main className="min-h-screen bg-paper">
       {/* Nav */}
