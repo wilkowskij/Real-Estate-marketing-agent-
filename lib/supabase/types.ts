@@ -262,6 +262,25 @@ export interface Lead {
   created_at: string;
 }
 
+export type FeedbackType = "bug" | "feedback" | "feature";
+export type FeedbackStatus = "new" | "triaged" | "planned" | "done" | "wont_do";
+
+/** An in-app support/feedback submission, optionally mirrored to Notion. */
+export interface Feedback {
+  id: string;
+  org_id: string;
+  created_by: string;
+  type: FeedbackType;
+  subject: string;
+  message: string;
+  contact_email: string | null;
+  page_url: string | null;
+  status: FeedbackStatus;
+  notion_page_id: string | null;
+  notion_synced_at: string | null;
+  created_at: string;
+}
+
 export type DealStage =
   | "prospect"
   | "appointment"

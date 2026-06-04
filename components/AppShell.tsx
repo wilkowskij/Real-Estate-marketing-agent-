@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { SupportWidget } from "@/components/support/SupportWidget";
 
 const NAV = [
   { href: "/dashboard", label: "Studio", icon: "◆" },
@@ -139,7 +140,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="flex-1 p-5 md:p-8">{children}</main>
+        <main className="flex flex-1 flex-col">
+          <div className="flex-1 p-5 md:p-8">{children}</div>
+          <SupportWidget />
+        </main>
       </div>
     </div>
   );
