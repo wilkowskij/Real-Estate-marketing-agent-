@@ -30,6 +30,7 @@ export function SavedListings({ onSelect }: { onSelect: (l: SavedListing) => voi
   const [error, setError] = useState<string | null>(null);
   const [listings, setListings] = useState<SavedListing[] | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
 
   async function load() {
     setBusy(true);
@@ -54,6 +55,27 @@ export function SavedListings({ onSelect }: { onSelect: (l: SavedListing) => voi
   function pick(l: SavedListing) {
     onSelect(l);
     setOpen(false);
+  }
+
+  async function refresh(id: string) {
+    setRefreshingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/listings/${id}/refresh`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Refresh failed");
+      setListings((prev) =>
+        prev
+          ? prev.map((l) =>
+              l.id === id ? { ...l, price: json.price ?? l.price, status: json.status ?? l.status } : l
+            )
+          : prev
+      );
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setRefreshingId(null);
+    }
   }
 
   async function remove(id: string) {
@@ -121,8 +143,20 @@ export function SavedListings({ onSelect }: { onSelect: (l: SavedListing) => voi
                         {l.source === "mls" ? " · MLS" : ""}
                       </p>
                     </button>
-                    <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-2">
                       {l.price != null && <span className="text-sm font-semibold text-navy">{money(l.price)}</span>}
+                      {l.source === "mls" && (
+                        <button
+                          type="button"
+                          onClick={() => refresh(l.id)}
+                          disabled={refreshingId === l.id}
+                          aria-label="Refresh price & status from MLS"
+                          title="Refresh price & status from MLS"
+                          className="rounded-lg p-1 text-ink-muted hover:bg-paper hover:text-gold-deep"
+                        >
+                          {refreshingId === l.id ? "…" : "↻"}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => remove(l.id)}
