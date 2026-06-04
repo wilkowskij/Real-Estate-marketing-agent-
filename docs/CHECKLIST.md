@@ -2,7 +2,7 @@
 
 A living checklist of what's left. Tick a box (`[ ]` → `[x]`) and commit as you
 go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build work
-(ask Claude). Last updated: 2026-06-04.
+(ask Claude). Last updated: 2026-06-04 (later).
 
 ---
 
@@ -118,19 +118,25 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
       click counting, convert-lead-to-deal + deals pipeline in the Leads hub,
       per-campaign tracked links in campaign detail, and a Revenue & attribution
       section in Analytics (funnel + closed revenue by source)
-- [ ] **Video marketing engine** — scene detect → clips → reels (Shotstack + scene AI)
-- [ ] **Stories / Reels** publishing endpoints
-- [ ] **Saved listings from MLS** — persist an imported RentCast listing as a
-      reusable `listings` record (tie it to campaigns, leads & deals; "My
-      listings" picker on Create) and auto-refresh price/status changes.
-      *(Natural next step — builds directly on the MLS import + market-area work;
-      no external blockers.)*
-- [ ] **MLS attribution in generated copy** — feed the agent's configured MLS +
-      brokerage disclaimer into the marketing agent so Just Sold / New Listing
-      posts can carry compliant "Listing courtesy of…" attribution.
-- [ ] **Feedback triage in-app** — `/feedback` (or a Company tab) reading the
-      `feedback` table with a status pipeline (new → triaged → planned → done),
-      optionally syncing status back to Notion + pinging the ops-agents bot.
+- [x] **Saved listings from MLS** — imported RentCast listings persist as
+      reusable `listings` records (zip/mls_number/source/last_synced_at + dedupe
+      by MLS number). "Save" on each MLS result + a "My listings" picker on
+      Create that reuses a saved property (links the campaign to it). New rows
+      stamp the brand state/county. *(Auto-refresh of price/status — future.)*
+- [x] **MLS attribution in generated copy** — `attributionGuidance()` feeds the
+      agent's MLS + brokerage disclaimer into the marketing (social) and
+      messaging (email) agents: appends the disclaimer verbatim, references the
+      MLS as a data source on listing posts, never fabricates a brokerage.
+- [x] **Feedback status view (customer-facing)** — `/feedback` shows each org
+      the feedback its members submitted with read-only status (Received →
+      Under review → Planned → Shipped / Not planned). Org-scoped via RLS;
+      status is set by the team in Notion. *(Staff cross-org triage — future.)*
+- [x] **White-label theming** — orgs can brand the app shell (logo/name/accent
+      instead of "Marquee", "Powered by Marquee" note); toggle in the company
+      brand editor; sidebar market-area card now reflects the configured area.
+- [ ] **Video marketing engine** — scene detect → clips → reels (Shotstack + scene AI).
+      ⚠️ Blocked: needs a Shotstack (or similar) account + paid API key.
+- [ ] **Stories / Reels** publishing endpoints. ⚠️ Blocked on Meta/LinkedIn app review.
 - [ ] **White-label theming** for brokerages
 - [x] Brokerage-wide "who's connected" view — Company → Connections: per-agent
       × platform coverage matrix, per-platform coverage bars, and company-owned
