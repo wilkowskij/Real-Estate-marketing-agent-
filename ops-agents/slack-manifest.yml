@@ -1,0 +1,28 @@
+# Paste this at api.slack.com/apps → Create New App → From a manifest.
+# Then: Install to Workspace, copy the Bot token (xoxb-), and under
+# "Basic Information → App-Level Tokens" create a token with connections:write
+# (xapp-). Invite the bot to each channel: /invite @Ops Agents
+display_information:
+  name: Ops Agents
+  description: Internal multi-agent ops bot (Support / PM / Dev / Marketing)
+features:
+  bot_user:
+    display_name: ops-agents
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - groups:history
+      - chat:write
+      - reactions:read
+      - reactions:write
+settings:
+  event_subscriptions:
+    bot_events:
+      - app_mention
+  interactivity:
+    is_enabled: true
+  socket_mode_enabled: true
+  org_deploy_enabled: false
