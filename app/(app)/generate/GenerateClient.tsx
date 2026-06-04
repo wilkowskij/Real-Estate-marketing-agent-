@@ -9,6 +9,7 @@ import { Label, Input, Textarea, Select } from "@/components/ui/Field";
 import { PLATFORM_SIZES } from "@/lib/design/platforms";
 import { PhotoEditor, type EditResult } from "./PhotoEditor";
 import { MlsImport, type ImportedListing } from "@/components/generate/MlsImport";
+import { SavedListings, type SavedListing } from "@/components/generate/SavedListings";
 
 type CampaignType =
   | "just_sold"
@@ -123,6 +124,9 @@ export function GenerateClient() {
     baths: "",
     sqft: "",
   });
+  // When set, generate reuses this saved listing row instead of creating one.
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [selectedListingLabel, setSelectedListingLabel] = useState<string | null>(null);
   const [instructions, setInstructions] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [messageResult, setMessageResult] = useState<MessageResult | null>(null);
@@ -221,8 +225,37 @@ export function GenerateClient() {
       baths: l.baths != null ? String(l.baths) : "",
       sqft: l.sqft != null ? String(l.sqft) : "",
     });
+    // A fresh MLS import isn't a saved row yet — generate will persist it.
+    setSelectedListingId(null);
+    setSelectedListingLabel(null);
     setShowDetails(true);
     setError(null);
+  }
+
+  function onPickSaved(l: SavedListing) {
+    setType(l.status === "sold" ? "just_sold" : "new_listing");
+    setListing({
+      address: l.address ?? "",
+      town: l.town ?? "",
+      price: l.price != null ? String(l.price) : "",
+      beds: l.beds != null ? String(l.beds) : "",
+      baths: l.baths != null ? String(l.baths) : "",
+      sqft: l.sqft != null ? String(l.sqft) : "",
+    });
+    setSelectedListingId(l.id);
+    setSelectedListingLabel(l.address);
+    setShowDetails(true);
+    setError(null);
+  }
+
+  // Editing a listing field by hand breaks the link to the saved row, so the
+  // edited property is treated as new (and persisted on generate).
+  function editListing(patch: Partial<typeof listing>) {
+    setListing((prev) => ({ ...prev, ...patch }));
+    if (selectedListingId) {
+      setSelectedListingId(null);
+      setSelectedListingLabel(null);
+    }
   }
 
   async function toggleLibrary() {
@@ -315,6 +348,7 @@ export function GenerateClient() {
           enhance,
           generateImage: aiImage,
           instructions: instructions || undefined,
+          listingId: selectedListingId || undefined,
           listing: {
             address: listing.address || undefined,
             town: listing.town || undefined,
@@ -420,12 +454,19 @@ export function GenerateClient() {
           </div>
 
           {/* Two-clicks start: pull a real MLS listing to fill every field. */}
-          <div className="flex items-center justify-between rounded-xl2 border border-dashed border-gold/40 bg-gold/5 px-4 py-3">
-            <div>
+          <div className="flex items-center justify-between gap-3 rounded-xl2 border border-dashed border-gold/40 bg-gold/5 px-4 py-3">
+            <div className="min-w-0">
               <p className="text-sm font-medium text-ink">Start from a real listing</p>
-              <p className="text-xs text-ink-muted">Pull MLS details, then Generate — two clicks.</p>
+              <p className="text-xs text-ink-muted">
+                {selectedListingLabel
+                  ? `Using saved listing: ${selectedListingLabel}`
+                  : "Pull MLS details or reuse a saved listing, then Generate."}
+              </p>
             </div>
-            <MlsImport onSelect={onImportListing} />
+            <div className="flex shrink-0 items-center gap-2">
+              <SavedListings onSelect={onPickSaved} />
+              <MlsImport onSelect={onImportListing} />
+            </div>
           </div>
 
           {/* AI-first intake: describe it in one line; we fill in the rest. */}
@@ -501,7 +542,7 @@ export function GenerateClient() {
               <Label>Address</Label>
               <Input
                 value={listing.address}
-                onChange={(e) => setListing({ ...listing, address: e.target.value })}
+                onChange={(e) => editListing({ address: e.target.value })}
                 placeholder="14 Riverside Ave"
               />
             </div>
@@ -509,7 +550,7 @@ export function GenerateClient() {
               <Label>Town</Label>
               <Input
                 value={listing.town}
-                onChange={(e) => setListing({ ...listing, town: e.target.value })}
+                onChange={(e) => editListing({ town: e.target.value })}
                 placeholder="Red Bank"
               />
             </div>
@@ -518,7 +559,7 @@ export function GenerateClient() {
               <Input
                 type="number"
                 value={listing.price}
-                onChange={(e) => setListing({ ...listing, price: e.target.value })}
+                onChange={(e) => editListing({ price: e.target.value })}
                 placeholder="1250000"
               />
             </div>
@@ -527,7 +568,7 @@ export function GenerateClient() {
               <Input
                 type="number"
                 value={listing.beds}
-                onChange={(e) => setListing({ ...listing, beds: e.target.value })}
+                onChange={(e) => editListing({ beds: e.target.value })}
               />
             </div>
             <div>
@@ -535,7 +576,7 @@ export function GenerateClient() {
               <Input
                 type="number"
                 value={listing.baths}
-                onChange={(e) => setListing({ ...listing, baths: e.target.value })}
+                onChange={(e) => editListing({ baths: e.target.value })}
               />
             </div>
             <div>
@@ -543,7 +584,7 @@ export function GenerateClient() {
               <Input
                 type="number"
                 value={listing.sqft}
-                onChange={(e) => setListing({ ...listing, sqft: e.target.value })}
+                onChange={(e) => editListing({ sqft: e.target.value })}
               />
             </div>
             <div>

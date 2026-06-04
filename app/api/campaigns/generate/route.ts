@@ -111,11 +111,14 @@ export async function POST(req: NextRequest) {
         created_by: ctx.userId,
         address: input.listing.address,
         town: input.listing.town ?? null,
+        state: ctx.brand.marketArea.state,
+        county: ctx.brand.marketArea.county,
         price: input.listing.price ?? null,
         beds: input.listing.beds ?? null,
         baths: input.listing.baths ?? null,
         sqft: input.listing.sqft ?? null,
         status: input.type === "just_sold" ? "sold" : "active",
+        source: "campaign",
       })
       .select("id")
       .single();

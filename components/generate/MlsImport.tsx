@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 export interface ImportedListing {
+  /** RentCast/MLS listing id, when present — used to save + dedupe. */
+  id?: string;
   address: string;
   town: string | null;
   state: string | null;
@@ -13,6 +15,23 @@ export interface ImportedListing {
   baths: number | null;
   sqft: number | null;
   status: string | null;
+}
+
+/** Map an MLS result to the /api/listings save payload. */
+function saveBody(l: ImportedListing) {
+  return {
+    address: l.address,
+    town: l.town ?? undefined,
+    state: l.state ?? undefined,
+    zip: l.zip ?? undefined,
+    price: l.price ?? undefined,
+    beds: l.beds ?? undefined,
+    baths: l.baths ?? undefined,
+    sqft: l.sqft ?? undefined,
+    status: l.status === "Inactive" ? ("sold" as const) : ("active" as const),
+    mlsNumber: l.id ?? undefined,
+    source: "mls" as const,
+  };
 }
 
 const money = (n: number | null) =>
@@ -31,6 +50,27 @@ export function MlsImport({ onSelect }: { onSelect: (l: ImportedListing) => void
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ImportedListing[] | null>(null);
   const [area, setArea] = useState<{ label: string; mls: string | null } | null>(null);
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  const keyFor = (l: ImportedListing, i: number) => l.id ?? `${l.address}-${i}`;
+
+  async function save(l: ImportedListing, key: string) {
+    setSavingKey(key);
+    try {
+      const res = await fetch("/api/listings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(saveBody(l)),
+      });
+      if (!res.ok) throw new Error();
+      setSavedKeys((prev) => new Set(prev).add(key));
+    } catch {
+      setError("Couldn't save that listing. Try again.");
+    } finally {
+      setSavingKey(null);
+    }
+  }
 
   async function search(e?: React.FormEvent) {
     e?.preventDefault();
@@ -124,26 +164,42 @@ export function MlsImport({ onSelect }: { onSelect: (l: ImportedListing) => void
                 {results.length === 0 ? (
                   <p className="text-sm text-ink-muted">No listings found. Try a different search.</p>
                 ) : (
-                  results.map((l, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => pick(l)}
-                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-paper-line p-3 text-left transition-colors hover:border-gold/60 hover:bg-paper"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-ink">{l.address}</p>
-                        <p className="text-xs text-ink-muted">
-                          {[l.town, l.state].filter(Boolean).join(", ")}
-                          {l.beds != null || l.baths != null || l.sqft != null ? " · " : ""}
-                          {[l.beds != null ? `${l.beds} bd` : null, l.baths != null ? `${l.baths} ba` : null, l.sqft != null ? `${l.sqft.toLocaleString()} sqft` : null]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
+                  results.map((l, i) => {
+                    const key = keyFor(l, i);
+                    const isSaved = savedKeys.has(key);
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-paper-line p-3 transition-colors hover:border-gold/60 hover:bg-paper"
+                      >
+                        <button type="button" onClick={() => pick(l)} className="min-w-0 flex-1 text-left">
+                          <p className="truncate text-sm font-medium text-ink">{l.address}</p>
+                          <p className="text-xs text-ink-muted">
+                            {[l.town, l.state].filter(Boolean).join(", ")}
+                            {l.beds != null || l.baths != null || l.sqft != null ? " · " : ""}
+                            {[l.beds != null ? `${l.beds} bd` : null, l.baths != null ? `${l.baths} ba` : null, l.sqft != null ? `${l.sqft.toLocaleString()} sqft` : null]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        </button>
+                        <div className="flex shrink-0 items-center gap-3">
+                          {l.price != null && <span className="text-sm font-semibold text-navy">{money(l.price)}</span>}
+                          <button
+                            type="button"
+                            onClick={() => save(l, key)}
+                            disabled={isSaved || savingKey === key}
+                            className={`rounded-lg border px-2 py-1 text-xs font-semibold transition-colors ${
+                              isSaved
+                                ? "border-transparent text-ink-muted"
+                                : "border-paper-line text-gold-deep hover:border-gold/60"
+                            }`}
+                          >
+                            {isSaved ? "Saved ✓" : savingKey === key ? "…" : "Save"}
+                          </button>
+                        </div>
                       </div>
-                      {l.price != null && <span className="shrink-0 text-sm font-semibold text-navy">{money(l.price)}</span>}
-                    </button>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}

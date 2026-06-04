@@ -95,12 +95,19 @@ export interface Listing {
   town: string | null;
   state: string;
   county: string;
+  zip: string | null;
   price: number | null;
   beds: number | null;
   baths: number | null;
   sqft: number | null;
   status: ListingStatus;
   description: string | null;
+  /** The MLS listing id, when imported — used to dedupe + refresh. */
+  mls_number: string | null;
+  /** Where this row came from: 'mls' | 'manual' | 'campaign'. */
+  source: string;
+  last_synced_at: string | null;
+  created_at: string;
 }
 
 export interface CopyPackage {
