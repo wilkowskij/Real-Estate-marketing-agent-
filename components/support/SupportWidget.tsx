@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Label, Input, Textarea, Select } from "@/components/ui/Field";
@@ -73,13 +74,19 @@ export function SupportWidget() {
 
   return (
     <>
-      <footer className="mt-10 border-t border-paper-line px-5 py-5 md:px-8">
+      <footer className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-paper-line px-5 py-5 md:px-8">
         <button
           onClick={() => setOpen(true)}
           className="text-sm text-ink-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
         >
           Need help or have an idea? Send support &amp; feedback
         </button>
+        <Link
+          href="/feedback"
+          className="text-sm text-ink-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
+        >
+          View your requests
+        </Link>
       </footer>
 
       {open && (
@@ -91,6 +98,11 @@ export function SupportWidget() {
                 <h2 className="font-display text-xl text-navy">Thank you</h2>
                 <p className="mt-2 text-sm text-ink-muted">
                   Your message is in. We review every submission and prioritize what to build next.
+                  Track its status under{" "}
+                  <Link href="/feedback" onClick={close} className="text-gold-deep underline underline-offset-2">
+                    Your requests
+                  </Link>
+                  .
                 </p>
                 <div className="mt-5 flex justify-center">
                   <Button variant="gold" onClick={close}>
