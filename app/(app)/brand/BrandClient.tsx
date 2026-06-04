@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Label, Input } from "@/components/ui/Field";
+import { Label, Input, Select } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
 import { ImageUpload } from "./ImageUpload";
 import { BrandImport } from "./BrandImport";
 import type { ResolvedBrand } from "@/lib/branding/resolveBrand";
+import { US_STATES } from "@/lib/branding/marketArea";
 
 /**
  * Brand kit + agent profile editor, hydrated from the resolved brand. Company
@@ -33,6 +34,10 @@ export function BrandClient({
   const [name, setName] = useState(brand.name ?? "");
   const [colors, setColors] = useState(brand.colors);
   const [disclaimer, setDisclaimer] = useState(brand.disclaimer ?? "");
+  const [marketState, setMarketState] = useState(brand.marketArea.state);
+  const [county, setCounty] = useState(brand.marketArea.county);
+  const [region, setRegion] = useState(brand.marketArea.region ?? "");
+  const [towns, setTowns] = useState(brand.marketArea.towns.join(", "));
   const [fullName, setFullName] = useState(brand.agent.fullName ?? "");
   const [licenseNumber, setLicenseNumber] = useState(brand.agent.licenseNumber ?? "");
   const [phone, setPhone] = useState(brand.agent.contact.phone ?? "");
@@ -57,6 +62,15 @@ export function BrandClient({
         payload.name = name;
         payload.colors = colors;
         payload.disclaimer = disclaimer || null;
+        payload.marketArea = {
+          state: marketState,
+          county: county.trim(),
+          region: region.trim() || undefined,
+          towns: towns
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
+        };
       }
       const res = await fetch("/api/brand", {
         method: "PUT",
@@ -175,6 +189,72 @@ export function BrandClient({
           </CardBody>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardBody className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg text-navy">Market area</h3>
+              <p className="text-sm text-ink-muted">
+                Where you sell. This tailors every AI-generated post, email, and
+                SMS — the towns it references, the local angle, and the hashtags.
+              </p>
+            </div>
+            {brandDisabled && <Badge>Locked by org</Badge>}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label>State</Label>
+              <Select
+                value={marketState}
+                onChange={(e) => setMarketState(e.target.value)}
+                disabled={brandDisabled}
+              >
+                {Object.entries(US_STATES).map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {label} ({code})
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label>County</Label>
+              <Input
+                value={county}
+                onChange={(e) => setCounty(e.target.value)}
+                placeholder="Monmouth"
+                disabled={brandDisabled}
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Region (optional)</Label>
+            <Input
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="Jersey Shore"
+              disabled={brandDisabled}
+            />
+          </div>
+          <div>
+            <Label>Key towns you serve</Label>
+            <Input
+              value={towns}
+              onChange={(e) => setTowns(e.target.value)}
+              placeholder="Red Bank, Asbury Park, Middletown, Holmdel"
+              disabled={brandDisabled}
+            />
+            <p className="mt-1 text-xs text-ink-muted">
+              Comma-separated. The AI names these towns for hyperlocal angles.
+            </p>
+          </div>
+          {brandDisabled && (
+            <p className="text-xs text-ink-muted">
+              Your org admin sets the company market area.
+            </p>
+          )}
+        </CardBody>
+      </Card>
 
       <div className="mt-6 flex items-center justify-end gap-3">
         {error && <p className="text-sm text-red-600">{error}</p>}

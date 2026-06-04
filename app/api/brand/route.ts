@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrgContext } from "@/lib/org";
 import { LOCKABLE_FIELDS } from "@/lib/branding/resolveBrand";
+import { normalizeMarketArea } from "@/lib/branding/marketArea";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,14 @@ const Body = z.object({
     .optional(),
   disclaimer: z.string().nullable().optional(),
   layoutTheme: z.string().optional(),
+  marketArea: z
+    .object({
+      state: z.string().min(1).max(40),
+      county: z.string().min(1).max(80),
+      region: z.string().max(80).optional(),
+      towns: z.array(z.string().max(80)).max(40).optional(),
+    })
+    .optional(),
   lockedFields: z.array(z.enum(LOCKABLE_FIELDS)).optional(),
   // profile (personal) fields
   fullName: z.string().nullable().optional(),
@@ -49,6 +58,7 @@ export async function PUT(req: NextRequest) {
     b.colors !== undefined ||
     b.disclaimer !== undefined ||
     b.layoutTheme !== undefined ||
+    b.marketArea !== undefined ||
     b.lockedFields !== undefined;
 
   if (wantsBrandChange) {
@@ -63,6 +73,7 @@ export async function PUT(req: NextRequest) {
     if (b.colors !== undefined) kitUpdate.colors = b.colors;
     if (b.disclaimer !== undefined) kitUpdate.disclaimer = b.disclaimer;
     if (b.layoutTheme !== undefined) kitUpdate.layout_theme = b.layoutTheme;
+    if (b.marketArea !== undefined) kitUpdate.market_area = normalizeMarketArea(b.marketArea);
     if (b.lockedFields !== undefined) kitUpdate.locked_fields = b.lockedFields;
 
     const { error } = await supabase

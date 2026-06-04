@@ -43,6 +43,23 @@ export interface ContactBlock {
   website?: string;
 }
 
+/**
+ * The geographic market an agent/org works in. Drives the AI's local expertise
+ * (towns, commute patterns, hashtags) and the Stop-Slop local-specificity check,
+ * so marketing copy is tailored to wherever the user actually sells — not a
+ * hardcoded region.
+ */
+export interface MarketArea {
+  /** Two-letter state code, e.g. "NJ", "TX", "CA". */
+  state: string;
+  /** County name without the word "County", e.g. "Monmouth", "Travis". */
+  county: string;
+  /** Optional informal region label, e.g. "Jersey Shore", "Bay Area". */
+  region?: string;
+  /** Key towns/neighborhoods the agent serves (used for hyperlocal angles). */
+  towns: string[];
+}
+
 export interface BrandKit {
   id: string;
   org_id: string;
@@ -56,6 +73,7 @@ export interface BrandKit {
   disclaimer: string | null;
   layout_theme: string;
   locked_fields: string[];
+  market_area: MarketArea;
   is_default: boolean;
 }
 

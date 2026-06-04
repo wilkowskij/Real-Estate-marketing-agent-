@@ -1,28 +1,40 @@
 import { getAnthropic, MODEL, cachedSystem, extractText } from "@/lib/anthropic/client";
-import type { CampaignType, CopyPackage, Listing, PostFormat } from "@/lib/supabase/types";
+import type { CampaignType, CopyPackage, Listing, MarketArea, PostFormat } from "@/lib/supabase/types";
+import { DEFAULT_MARKET_AREA, areaLabel, stateName } from "@/lib/branding/marketArea";
 
 const FORMATS: PostFormat[] = ["reel", "carousel", "infographic", "single_image"];
 
 /**
- * Marketing Agent — the NJ / Monmouth County specialist.
+ * Marketing Agent — a local real estate specialist for the org's chosen market.
  * Owns WHAT to say. Returns a structured copy package per campaign type.
  *
- * Local expertise lives in a cached system block so repeat calls are cheap.
+ * The local-expertise system block is built from the org's MarketArea so copy is
+ * tailored to wherever they actually sell. It's still passed through cachedSystem,
+ * so repeat calls for the same area reuse the prompt cache and stay cheap.
  */
-export const LOCAL_EXPERTISE = `You are a senior real estate marketing copywriter who specializes in
-New Jersey, and specifically Monmouth County. You know the local market intimately:
+export function buildLocalExpertise(area: MarketArea = DEFAULT_MARKET_AREA): string {
+  const label = areaLabel(area);
+  const fullState = stateName(area.state);
+  const towns =
+    area.towns.length > 0
+      ? area.towns.join(", ")
+      : `the major towns and neighborhoods of ${label}`;
+  const region = area.region ? ` (the ${area.region} area)` : "";
 
-- Towns & character: Red Bank (walkable downtown, dining, arts), Asbury Park
-  (beach, music, nightlife), Middletown (top schools, commuter-friendly to NYC),
-  Freehold (historic + retail), Rumson & Fair Haven (affluent, riverfront),
-  Long Branch & Pier Village (oceanfront condos), Holmdel, Colts Neck (horse
-  country, large lots), Manasquan/Spring Lake/Belmar (shore towns).
-- Buyer drivers here: NYC commute (NJ Transit North Jersey Coast Line, ferry from
-  Belford/Atlantic Highlands), school districts, shore/beach access, taxes,
-  new construction vs. historic charm.
-- Seasonality: spring market surge, summer shore demand, fall NYC-relocation buyers.
+  return `You are a senior real estate marketing copywriter who specializes in
+${fullState}, and specifically ${label}${region}. You know this local market
+intimately — draw on real, verifiable knowledge of it:
 
-WHAT PERFORMS (from current NJ/Monmouth social-media market research — use this):
+- Towns & character: ${towns}. Reference each town's genuine, distinctive
+  character (downtown/Main Street, schools, waterfront/parks, dining, commute).
+- Buyer drivers here: commute patterns to the nearest major employment hubs,
+  school districts, lifestyle/amenities, property taxes, new construction vs.
+  established neighborhoods. Use the drivers that are actually true for ${label}.
+- Seasonality: reflect the real buying season for this region.
+- NEVER invent landmarks, towns, or facts. If you are unsure a specific detail
+  is true for ${label}, speak qualitatively instead of fabricating it.
+
+WHAT PERFORMS (current real-estate social-media research — applies anywhere, use this):
 - FORMAT RANKING: short video / Reels (15-60s) win by far (far more shares and
   listing inquiries than static); then carousels (6-13 slides, best for
   educational saves/shares); then single data infographics (one bold stat,
@@ -31,7 +43,8 @@ WHAT PERFORMS (from current NJ/Monmouth social-media market research — use thi
 - VIRAL TOPIC TIERS:
   - Tier 1 (highest reach, emotional + urgent): bidding-war / over-asking
     stories; interest-rate impact explainers ("how a 0.5% move changes the
-    monthly payment"); the NYC/Hoboken -> Shore-town migration story.
+    monthly payment"); the relocation/migration story into this area (e.g. from
+    the nearest big city or higher-cost market).
   - Tier 2 (local + educational): neighborhood spotlights (hyperlocal beats
     generic); school-district breakdowns; "deal of the week"; before/after
     renovations.
@@ -47,8 +60,10 @@ WHAT PERFORMS (from current NJ/Monmouth social-media market research — use thi
 - AVOID (declining/■): generic blue-and-white templates, cluttered text-heavy
   designs, phone-quality snapshots as main content, hard-sell copy
   ("BUY NOW", "CALL ME").
-- HASHTAGS that matter locally: #NJRealEstate #MonmouthCounty #NJHomes
-  #ShoreRealEstate #AsburyPark #RedBank #HolmdelNJ #NJLuxuryHomes.
+- HASHTAGS: mix broad real-estate tags with REAL local ones built from this
+  market — the state, the county, and the actual town names above
+  (e.g. #${area.state}RealEstate, #${area.county.replace(/\s+/g, "")}County,
+  and town-specific tags). Do not reuse another region's hashtags.
 
 COMPLIANCE — this is mandatory, never violate it:
 - Follow Fair Housing. NEVER reference or imply preferences about race, color,
@@ -62,6 +77,7 @@ COMPLIANCE — this is mandatory, never violate it:
 
 VOICE: warm, professional, local, concrete. Avoid cliché ("nestled",
 "dream home", "must see"). Lead with what's genuinely distinctive.`;
+}
 
 /**
  * Per-type guidance + the research-recommended default format. The agent may
@@ -85,12 +101,12 @@ const CAMPAIGN_GUIDANCE: Record<CampaignType, { brief: string; format: PostForma
   },
   market_stat: {
     brief:
-      "A MARKET STAT post (educational, Tier 1). Take ONE surprising, specific Monmouth County market fact (over-asking %, price-per-sqft trend, days-on-market, rate impact, NYC->Shore migration) and make it instantly legible. Slightly frustrated, real tone; end on a question that invites comments. Only use numbers actually provided — never invent stats.",
+      "A MARKET STAT post (educational, Tier 1). Take ONE surprising, specific local market fact (over-asking %, price-per-sqft trend, days-on-market, rate impact, in-migration) and make it instantly legible. Slightly frustrated, real tone; end on a question that invites comments. Only use numbers actually provided — never invent stats.",
     format: "reel",
   },
   neighborhood_spotlight: {
     brief:
-      "A NEIGHBORHOOD SPOTLIGHT (community). Hyperlocal beats generic: a specific Monmouth town's lifestyle (Asbury Park beachfront, Red Bank downtown, the commute, local businesses). Sell the area, not a listing.",
+      "A NEIGHBORHOOD SPOTLIGHT (community). Hyperlocal beats generic: a specific town's lifestyle in this market (its downtown, waterfront/parks, the commute, real local businesses). Sell the area, not a listing.",
     format: "carousel",
   },
   deal_of_week: {
@@ -124,6 +140,8 @@ export interface MarketingInput {
   listing?: Partial<Listing>;
   instructions?: string;
   agentName?: string;
+  /** The org's market — tailors the local angle, towns, and hashtags. */
+  marketArea?: MarketArea;
   /** When true, allow the web_search tool for current market data. */
   allowWebSearch?: boolean;
 }
@@ -134,11 +152,15 @@ export async function runMarketingAgent(
   const client = getAnthropic();
 
   const guidance = CAMPAIGN_GUIDANCE[input.type];
+  const area = input.marketArea ?? DEFAULT_MARKET_AREA;
 
   const userContent = [
     `Campaign type: ${input.type}`,
     guidance.brief,
     `Recommended format for this type: ${guidance.format} (override only if the inputs clearly call for a different format).`,
+    `Market area: ${areaLabel(area)}${area.region ? ` — ${area.region}` : ""}.${
+      area.towns.length ? ` Key towns: ${area.towns.join(", ")}.` : ""
+    } Make every local reference, town, and hashtag specific to THIS market.`,
     input.listing ? `Listing details:\n${JSON.stringify(input.listing, null, 2)}` : "",
     input.agentName ? `Agent name: ${input.agentName}` : "",
     input.instructions ? `Extra instructions: ${input.instructions}` : "",
@@ -160,7 +182,7 @@ export async function runMarketingAgent(
   const msg = await client.messages.create({
     model: MODEL,
     max_tokens: 1500,
-    system: cachedSystem(LOCAL_EXPERTISE),
+    system: cachedSystem(buildLocalExpertise(area)),
     // web_search wiring is left as a tool the orchestrator can enable; the core
     // generator runs without it for determinism and speed.
     messages: [{ role: "user", content: userContent }],

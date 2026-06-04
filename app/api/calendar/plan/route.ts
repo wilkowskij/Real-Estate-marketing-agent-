@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrgContext } from "@/lib/org";
 import { planContentCalendar } from "@/lib/agents/calendar";
+import { areaLabel } from "@/lib/branding/marketArea";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 
 export const runtime = "nodejs";
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
   const { posts, usage } = await planContentCalendar({
     count: parsed.data.count ?? 20,
     start: parsed.data.start ? new Date(parsed.data.start) : undefined,
-    area: parsed.data.area,
+    area: parsed.data.area ?? areaLabel(ctx.brand.marketArea),
     mix: parsed.data.mix,
     platforms: parsed.data.platforms,
   });

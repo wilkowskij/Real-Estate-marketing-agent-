@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrgContext } from "@/lib/org";
 import { generateAngle } from "@/lib/agents/calendar";
+import { areaLabel } from "@/lib/branding/marketArea";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 import type { CampaignType, PostFormat } from "@/lib/supabase/types";
 
@@ -40,7 +41,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   let angle: string;
   let usage: { input: number; output: number };
   try {
-    ({ angle, usage } = await generateAngle({ type, format }));
+    ({ angle, usage } = await generateAngle({ type, format, area: areaLabel(ctx.brand.marketArea) }));
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? "Could not recreate" }, { status: 502 });
   }

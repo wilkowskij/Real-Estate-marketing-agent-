@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { resolveBrand } from "./resolveBrand";
+import { DEFAULT_MARKET_AREA } from "./marketArea";
 import type { BrandKit, Profile } from "@/lib/supabase/types";
 
 const baseKit = (over: Partial<BrandKit>): BrandKit => ({
@@ -15,6 +16,7 @@ const baseKit = (over: Partial<BrandKit>): BrandKit => ({
   disclaimer: "Org disclaimer",
   layout_theme: "classic",
   locked_fields: [],
+  market_area: DEFAULT_MARKET_AREA,
   is_default: true,
   ...over,
 });
@@ -62,5 +64,24 @@ describe("resolveBrand", () => {
     const r = resolveBrand({ orgKit: baseKit({}), memberKit: null, profile });
     expect(r.agent.headshotPath).toBe("u/headshot.png");
     expect(r.agent.contact.phone).toBe("555");
+  });
+
+  it("resolves the market area and respects locking", () => {
+    const tx = { state: "TX", county: "Travis", towns: ["Austin"] };
+    // member override allowed when unlocked
+    const open = resolveBrand({
+      orgKit: baseKit({}),
+      memberKit: baseKit({ owner: "member", membership_id: "m", market_area: tx }),
+      profile,
+    });
+    expect(open.marketArea.county).toBe("Travis");
+
+    // org-locked market area wins
+    const locked = resolveBrand({
+      orgKit: baseKit({ locked_fields: ["market_area"] }),
+      memberKit: baseKit({ owner: "member", membership_id: "m", market_area: tx }),
+      profile,
+    });
+    expect(locked.marketArea.county).toBe("Monmouth");
   });
 });
