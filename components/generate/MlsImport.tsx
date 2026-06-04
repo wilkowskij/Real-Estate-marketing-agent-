@@ -30,6 +30,7 @@ export function MlsImport({ onSelect }: { onSelect: (l: ImportedListing) => void
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ImportedListing[] | null>(null);
+  const [area, setArea] = useState<{ label: string; mls: string | null } | null>(null);
 
   async function search(e?: React.FormEvent) {
     e?.preventDefault();
@@ -42,6 +43,7 @@ export function MlsImport({ onSelect }: { onSelect: (l: ImportedListing) => void
       const json = await res.json();
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Search failed");
       setResults(json.listings ?? []);
+      setArea(json.area ?? null);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -109,6 +111,13 @@ export function MlsImport({ onSelect }: { onSelect: (l: ImportedListing) => void
             </div>
 
             {error && <p className="mt-3 text-sm text-error">{error}</p>}
+
+            {area && (
+              <p className="mt-3 text-xs text-ink-muted">
+                {area.mls ? `${area.mls} · ` : ""}City searches default to {area.label}. Set your
+                MLS and market area in Brand settings.
+              </p>
+            )}
 
             {results && (
               <div className="mt-4 max-h-80 space-y-2 overflow-y-auto">

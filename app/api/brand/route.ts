@@ -21,6 +21,7 @@ const Body = z.object({
       county: z.string().min(1).max(80),
       region: z.string().max(80).optional(),
       towns: z.array(z.string().max(80)).max(40).optional(),
+      mls: z.string().max(120).optional(),
     })
     .optional(),
   lockedFields: z.array(z.enum(LOCKABLE_FIELDS)).optional(),

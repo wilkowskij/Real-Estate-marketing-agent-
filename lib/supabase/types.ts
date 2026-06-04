@@ -58,6 +58,9 @@ export interface MarketArea {
   region?: string;
   /** Key towns/neighborhoods the agent serves (used for hyperlocal angles). */
   towns: string[];
+  /** The MLS the agent belongs to, e.g. "Monmouth-Ocean MLS". Used for listing
+   *  attribution and to label where listing data is pulled from. */
+  mls?: string;
 }
 
 export interface BrandKit {

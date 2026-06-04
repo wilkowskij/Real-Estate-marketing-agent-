@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrgContext } from "@/lib/org";
+import { areaLabel } from "@/lib/branding/marketArea";
 import { searchSaleListings, parseSearchInput, isRentcastConfigured } from "@/lib/listings/rentcast";
 
 export const runtime = "nodejs";
@@ -10,6 +11,9 @@ export const maxDuration = 30;
  * only signed-in agents can pull listings. Query params:
  *   q       free-text (address / ZIP / "City, ST")
  *   status  "Active" (default) | "Inactive" (recently sold)
+ *
+ * A bare city/town with no state defaults to the agent's configured market-area
+ * state (Brand settings), so listing pulls follow the county/state they chose.
  */
 export async function GET(req: NextRequest) {
   const ctx = await getOrgContext();
@@ -29,10 +33,17 @@ export async function GET(req: NextRequest) {
   const statusParam = req.nextUrl.searchParams.get("status");
   const status = statusParam === "Inactive" ? "Inactive" : "Active";
 
+  const area = ctx.brand.marketArea;
   try {
-    const params = { ...parseSearchInput(q), status: status as "Active" | "Inactive" };
+    const params = {
+      ...parseSearchInput(q, area.state),
+      status: status as "Active" | "Inactive",
+    };
     const listings = await searchSaleListings(params);
-    return NextResponse.json({ listings });
+    return NextResponse.json({
+      listings,
+      area: { state: area.state, label: areaLabel(area), mls: area.mls ?? null },
+    });
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? "MLS lookup failed" }, { status: 502 });
   }

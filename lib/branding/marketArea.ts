@@ -47,6 +47,34 @@ export function stateName(code: string): string {
 }
 
 /**
+ * Common US MLSs offered as type-ahead suggestions in Brand settings. Not
+ * exhaustive — the field is free text, so an agent can type any MLS — these
+ * just cover the large multi-state and NJ-area services most users will pick.
+ */
+export const COMMON_MLS: string[] = [
+  "Bright MLS",
+  "Monmouth-Ocean MLS (MOMLS)",
+  "New Jersey MLS (NJMLS)",
+  "Garden State MLS (GSMLS)",
+  "Central Jersey MLS",
+  "Stellar MLS",
+  "California Regional MLS (CRMLS)",
+  "MLSListings",
+  "Northwest MLS (NWMLS)",
+  "REcolorado",
+  "Houston Association of Realtors (HAR)",
+  "North Texas Real Estate Information Systems (NTREIS)",
+  "Austin/Central Texas (ACTRIS)",
+  "Georgia MLS (GAMLS)",
+  "First MLS (FMLS)",
+  "Midwest Real Estate Data (MRED)",
+  "OneKey MLS",
+  "Metropolitan Regional Information Systems (MRIS)",
+  "Arizona Regional MLS (ARMLS)",
+  "Canopy MLS",
+];
+
+/**
  * Coerce whatever is stored (possibly null/partial on legacy rows) into a
  * complete MarketArea, falling back to the default for any missing piece.
  */
@@ -62,6 +90,7 @@ export function normalizeMarketArea(input?: Partial<MarketArea> | null): MarketA
     towns: Array.isArray(input.towns)
       ? input.towns.map((t) => String(t).trim()).filter(Boolean)
       : [],
+    mls: input.mls?.trim() || undefined,
   };
 }
 

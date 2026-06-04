@@ -28,6 +28,15 @@ describe("marketArea helpers", () => {
     expect(a.towns).toEqual(["Austin"]);
   });
 
+  it("carries the MLS through (trimmed), or drops it when blank", () => {
+    expect(
+      normalizeMarketArea({ state: "NJ", county: "Monmouth", towns: [], mls: "  MOMLS  " }).mls
+    ).toBe("MOMLS");
+    expect(
+      normalizeMarketArea({ state: "NJ", county: "Monmouth", towns: [], mls: "   " }).mls
+    ).toBeUndefined();
+  });
+
   it("builds local signal terms from the chosen market", () => {
     const terms = localTermsFor({ state: "TX", county: "Travis", region: "Hill Country", towns: ["Austin"] });
     expect(terms).toContain("travis");

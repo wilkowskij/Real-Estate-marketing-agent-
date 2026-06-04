@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ImageUpload } from "./ImageUpload";
 import { BrandImport } from "./BrandImport";
 import type { ResolvedBrand } from "@/lib/branding/resolveBrand";
-import { US_STATES } from "@/lib/branding/marketArea";
+import { US_STATES, COMMON_MLS } from "@/lib/branding/marketArea";
 
 /**
  * Brand kit + agent profile editor, hydrated from the resolved brand. Company
@@ -38,6 +38,7 @@ export function BrandClient({
   const [county, setCounty] = useState(brand.marketArea.county);
   const [region, setRegion] = useState(brand.marketArea.region ?? "");
   const [towns, setTowns] = useState(brand.marketArea.towns.join(", "));
+  const [mls, setMls] = useState(brand.marketArea.mls ?? "");
   const [fullName, setFullName] = useState(brand.agent.fullName ?? "");
   const [licenseNumber, setLicenseNumber] = useState(brand.agent.licenseNumber ?? "");
   const [phone, setPhone] = useState(brand.agent.contact.phone ?? "");
@@ -70,6 +71,7 @@ export function BrandClient({
             .split(",")
             .map((t) => t.trim())
             .filter(Boolean),
+          mls: mls.trim() || undefined,
         };
       }
       const res = await fetch("/api/brand", {
@@ -246,6 +248,25 @@ export function BrandClient({
             />
             <p className="mt-1 text-xs text-ink-muted">
               Comma-separated. The AI names these towns for hyperlocal angles.
+            </p>
+          </div>
+          <div>
+            <Label>Your MLS</Label>
+            <Input
+              value={mls}
+              onChange={(e) => setMls(e.target.value)}
+              placeholder="Monmouth-Ocean MLS (MOMLS)"
+              list="mls-suggestions"
+              disabled={brandDisabled}
+            />
+            <datalist id="mls-suggestions">
+              {COMMON_MLS.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-xs text-ink-muted">
+              The MLS you belong to. Listing imports default to your state above,
+              and this labels where your listing data comes from.
             </p>
           </div>
           {brandDisabled && (
