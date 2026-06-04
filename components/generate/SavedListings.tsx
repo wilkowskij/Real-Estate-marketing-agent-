@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useModalDismiss } from "@/lib/useModalDismiss";
 
 export interface SavedListing {
   id: string;
@@ -31,6 +32,8 @@ export function SavedListings({ onSelect }: { onSelect: (l: SavedListing) => voi
   const [listings, setListings] = useState<SavedListing[] | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
+
+  useModalDismiss(open, () => setOpen(false));
 
   async function load() {
     setBusy(true);
@@ -104,7 +107,7 @@ export function SavedListings({ onSelect }: { onSelect: (l: SavedListing) => voi
       {open && (
         <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto p-4 sm:p-8">
           <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative z-50 mt-6 w-full max-w-lg rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
+          <div role="dialog" aria-modal="true" className="relative z-50 mt-6 w-full max-w-lg rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl text-navy">My listings</h2>
               <button onClick={() => setOpen(false)} aria-label="Close" className="rounded-lg p-1 text-ink-muted hover:bg-paper hover:text-ink">

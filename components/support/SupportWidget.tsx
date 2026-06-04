@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { useModalDismiss } from "@/lib/useModalDismiss";
 import { Label, Input, Textarea, Select } from "@/components/ui/Field";
 import type { FeedbackType } from "@/lib/supabase/types";
 
@@ -28,6 +29,8 @@ export function SupportWidget() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  useModalDismiss(open, () => close());
 
   function reset() {
     setType("feedback");
@@ -92,7 +95,7 @@ export function SupportWidget() {
       {open && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={close} />
-          <div className="relative z-50 w-full max-w-md rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
+          <div role="dialog" aria-modal="true" className="relative z-50 w-full max-w-md rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
             {done ? (
               <div className="text-center">
                 <h2 className="font-display text-xl text-navy">Thank you</h2>

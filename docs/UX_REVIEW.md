@@ -47,13 +47,15 @@ All four are fixed and committed. Items below passed review with no change neede
   a "Powered by Marquee" note; public marketing/login pages intentionally keep the
   product brand.
 
-## Known limitations (by design, not bugs)
+## Known limitations
 
-- Public lead landing pages (`/l/<slug>`) still read "Powered by Marquee" — public
-  surfaces aren't white-labeled yet.
-- Saved-listing **price/status auto-refresh** from the MLS is not wired (manual
-  re-save refreshes via the `(org, mls_number)` dedupe).
-- Modals have no focus-trap/Escape handling — consistent with existing app modals.
+- ✅ *Resolved:* Public lead landing pages (`/l/<slug>`) are now white-labeled
+  (org logo/accent, drop "Powered by Marquee") when the org enables it.
+- ✅ *Resolved:* Saved-listing **price/status refresh** from the MLS — daily cron
+  (`refresh-listings`) + a manual per-listing refresh in *My listings*.
+- ◑ *Partial:* The new modals now close on **Escape**, lock background scroll, and
+  expose `role="dialog"`/`aria-modal`. A full **focus-trap** is still not
+  implemented (consistent with the app's other modals).
 
 ---
 
