@@ -2,7 +2,7 @@
 
 A living checklist of what's left. Tick a box (`[ ]` → `[x]`) and commit as you
 go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build work
-(ask Claude). Last updated: 2026-06-03.
+(ask Claude). Last updated: 2026-06-04.
 
 ---
 
@@ -43,6 +43,13 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [ ] Confirm `OPENAI_API_KEY` + `IMAGE_PROVIDER=openai` set (AI image generation)
 - [ ] Confirm `NEXT_PUBLIC_APP_URL` matches the production domain
 
+### Optional integrations (code is built — wire when you want them)
+- [ ] **MLS listing import:** add `RENTCAST_API_KEY` in Vercel to enable
+      "Import from MLS" on Create (searches your configured market state).
+- [ ] **Support/feedback → Notion:** add `NOTION_API_KEY` + `NOTION_FEEDBACK_DB_ID`
+      in Vercel and share the Notion DB with your integration. Without them,
+      feedback still saves to the `feedback` table. See [`.env.example`](../.env.example).
+
 ### Smoke test the live app
 - [ ] Sign up → auto-creates a solo org
 - [ ] Company → Brand & documents: upload a brand guide, set colors/logo
@@ -78,6 +85,17 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [x] **Speech-to-text dictation** on the Create brief (Web Speech API)
 - [x] **Photo UX** — client-side resize (fixes 4.5 MB upload 413), multi-upload,
       per-thumbnail delete
+- [x] **Market area selection** — state + county + region + key towns per
+      brand kit (`brand_kits.market_area` jsonb, layers + locks like other
+      brand fields). Drives local expertise, hashtags, Stop Slop local-terms,
+      image prompts, and the calendar planner — no more hardcoded Monmouth/NJ.
+- [x] **MLS selection + market-aware listing pull** — agents pick the MLS they
+      belong to in Brand settings (free text + common-MLS suggestions, stored in
+      `market_area`); "Import from MLS" defaults a city search to the agent's
+      configured state and labels which MLS/area results came from.
+- [x] **In-app support & feedback → Notion** — footer widget on every page for
+      bug reports / feedback / feature requests; stored org-scoped in `feedback`
+      (RLS) and best-effort mirrored into a Notion DB for triage/prioritization.
 
 ### Next up (net-new pillars)
 - [x] **Email + SMS** content types in the marketing agent — channel switcher on
@@ -104,7 +122,15 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [ ] **Stories / Reels** publishing endpoints
 - [ ] **Saved listings from MLS** — persist an imported RentCast listing as a
       reusable `listings` record (tie it to campaigns, leads & deals; "My
-      listings" picker on Create) and auto-refresh price/status changes
+      listings" picker on Create) and auto-refresh price/status changes.
+      *(Natural next step — builds directly on the MLS import + market-area work;
+      no external blockers.)*
+- [ ] **MLS attribution in generated copy** — feed the agent's configured MLS +
+      brokerage disclaimer into the marketing agent so Just Sold / New Listing
+      posts can carry compliant "Listing courtesy of…" attribution.
+- [ ] **Feedback triage in-app** — `/feedback` (or a Company tab) reading the
+      `feedback` table with a status pipeline (new → triaged → planned → done),
+      optionally syncing status back to Notion + pinging the ops-agents bot.
 - [ ] **White-label theming** for brokerages
 - [x] Brokerage-wide "who's connected" view — Company → Connections: per-agent
       × platform coverage matrix, per-platform coverage bars, and company-owned
