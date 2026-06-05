@@ -50,10 +50,31 @@ function Wordmark({
   return <span className={cn("font-display text-2xl", className)}>{brand?.name ?? "Marquee"}</span>;
 }
 
-/** Shared nav link list — rendered in both the desktop sidebar and mobile drawer. */
-function NavLinks({ pathname, onNavigate }: { pathname: string | null; onNavigate?: () => void }) {
+/** Compact brand tile shown collapsed; pairs with the wordmark when expanded. */
+function Brandmark({ brand }: { brand?: ShellBrand }) {
+  const initial = (brand?.name ?? "Marquee").trim().charAt(0).toUpperCase() || "M";
   return (
-    <nav className="flex flex-col gap-1">
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-gold to-gold-deep font-display text-lg text-navy shadow-soft">
+      {brand ? initial : "✦"}
+    </span>
+  );
+}
+
+/**
+ * Shared nav link list. `collapsible` (the desktop rail) keeps icons visible and
+ * fades labels in only when the rail expands; the mobile drawer always shows them.
+ */
+function NavLinks({
+  pathname,
+  onNavigate,
+  collapsible,
+}: {
+  pathname: string | null;
+  onNavigate?: () => void;
+  collapsible?: boolean;
+}) {
+  return (
+    <nav className="flex flex-col gap-1.5">
       {NAV.map((item) => {
         const active = pathname?.startsWith(item.href);
         return (
@@ -62,15 +83,30 @@ function NavLinks({ pathname, onNavigate }: { pathname: string | null; onNavigat
             href={item.href}
             prefetch={false}
             onClick={onNavigate}
+            title={collapsible ? item.label : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+              "flex items-center rounded-xl px-2 py-2 text-sm transition-colors",
               active
-                ? "border-l-2 border-gold bg-gold/25 font-medium text-paper"
-                : "border-l-2 border-transparent text-paper/70 hover:bg-white/5 hover:text-paper"
+                ? "bg-gradient-to-r from-gold/30 to-gold/5 font-medium text-paper"
+                : "text-paper/60 hover:bg-white/5 hover:text-paper"
             )}
           >
-            <span className="w-4 text-center opacity-80">{item.icon}</span>
-            {item.label}
+            <span
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[15px] transition-colors",
+                active ? "text-gold-soft" : "opacity-80"
+              )}
+            >
+              {item.icon}
+            </span>
+            <span
+              className={cn(
+                "ml-1 whitespace-nowrap",
+                collapsible && "opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+              )}
+            >
+              {item.label}
+            </span>
           </Link>
         );
       })}
@@ -108,18 +144,25 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen bg-paper">
-      {/* Desktop sidebar */}
-      <aside className="hidden w-64 flex-col border-r border-paper-line bg-navy px-5 py-7 md:flex">
-        <div className="px-2">
-          <Wordmark brand={brand} variant="dark" className="text-paper" />
+      {/* Desktop sidebar: an icon rail that expands on hover / keyboard focus.
+          The spacer reserves the collapsed width so the expanded rail overlays
+          content (a flyout) instead of pushing it. */}
+      <div className="hidden shrink-0 md:block md:w-[4.75rem]" aria-hidden />
+      <aside className="group fixed left-0 top-0 z-30 hidden h-screen w-[4.75rem] flex-col overflow-hidden border-r border-white/5 bg-gradient-to-b from-navy to-navy-900 py-6 transition-[width,box-shadow] duration-200 ease-out hover:w-64 hover:shadow-lift focus-within:w-64 md:flex">
+        <div className="flex items-center gap-3 px-4">
+          <Brandmark brand={brand} />
+          <span className="opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+            <Wordmark brand={brand} variant="dark" className="text-xl text-paper" />
+          </span>
         </div>
-        <div className="mt-10">
-          <NavLinks pathname={pathname} />
+        <div className="mt-8 px-3">
+          <NavLinks pathname={pathname} collapsible />
         </div>
-        <div className="mt-auto rounded-lg bg-white/5 p-4 text-xs text-paper/60">
-          <p className="font-semibold text-paper/80">{areaLabel ?? "Monmouth County, NJ"}</p>
-          <p className="mt-1">Your local marketing specialist is on call.</p>
-          {brand && <p className="mt-2 text-paper/40">Powered by Marquee</p>}
+        <div className="mt-auto px-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+          <div className="rounded-xl bg-white/5 p-3 text-xs text-paper/60">
+            <p className="whitespace-nowrap font-semibold text-paper/80">{areaLabel ?? "Monmouth County, NJ"}</p>
+            <p className="mt-1.5 whitespace-nowrap text-paper/40">Powered by Claude Opus 4.8 + OpenAI</p>
+          </div>
         </div>
       </aside>
 
@@ -130,7 +173,7 @@ export function AppShell({
             className="absolute inset-0 bg-navy/40 backdrop-blur-sm"
             onClick={() => setMenuOpen(false)}
           />
-          <aside ref={drawerRef} role="dialog" aria-modal="true" aria-label="Menu" className="absolute left-0 top-0 flex h-full w-64 flex-col border-r border-paper-line bg-navy px-5 py-7">
+          <aside ref={drawerRef} role="dialog" aria-modal="true" aria-label="Menu" className="absolute left-0 top-0 flex h-full w-64 flex-col rounded-r-2xl border-r border-white/5 bg-gradient-to-b from-navy to-navy-900 px-4 py-7 shadow-lift">
             <div className="flex items-center justify-between px-2">
               <Wordmark brand={brand} variant="dark" className="text-paper" />
               <button

@@ -90,6 +90,7 @@ export function SupportWidget() {
         >
           View your requests
         </Link>
+        <span className="ml-auto text-xs text-ink-muted/80">Powered by Claude Opus 4.8 + OpenAI</span>
       </footer>
 
       {open && (
