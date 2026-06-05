@@ -50,6 +50,23 @@ function Wordmark({
   return <span className={cn("font-display text-2xl", className)}>{brand?.name ?? "Marquee"}</span>;
 }
 
+/** Classes for content that's always shown when pinned, else fades in on expand. */
+function reveal(pinned: boolean): string {
+  return pinned
+    ? ""
+    : "opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100";
+}
+
+/** Pin glyph — outline when unpinned, filled when docked open. */
+function PinIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+      <path d="M9.5 2.5h1l.6 4.2 2.4 2.1v1.2H6v-1.2l2.4-2.1.6-4.2z" strokeLinejoin="round" />
+      <path d="M10 10v5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** Compact brand tile shown collapsed; pairs with the wordmark when expanded. */
 function Brandmark({ brand }: { brand?: ShellBrand }) {
   const initial = (brand?.name ?? "Marquee").trim().charAt(0).toUpperCase() || "M";
@@ -126,6 +143,21 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Desktop: keep the sidebar docked open. Persisted across sessions; starts
+  // false on the server and hydrates from localStorage to avoid a mismatch.
+  const [pinned, setPinned] = useState(false);
+
+  useEffect(() => {
+    setPinned(window.localStorage.getItem("sidebarPinned") === "1");
+  }, []);
+
+  function togglePinned() {
+    setPinned((p) => {
+      const next = !p;
+      window.localStorage.setItem("sidebarPinned", next ? "1" : "0");
+      return next;
+    });
+  }
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => {
@@ -144,21 +176,40 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen bg-paper">
-      {/* Desktop sidebar: an icon rail that expands on hover / keyboard focus.
-          The spacer reserves the collapsed width so the expanded rail overlays
-          content (a flyout) instead of pushing it. */}
-      <div className="hidden shrink-0 md:block md:w-[4.75rem]" aria-hidden />
-      <aside className="group fixed left-0 top-0 z-30 hidden h-screen w-[4.75rem] flex-col overflow-hidden border-r border-white/5 bg-gradient-to-b from-navy to-navy-900 py-6 transition-[width,box-shadow] duration-200 ease-out hover:w-64 hover:shadow-lift focus-within:w-64 md:flex">
-        <div className="flex items-center gap-3 px-4">
+      {/* Desktop sidebar: an icon rail that expands on hover / keyboard focus,
+          or stays docked open when pinned. The spacer reserves the current
+          width so a hover-expand overlays content (flyout) while a pinned rail
+          pushes it. */}
+      <div className={cn("hidden shrink-0 md:block", pinned ? "md:w-64" : "md:w-[4.75rem]")} aria-hidden />
+      <aside
+        className={cn(
+          "group fixed left-0 top-0 z-30 hidden h-screen flex-col overflow-hidden border-r border-white/5 bg-gradient-to-b from-navy to-navy-900 py-6 transition-[width,box-shadow] duration-200 ease-out md:flex",
+          pinned ? "w-64" : "w-[4.75rem] hover:w-64 hover:shadow-lift focus-within:w-64"
+        )}
+      >
+        {/* `reveal`: visible when pinned, otherwise fades in as the rail expands. */}
+        <div className="flex items-center gap-2 px-4">
           <Brandmark brand={brand} />
-          <span className="opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+          <span className={cn("min-w-0 flex-1", reveal(pinned))}>
             <Wordmark brand={brand} variant="dark" className="text-xl text-paper" />
           </span>
+          <button
+            onClick={togglePinned}
+            aria-pressed={pinned}
+            aria-label={pinned ? "Unpin sidebar" : "Pin sidebar open"}
+            title={pinned ? "Unpin sidebar" : "Pin sidebar open"}
+            className={cn(
+              "shrink-0 rounded-lg p-1.5 text-paper/60 transition-colors hover:bg-white/10 hover:text-paper",
+              reveal(pinned)
+            )}
+          >
+            <PinIcon filled={pinned} />
+          </button>
         </div>
         <div className="mt-8 px-3">
-          <NavLinks pathname={pathname} collapsible />
+          <NavLinks pathname={pathname} collapsible={!pinned} />
         </div>
-        <div className="mt-auto px-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className={cn("mt-auto px-3", reveal(pinned))}>
           <div className="rounded-xl bg-white/5 p-3 text-xs text-paper/60">
             <p className="whitespace-nowrap font-semibold text-paper/80">{areaLabel ?? "Monmouth County, NJ"}</p>
             <p className="mt-1.5 whitespace-nowrap text-paper/40">Powered by Claude Opus 4.8 + OpenAI</p>
