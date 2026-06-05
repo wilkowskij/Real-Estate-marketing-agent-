@@ -6,6 +6,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Label, Input, Textarea, Select } from "@/components/ui/Field";
+import { useModalDismiss } from "@/lib/useModalDismiss";
 
 export interface FormCard {
   id: string;
@@ -65,6 +66,7 @@ export function LeadsClient({
 }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const createDialogRef = useModalDismiss<HTMLDivElement>(creating, () => setCreating(false));
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<"general" | "open_house" | "listing">("open_house");
   const [headline, setHeadline] = useState("");
@@ -335,7 +337,7 @@ export function LeadsClient({
       {creating && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={() => setCreating(false)} />
-          <div className="relative z-50 w-full max-w-md rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
+          <div ref={createDialogRef} role="dialog" aria-modal="true" className="relative z-50 w-full max-w-md rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
             <h2 className="font-display text-xl text-navy">New capture form</h2>
             <div className="mt-4 space-y-4">
               <div>

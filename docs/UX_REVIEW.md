@@ -53,9 +53,11 @@ All four are fixed and committed. Items below passed review with no change neede
   (org logo/accent, drop "Powered by Marquee") when the org enables it.
 - ✅ *Resolved:* Saved-listing **price/status refresh** from the MLS — daily cron
   (`refresh-listings`) + a manual per-listing refresh in *My listings*.
-- ◑ *Partial:* The new modals now close on **Escape**, lock background scroll, and
-  expose `role="dialog"`/`aria-modal`. A full **focus-trap** is still not
-  implemented (consistent with the app's other modals).
+- ✅ *Resolved:* Modal accessibility is now app-wide via `useModalDismiss` —
+  Escape-to-close, background scroll-lock, focus-in, **Tab focus-trap**, and
+  focus restore on close, with `role="dialog"`/`aria-modal`. Applied to every
+  modal: support/feedback, MLS import, My listings, new campaign, photo editor,
+  calendar post drawer, new lead form, and the mobile nav drawer.
 
 ---
 

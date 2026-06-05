@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { useModalDismiss } from "@/lib/useModalDismiss";
 
 interface QueuePost {
   id: string;
@@ -49,6 +50,7 @@ export function QueueItem({ post }: { post: QueuePost }) {
   const [scheduledAt, setScheduledAt] = useState(post.scheduled_at ?? "");
   const [campaignId, setCampaignId] = useState("");
   const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([]);
+  const drawerRef = useModalDismiss<HTMLDivElement>(open, () => setOpen(false));
 
   async function openDrawer() {
     setOpen(true);
@@ -253,7 +255,7 @@ export function QueueItem({ post }: { post: QueuePost }) {
             onClick={() => setOpen(false)}
           />
           {/* Panel */}
-          <div className="relative z-50 flex h-full w-full max-w-lg flex-col overflow-y-auto bg-white shadow-xl">
+          <div ref={drawerRef} role="dialog" aria-modal="true" className="relative z-50 flex h-full w-full max-w-lg flex-col overflow-y-auto bg-white shadow-xl">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-paper-line px-6 py-4">
               <div className="flex items-center gap-2">

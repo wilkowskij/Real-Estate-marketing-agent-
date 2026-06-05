@@ -30,7 +30,7 @@ export function SupportWidget() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  useModalDismiss(open, () => close());
+  const dialogRef = useModalDismiss<HTMLDivElement>(open, () => close());
 
   function reset() {
     setType("feedback");
@@ -95,7 +95,7 @@ export function SupportWidget() {
       {open && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={close} />
-          <div role="dialog" aria-modal="true" className="relative z-50 w-full max-w-md rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
+          <div ref={dialogRef} role="dialog" aria-modal="true" className="relative z-50 w-full max-w-md rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
             {done ? (
               <div className="text-center">
                 <h2 className="font-display text-xl text-navy">Thank you</h2>

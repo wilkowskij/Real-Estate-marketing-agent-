@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { useModalDismiss } from "@/lib/useModalDismiss";
 
 /**
  * Lightweight, dependency-free photo editor. Loads a photo onto a canvas and
@@ -35,6 +36,7 @@ export function PhotoEditor({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const dialogRef = useModalDismiss<HTMLDivElement>(true, onCancel);
   const [loaded, setLoaded] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -157,6 +159,7 @@ export function PhotoEditor({
       onClick={onCancel}
     >
       <div
+        ref={dialogRef}
         className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl2 bg-paper-card shadow-lift"
         onClick={(e) => e.stopPropagation()}
       >

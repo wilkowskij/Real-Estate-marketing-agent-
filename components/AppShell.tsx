@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SupportWidget } from "@/components/support/SupportWidget";
+import { useModalDismiss } from "@/lib/useModalDismiss";
 
 const NAV = [
   { href: "/dashboard", label: "Studio", icon: "◆" },
@@ -95,6 +96,8 @@ export function AppShell({
     setMenuOpen(false);
   }, [pathname]);
 
+  const drawerRef = useModalDismiss<HTMLElement>(menuOpen, () => setMenuOpen(false));
+
   async function signOut() {
     // Clear the session everywhere (also wipes the local refresh token), then
     // send the user to login with a fresh slate.
@@ -127,7 +130,7 @@ export function AppShell({
             className="absolute inset-0 bg-navy/40 backdrop-blur-sm"
             onClick={() => setMenuOpen(false)}
           />
-          <aside className="absolute left-0 top-0 flex h-full w-64 flex-col border-r border-paper-line bg-navy px-5 py-7">
+          <aside ref={drawerRef} role="dialog" aria-modal="true" aria-label="Menu" className="absolute left-0 top-0 flex h-full w-64 flex-col border-r border-paper-line bg-navy px-5 py-7">
             <div className="flex items-center justify-between px-2">
               <Wordmark brand={brand} variant="dark" className="text-paper" />
               <button

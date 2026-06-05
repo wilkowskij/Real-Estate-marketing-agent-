@@ -54,7 +54,7 @@ export function MlsImport({ onSelect }: { onSelect: (l: ImportedListing) => void
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
   const [savingKey, setSavingKey] = useState<string | null>(null);
 
-  useModalDismiss(open, () => setOpen(false));
+  const dialogRef = useModalDismiss<HTMLDivElement>(open, () => setOpen(false));
 
   const keyFor = (l: ImportedListing, i: number) => l.id ?? `${l.address}-${i}`;
 
@@ -112,7 +112,7 @@ export function MlsImport({ onSelect }: { onSelect: (l: ImportedListing) => void
       {open && (
         <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto p-4 sm:p-8">
           <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div role="dialog" aria-modal="true" className="relative z-50 mt-6 w-full max-w-lg rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
+          <div ref={dialogRef} role="dialog" aria-modal="true" className="relative z-50 mt-6 w-full max-w-lg rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl text-navy">Import a listing</h2>
               <button onClick={() => setOpen(false)} aria-label="Close" className="rounded-lg p-1 text-ink-muted hover:bg-paper hover:text-ink">
