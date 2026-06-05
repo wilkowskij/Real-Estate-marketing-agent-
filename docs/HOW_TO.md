@@ -68,6 +68,14 @@ the hashtags — and sets which state listing imports pull from.
 2. Pick the type, add details, **Generate**.
 3. Emails include your brokerage disclaimer automatically; texts stay short.
 
+## Turn a post into a reel
+1. Generate a post whose format is a **Reel** (e.g. New Listing, Market Stat) —
+   you'll see a **Reel script / shot list**.
+2. Click **🎬 Assemble reel**. You get a **storyboard**: each scene with its
+   on-screen text, what to film, an assigned photo, and timing.
+3. **Download shot list** to film it yourself, or — if your workspace has reel
+   rendering enabled — a finished **MP4** appears to download and post.
+
 ## Plan a month of content
 1. **Calendar** → **Plan 30 days**.
 2. Adjust the **content mix** sliders (educational / community / listings / social

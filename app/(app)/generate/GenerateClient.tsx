@@ -10,6 +10,7 @@ import { PLATFORM_SIZES } from "@/lib/design/platforms";
 import { PhotoEditor, type EditResult } from "./PhotoEditor";
 import { MlsImport, type ImportedListing } from "@/components/generate/MlsImport";
 import { SavedListings, type SavedListing } from "@/components/generate/SavedListings";
+import { ReelBuilder } from "@/components/generate/ReelBuilder";
 
 type CampaignType =
   | "just_sold"
@@ -852,6 +853,13 @@ export function GenerateClient() {
                       <li key={i}>{s}</li>
                     ))}
                   </ol>
+                  <ReelBuilder
+                    reelScript={result.copy.reel_script}
+                    photoUrls={photos.map((p) => p.previewUrl)}
+                    headline={result.copy.headline}
+                    caption={result.copy.caption}
+                    cta={result.copy.cta}
+                  />
                 </div>
               )}
 

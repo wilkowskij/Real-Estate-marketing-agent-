@@ -49,6 +49,9 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [ ] **Support/feedback → Notion:** add `NOTION_API_KEY` + `NOTION_FEEDBACK_DB_ID`
       in Vercel and share the Notion DB with your integration. Without them,
       feedback still saves to the `feedback` table. See [`.env.example`](../.env.example).
+- [ ] **Reel video rendering:** set `VIDEO_PROVIDER=shotstack` + `SHOTSTACK_API_KEY`
+      to render reels to MP4. Without it, "Assemble reel" still produces a
+      storyboard / downloadable shot list.
 
 ### Smoke test the live app
 - [ ] Sign up → auto-creates a solo org
@@ -134,10 +137,13 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [x] **White-label theming** — orgs can brand the app shell (logo/name/accent
       instead of "Marquee", "Powered by Marquee" note); toggle in the company
       brand editor; sidebar market-area card now reflects the configured area.
-- [ ] **Video marketing engine** — scene detect → clips → reels (Shotstack + scene AI).
-      ⚠️ Blocked: needs a Shotstack (or similar) account + paid API key.
+- [x] **Reel/video engine (built, gated)** — generated reel scripts become a
+      storyboard (deterministic shot list) you can film or download now; a
+      pluggable `VideoProvider` renders an MP4 when configured. "Assemble reel"
+      on the Create result; `/api/video/render`; graceful stub → manual export,
+      exactly like social publishing. *Flip on with `VIDEO_PROVIDER=shotstack` +
+      `SHOTSTACK_API_KEY` (needs a Shotstack account).*
 - [ ] **Stories / Reels** publishing endpoints. ⚠️ Blocked on Meta/LinkedIn app review.
-- [ ] **White-label theming** for brokerages
 - [x] Brokerage-wide "who's connected" view — Company → Connections: per-agent
       × platform coverage matrix, per-platform coverage bars, and company-owned
       accounts (read-only; connecting stays per-agent)
