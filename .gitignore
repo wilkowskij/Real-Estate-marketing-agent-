@@ -11,3 +11,7 @@ next-env.d.ts
 coverage
 .DS_Store
 .claude
+# Playwright
+/playwright-report/
+/test-results/
+e2e/.auth/

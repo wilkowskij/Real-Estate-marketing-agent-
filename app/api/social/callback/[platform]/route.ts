@@ -108,7 +108,8 @@ async function resolveAccount(
   }
 
   // Meta: list Pages the user manages; pick the first.
-  const GRAPH = "https://graph.facebook.com/v21.0";
+  // META_GRAPH_API_URL lets tests point this at a local mock server.
+  const GRAPH = process.env.META_GRAPH_API_URL ?? "https://graph.facebook.com/v21.0";
   const pagesRes = await fetch(
     `${GRAPH}/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${accessToken}`
   );

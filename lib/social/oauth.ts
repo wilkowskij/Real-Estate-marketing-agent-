@@ -71,10 +71,12 @@ export function getOAuthConfig(platform: Platform): OAuthConfig {
         platform === "instagram"
           ? ["instagram_basic", "instagram_content_publish", "pages_show_list", "business_management"]
           : ["pages_show_list", "pages_manage_posts", "pages_read_engagement"];
+      // META_GRAPH_API_URL lets tests point token exchange at a local mock server.
+      const graphBase = process.env.META_GRAPH_API_URL ?? "https://graph.facebook.com/v21.0";
       return {
         platform,
         authorizeUrl: "https://www.facebook.com/v21.0/dialog/oauth",
-        tokenUrl: "https://graph.facebook.com/v21.0/oauth/access_token",
+        tokenUrl: `${graphBase}/oauth/access_token`,
         scopes,
         clientId,
         clientSecret,
@@ -261,13 +263,14 @@ export async function refreshAccessToken(
 
   // Meta: extend the long-lived token.
   if (!current.accessToken) return null;
+  const graphBase = process.env.META_GRAPH_API_URL ?? "https://graph.facebook.com/v21.0";
   const body = new URLSearchParams({
     grant_type: "fb_exchange_token",
     client_id: c.clientId,
     client_secret: c.clientSecret,
     fb_exchange_token: current.accessToken,
   });
-  const res = await fetch(`${c.tokenUrl}?${body.toString()}`);
+  const res = await fetch(`${graphBase}/oauth/access_token?${body.toString()}`);
   if (!res.ok) throw new Error(`Meta token refresh failed: ${await res.text()}`);
   const json = await res.json();
   return { accessToken: json.access_token, expiresIn: json.expires_in };
