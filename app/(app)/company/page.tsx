@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getOrgContext } from "@/lib/org";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { TeamClient, type TeamMember } from "@/components/team/TeamClient";
+import { TeamClient, type TeamMember, type PendingInvitation } from "@/components/team/TeamClient";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +16,9 @@ export default async function CompanyAgentsPage() {
 
   const isAdmin = ctx.role === "owner" || ctx.role === "admin";
 
-  // No FK join helper, so load memberships then their profiles and map together.
   const supabase = createSupabaseServerClient();
+
+  // Load memberships + profiles
   const { data: memberships } = await supabase
     .from("memberships")
     .select("id, role, user_id")
@@ -37,6 +38,20 @@ export default async function CompanyAgentsPage() {
     fullName: nameByUser.get(m.user_id) ?? null,
   }));
 
+  // Load pending (not accepted, not expired) invitations — admins only
+  let pendingInvitations: PendingInvitation[] = [];
+  if (isAdmin) {
+    const { data } = await supabase
+      .from("org_invitations")
+      .select("id, email, role, created_at, expires_at")
+      .eq("org_id", ctx.orgId)
+      .is("accepted_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+
+    pendingInvitations = data ?? [];
+  }
+
   return (
     <div>
       <h2 className="text-2xl text-navy">Agents</h2>
@@ -50,6 +65,7 @@ export default async function CompanyAgentsPage() {
           currentUserId={ctx.userId}
           isAdmin={isAdmin}
           lockedFields={ctx.orgKit.locked_fields ?? []}
+          pendingInvitations={pendingInvitations}
         />
       </div>
     </div>

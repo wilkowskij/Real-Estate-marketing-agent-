@@ -15,6 +15,14 @@ export interface TeamMember {
   fullName: string | null;
 }
 
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  role: string;
+  created_at: string;
+  expires_at: string;
+}
+
 /** Human labels for the lockable brand fields. */
 const FIELD_LABELS: Record<LockableField, string> = {
   logo_light_path: "Logo (light bg)",
@@ -34,29 +42,38 @@ export function TeamClient({
   currentUserId,
   isAdmin,
   lockedFields,
+  pendingInvitations,
 }: {
   members: TeamMember[];
   currentUserId: string;
   isAdmin: boolean;
   lockedFields: string[];
+  pendingInvitations: PendingInvitation[];
 }) {
   return (
     <>
-      <MembersCard members={members} currentUserId={currentUserId} isAdmin={isAdmin} />
+      <MembersCard
+        members={members}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+        pendingInvitations={pendingInvitations}
+      />
       <LocksCard isAdmin={isAdmin} lockedFields={lockedFields} />
     </>
   );
 }
 
-/** Roster + invite control. */
+/** Roster + pending invitations + invite control. */
 function MembersCard({
   members,
   currentUserId,
   isAdmin,
+  pendingInvitations,
 }: {
   members: TeamMember[];
   currentUserId: string;
   isAdmin: boolean;
+  pendingInvitations: PendingInvitation[];
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -78,7 +95,11 @@ function MembersCard({
       const json = await res.json();
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Invite failed");
       setEmail("");
-      setMsg("Agent added.");
+      setMsg(
+        json.type === "invited"
+          ? "Invitation email sent. They'll be added once they accept."
+          : "Agent added to the team."
+      );
       router.refresh();
     } catch (e: any) {
       setError(e.message);
@@ -103,11 +124,16 @@ function MembersCard({
           ))}
         </div>
 
+        {isAdmin && pendingInvitations.length > 0 && (
+          <PendingInvitationsSection invitations={pendingInvitations} />
+        )}
+
         {isAdmin && (
           <div className="mt-6 border-t border-paper-line pt-6">
             <h4 className="text-sm font-semibold text-ink">Invite agent</h4>
             <p className="mt-1 text-xs text-ink-muted">
-              The agent must already have an account. We'll add them to this org by email.
+              Enter the agent&apos;s email. If they don&apos;t have an account yet, they&apos;ll
+              receive an invitation email to join your company.
             </p>
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="flex-1">
@@ -125,12 +151,12 @@ function MembersCard({
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as "member" | "admin")}
                 >
-                  <option value="member">Member</option>
+                  <option value="member">Agent</option>
                   <option value="admin">Admin</option>
                 </Select>
               </div>
               <Button variant="gold" onClick={invite} disabled={busy || !email}>
-                {busy ? "Adding…" : "Invite agent"}
+                {busy ? "Sending…" : "Invite agent"}
               </Button>
             </div>
             {error && <p className="mt-2 text-sm text-error">{error}</p>}
@@ -139,6 +165,70 @@ function MembersCard({
         )}
       </CardBody>
     </Card>
+  );
+}
+
+/** Shows invitations that have been sent but not yet accepted. */
+function PendingInvitationsSection({
+  invitations,
+}: {
+  invitations: PendingInvitation[];
+}) {
+  const router = useRouter();
+  const [revoking, setRevoking] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function revoke(id: string) {
+    setRevoking(id);
+    setError(null);
+    try {
+      const res = await fetch("/api/team/invitations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed");
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setRevoking(null);
+    }
+  }
+
+  return (
+    <div className="mt-6 border-t border-paper-line pt-5">
+      <h4 className="text-sm font-semibold text-ink">Pending invitations</h4>
+      <div className="mt-3 divide-y divide-paper-line">
+        {invitations.map((inv) => (
+          <div key={inv.id} className="flex items-center justify-between gap-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm text-ink">{inv.email}</p>
+              <p className="text-xs capitalize text-ink-muted">
+                {inv.role} &middot; invited{" "}
+                {new Date(inv.created_at).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Badge>Pending</Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => revoke(inv.id)}
+                disabled={revoking === inv.id}
+              >
+                {revoking === inv.id ? "Revoking…" : "Revoke"}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {error && <p className="mt-2 text-xs text-error">{error}</p>}
+    </div>
   );
 }
 
@@ -158,7 +248,6 @@ function MemberRow({
 
   const isSelf = member.userId === currentUserId;
   const isOwner = member.role === "owner";
-  // Admins can manage other, non-owner members only.
   const canManage = isAdmin && !isSelf && !isOwner;
 
   async function changeRole(role: "member" | "admin") {
@@ -217,7 +306,7 @@ function MemberRow({
               onChange={(e) => changeRole(e.target.value as "member" | "admin")}
               disabled={busy}
             >
-              <option value="member">Member</option>
+              <option value="member">Agent</option>
               <option value="admin">Admin</option>
             </Select>
             <Button variant="ghost" size="sm" onClick={remove} disabled={busy}>
