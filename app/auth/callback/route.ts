@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
     | "recovery"
     | "email"
     | null;
-  const next = searchParams.get("next") ?? "/dashboard";
+  // Only allow relative redirects — reject anything that would leave the app.
+  const rawNext = searchParams.get("next") ?? "";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
 
   const supabase = createSupabaseServerClient();
 

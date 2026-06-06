@@ -6,7 +6,12 @@ import { Card, CardBody } from "@/components/ui/Card";
 // instead of being instantiated during the static build (where they're absent).
 export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: { next?: string };
+}) {
+  const next = searchParams.next?.startsWith("/") ? searchParams.next : undefined;
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-navy px-6">
       {/* Warm radial glow so the page feels luxe, not stark. */}
@@ -33,7 +38,7 @@ export default function LoginPage() {
                 Sign in to your marketing studio.
               </p>
             </div>
-            <AuthForm mode="login" />
+            <AuthForm mode="login" next={next} />
             <p className="text-center text-sm text-ink-muted">
               New here?{" "}
               <Link href="/signup" className="text-gold-deep underline">

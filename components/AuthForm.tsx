@@ -7,7 +7,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Label, Input } from "@/components/ui/Field";
 
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: string }) {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
   const [email, setEmail] = useState("");
@@ -33,7 +33,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push("/dashboard");
+        router.push(next && next.startsWith("/") ? next : "/dashboard");
         router.refresh();
       }
     } catch (e: any) {

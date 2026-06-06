@@ -175,12 +175,12 @@ function PendingInvitationsSection({
   invitations: PendingInvitation[];
 }) {
   const router = useRouter();
-  const [revoking, setRevoking] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [working, setWorking] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Record<string, string>>({});
 
   async function revoke(id: string) {
-    setRevoking(id);
-    setError(null);
+    setWorking(id);
+    setMessages({});
     try {
       const res = await fetch("/api/team/invitations", {
         method: "DELETE",
@@ -191,9 +191,24 @@ function PendingInvitationsSection({
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed");
       router.refresh();
     } catch (e: any) {
-      setError(e.message);
+      setMessages((m) => ({ ...m, [id]: e.message }));
     } finally {
-      setRevoking(null);
+      setWorking(null);
+    }
+  }
+
+  async function resend(id: string) {
+    setWorking(id);
+    setMessages({});
+    try {
+      const res = await fetch(`/api/team/invitations/${id}/resend`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Failed");
+      setMessages((m) => ({ ...m, [id]: "Resent." }));
+    } catch (e: any) {
+      setMessages((m) => ({ ...m, [id]: e.message }));
+    } finally {
+      setWorking(null);
     }
   }
 
@@ -202,32 +217,44 @@ function PendingInvitationsSection({
       <h4 className="text-sm font-semibold text-ink">Pending invitations</h4>
       <div className="mt-3 divide-y divide-paper-line">
         {invitations.map((inv) => (
-          <div key={inv.id} className="flex items-center justify-between gap-4 py-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm text-ink">{inv.email}</p>
-              <p className="text-xs capitalize text-ink-muted">
-                {inv.role} &middot; invited{" "}
-                {new Date(inv.created_at).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </p>
+          <div key={inv.id} className="py-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="truncate text-sm text-ink">{inv.email}</p>
+                <p className="text-xs capitalize text-ink-muted">
+                  {inv.role} &middot; invited{" "}
+                  {new Date(inv.created_at).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge>Pending</Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => resend(inv.id)}
+                  disabled={working === inv.id}
+                >
+                  {working === inv.id ? "…" : "Resend"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => revoke(inv.id)}
+                  disabled={working === inv.id}
+                >
+                  Revoke
+                </Button>
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Badge>Pending</Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => revoke(inv.id)}
-                disabled={revoking === inv.id}
-              >
-                {revoking === inv.id ? "Revoking…" : "Revoke"}
-              </Button>
-            </div>
+            {messages[inv.id] && (
+              <p className="mt-1 text-xs text-ink-muted">{messages[inv.id]}</p>
+            )}
           </div>
         ))}
       </div>
-      {error && <p className="mt-2 text-xs text-error">{error}</p>}
     </div>
   );
 }
