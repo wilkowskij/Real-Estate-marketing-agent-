@@ -18,7 +18,7 @@ const sans = Inter({
 export const metadata: Metadata = {
   title: "Marquee — Real Estate Marketing Studio",
   description:
-    "Turn listing photos into on-brand social content. A marketing studio for New Jersey & Monmouth County agents.",
+    "Turn listing photos into on-brand social content. An AI-powered marketing studio for real estate agents.",
 };
 
 export default function RootLayout({
