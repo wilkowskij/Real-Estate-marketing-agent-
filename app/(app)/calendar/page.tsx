@@ -75,7 +75,6 @@ export default async function CalendarPage() {
       ])
     : [{ data: [] }, { data: [] }];
 
-  const JOB_LABEL = buildJobLabels(ctx?.orgArea ?? "your area");
   const isAdmin = ctx?.role === "admin" || ctx?.role === "owner";
   // Always show both automation cards; merge any configured jobs over defaults.
   const kinds = ["local_news", "trend_watch"] as const;
