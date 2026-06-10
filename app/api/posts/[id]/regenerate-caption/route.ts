@@ -57,7 +57,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
 
-  const slop = detectSlop(marketing.copy, ctx.orgArea);
+  const slop = detectSlop(marketing.copy, { areaLabel: ctx.orgArea });
   return NextResponse.json({
     caption: newCaption,
     copy: marketing.copy,
