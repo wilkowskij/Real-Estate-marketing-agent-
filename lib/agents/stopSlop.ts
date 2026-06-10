@@ -68,6 +68,10 @@ export function detectSlop(
 /**
  * Channel-agnostic slop scan over arbitrary copy text (email subject+body, an
  * SMS message, etc.). Same cliché + local-specificity checks, no LLM call.
+ *
+ * @param opts.requireLocal - whether to enforce local specificity (default true)
+ * @param opts.area - org's configured market area; words from it are added to
+ *   the local-signal check so area-specific terms count (e.g. "Austin", "TX")
  */
 export function detectSlopInText(raw: string, opts: SlopOptions = {}): SlopResult {
   const { requireLocal = true, localTerms = DEFAULT_LOCAL_TERMS, areaLabel } = opts;

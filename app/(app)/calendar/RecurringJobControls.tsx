@@ -11,6 +11,7 @@ export interface RecurringJobRow {
   cadence: string;
   config: Record<string, unknown>;
   auto_publish: boolean;
+  auto_approve: boolean;
   enabled: boolean;
 }
 
@@ -32,6 +33,7 @@ export function RecurringJobControls({
   const [open, setOpen] = useState(false);
   const [cadence, setCadence] = useState(job?.cadence ?? (kind === "trend_watch" ? "daily" : "weekly"));
   const [autoPublish, setAutoPublish] = useState(job?.auto_publish ?? false);
+  const [autoApprove, setAutoApprove] = useState(job?.auto_approve ?? false);
   const [area, setArea] = useState(config.area ?? "");
   const [topic, setTopic] = useState(config.topic ?? "");
   const [busy, setBusy] = useState(false);
@@ -62,6 +64,7 @@ export function RecurringJobControls({
     void save({
       cadence,
       auto_publish: autoPublish,
+      auto_approve: autoApprove,
       config: {
         ...config,
         area: area || undefined,
@@ -113,6 +116,18 @@ export function RecurringJobControls({
               placeholder="local real estate market update"
             />
           </div>
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-gold"
+              checked={autoApprove}
+              onChange={(e) => setAutoApprove(e.target.checked)}
+            />
+            <span>
+              <span className="font-medium">Auto-approve</span>
+              <span className="ml-1 text-ink-muted">— posts that pass the Fair Housing gate go straight to scheduled</span>
+            </span>
+          </label>
           <label className="flex items-center gap-2 text-sm text-ink">
             <input
               type="checkbox"

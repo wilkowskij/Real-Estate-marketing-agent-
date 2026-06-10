@@ -95,6 +95,9 @@ export async function POST(req: NextRequest) {
     cost_usd: estimateCostUsd(MODEL, result.usage.input, result.usage.output),
   });
 
+  // Inject UTM params into any links in the copy (email body/CTA, SMS message).
+  const trackedCopy = injectUtmIntoCopy(result.copy as any, { source: result.channel, medium: "direct" });
+
   // Stop Slop — SMS is too short to demand local terms, so only require local
   // specificity on email.
   const scanText =
@@ -109,7 +112,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     channel: result.channel,
-    copy: result.copy,
+    copy: trackedCopy,
     slopIssues: slop.clean ? [] : slop.issues,
   });
 }

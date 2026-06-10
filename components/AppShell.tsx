@@ -167,12 +167,12 @@ export function AppShell({
   const drawerRef = useModalDismiss<HTMLElement>(menuOpen, () => setMenuOpen(false));
 
   async function signOut() {
-    // Clear the session everywhere (also wipes the local refresh token), then
-    // send the user to login with a fresh slate.
     await createSupabaseBrowserClient().auth.signOut({ scope: "local" });
     router.replace("/login");
     router.refresh();
   }
+
+  const marketLabel = area ?? "Your Market";
 
   return (
     <div className="flex min-h-screen bg-paper">

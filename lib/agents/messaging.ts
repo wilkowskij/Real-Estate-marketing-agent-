@@ -53,6 +53,10 @@ export interface MessagingInput {
   listing?: Partial<Listing>;
   instructions?: string;
   agentName?: string;
+  /** Market area the agent serves (e.g. "Austin, TX"). */
+  area?: string;
+  /** Brand voice config from org settings. */
+  brandVoice?: Record<string, string>;
   /** Optional first name to personalize the greeting. */
   recipientName?: string;
   /** The org's market — tailors the local angle and references. */
@@ -87,7 +91,16 @@ export async function runMessagingAgent(
   "compliance_notes": string[]  // Fair-Housing notes/flags; [] if clean
 }`;
 
+  const voiceLines = input.brandVoice
+    ? Object.entries(input.brandVoice)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `  ${k}: ${v}`)
+        .join("\n")
+    : null;
+
   const userContent = [
+    input.area ? `Market area: ${input.area}` : "",
+    voiceLines ? `Brand voice guidelines:\n${voiceLines}` : "",
     `Channel: ${input.channel.toUpperCase()}`,
     `Content type: ${input.type}`,
     guidance,

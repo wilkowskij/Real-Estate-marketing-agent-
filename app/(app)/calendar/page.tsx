@@ -5,6 +5,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { QueueItem } from "./QueueItem";
 import { RecurringJobControls, type RecurringJobRow } from "./RecurringJobControls";
 import { PlanMonthButton } from "./PlanMonthButton";
+import { ListingSequenceForm } from "./ListingSequenceForm";
+import { ExportButton } from "./ExportButton";
 
 export const dynamic = "force-dynamic";
 
@@ -61,11 +63,11 @@ export default async function CalendarPage() {
     ? await Promise.all([
         supabase
           .from("recurring_jobs")
-          .select("id, kind, cadence, config, auto_publish, enabled")
+          .select("id, kind, cadence, config, auto_publish, auto_approve, enabled")
           .eq("org_id", ctx.orgId),
         supabase
           .from("posts")
-          .select("id, platform, caption, state, scheduled_at")
+          .select("id, platform, caption, state, scheduled_at, is_brokerage_push")
           .eq("org_id", ctx.orgId)
           .in("state", ["draft", "approved", "scheduled"])
           .order("created_at", { ascending: false })
@@ -73,6 +75,8 @@ export default async function CalendarPage() {
       ])
     : [{ data: [] }, { data: [] }];
 
+  const JOB_LABEL = buildJobLabels(ctx?.orgArea ?? "your area");
+  const isAdmin = ctx?.role === "admin" || ctx?.role === "owner";
   // Always show both automation cards; merge any configured jobs over defaults.
   const kinds = ["local_news", "trend_watch"] as const;
   const jobByKind = new Map((jobs ?? []).map((j) => [j.kind, j]));
@@ -84,7 +88,10 @@ export default async function CalendarPage() {
           <p className="eyebrow">Calendar</p>
           <h1 className="mt-2 text-4xl text-navy">Keep the feed alive.</h1>
         </div>
-        <PlanMonthButton />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportButton />
+          <PlanMonthButton />
+        </div>
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -111,7 +118,10 @@ export default async function CalendarPage() {
 
       <Card className="mt-6">
         <CardBody>
-          <h3 className="text-lg text-navy">Approval queue</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-lg text-navy">Approval queue</h3>
+            <ListingSequenceForm />
+          </div>
           {queue && queue.length > 0 ? (
             <div className="mt-3 space-y-6">
               {groupByPlatform(queue).map(([platform, posts]) => (

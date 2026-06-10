@@ -12,6 +12,13 @@ interface QueuePost {
   caption: string | null;
   state: string;
   scheduled_at: string | null;
+  is_brokerage_push?: boolean;
+}
+
+interface QueueItemProps {
+  post: QueuePost;
+  /** When true, show the "Push to team" button (admin/owner only). */
+  isAdmin?: boolean;
 }
 
 interface PostDetail extends QueuePost {
@@ -37,7 +44,7 @@ function formatDate(iso: string | null) {
 }
 
 /** One row in the approval queue — click to open the full preview drawer. */
-export function QueueItem({ post }: { post: QueuePost }) {
+export function QueueItem({ post, isAdmin = false }: QueueItemProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<PostDetail | null>(null);
@@ -79,12 +86,35 @@ export function QueueItem({ post }: { post: QueuePost }) {
 
   async function attachCampaign(next: string) {
     setCampaignId(next);
-    await fetch(`/api/posts/${post.id}`, {
+    const res = await fetch(`/api/posts/${post.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ marketingCampaignId: next || null }),
     });
-    router.refresh();
+    if (!res.ok) {
+      setCampaignId(campaignId); // revert on failure
+      setError("Failed to attach campaign. Please try again.");
+    } else {
+      router.refresh();
+    }
+  }
+
+  async function regenerateCaption() {
+    setRegenerating(true);
+    setError(null);
+    setRegenSuccess(false);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/regenerate-caption`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Regeneration failed");
+      setCaption(json.caption);
+      setRegenSuccess(true);
+      setTimeout(() => setRegenSuccess(false), 3000);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setRegenerating(false);
+    }
   }
 
   async function saveCaption() {
@@ -190,6 +220,11 @@ export function QueueItem({ post }: { post: QueuePost }) {
               </span>
               <span className="text-sm font-medium capitalize text-ink">{post.platform}</span>
               <Badge>{post.state}</Badge>
+              {pushed && (
+                <span className="rounded-full bg-navy/10 px-2 py-0.5 text-[10px] font-semibold text-navy/70">
+                  From brokerage
+                </span>
+              )}
               {post.scheduled_at && (
                 <span className="text-xs text-ink-muted">{formatDate(post.scheduled_at)}</span>
               )}
@@ -246,9 +281,9 @@ export function QueueItem({ post }: { post: QueuePost }) {
         )}
       </div>
 
-      {/* Preview drawer */}
+      {/* Preview drawer — z-20/z-30 so mobile nav (z-40/z-50) always renders on top */}
       {open && (
-        <div className="fixed inset-0 z-40 flex justify-end">
+        <div className="fixed inset-0 z-20 flex justify-end">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-navy/30 backdrop-blur-sm"
@@ -299,7 +334,20 @@ export function QueueItem({ post }: { post: QueuePost }) {
 
               {/* Caption editor */}
               <div>
-                <label className="eyebrow mb-1 block">Caption</label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="eyebrow">Caption</label>
+                  <button
+                    type="button"
+                    onClick={regenerateCaption}
+                    disabled={regenerating}
+                    className="text-xs text-gold hover:underline disabled:opacity-50"
+                  >
+                    {regenerating ? "Regenerating…" : "↻ Regenerate caption"}
+                  </button>
+                </div>
+                {regenSuccess && (
+                  <p className="mb-1 text-xs text-green-600">Caption regenerated — review and save.</p>
+                )}
                 <textarea
                   rows={8}
                   value={caption}

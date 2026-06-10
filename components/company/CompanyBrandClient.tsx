@@ -16,18 +16,32 @@ import type { ResolvedBrand } from "@/lib/branding/resolveBrand";
  * Personal agent details (headshot/name/license) live in the user Profile, not
  * here. Fields are disabled for non-admins and for org-locked fields.
  */
+const BRAND_VOICE_FIELDS: { key: string; label: string; placeholder: string }[] = [
+  { key: "style", label: "Tone / style", placeholder: "e.g. Conversational and direct, never corporate" },
+  { key: "target_buyer", label: "Target buyer profile", placeholder: "e.g. Move-up buyers, first-time buyers, investors" },
+  { key: "specialty", label: "Market specialty", placeholder: "e.g. Luxury waterfront, new construction, distressed" },
+  { key: "differentiator", label: "What makes you different", placeholder: "e.g. 20 years in the market, former contractor, bilingual" },
+  { key: "sample_post", label: "Sample post you love", placeholder: "Paste a caption you've written that felt authentic" },
+];
+
 export function CompanyBrandClient({
   brand,
   canEditBrand,
   lockedFields,
   logoLightUrl,
   logoDarkUrl,
+  orgArea,
+  orgState,
+  brandVoice: initialBrandVoice,
 }: {
   brand: ResolvedBrand;
   canEditBrand: boolean;
   lockedFields: string[];
   logoLightUrl: string | null;
   logoDarkUrl: string | null;
+  orgArea?: string;
+  orgState?: string;
+  brandVoice?: Record<string, string>;
 }) {
   const router = useRouter();
   const [name, setName] = useState(brand.name ?? "");

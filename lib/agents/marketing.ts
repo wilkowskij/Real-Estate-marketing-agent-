@@ -191,7 +191,16 @@ export async function runMarketingAgent(
   const guidance = CAMPAIGN_GUIDANCE[input.type];
   const area = input.marketArea ?? DEFAULT_MARKET_AREA;
 
+  const voiceLines = input.brandVoice
+    ? Object.entries(input.brandVoice)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `  ${k}: ${v}`)
+        .join("\n")
+    : null;
+
   const userContent = [
+    input.area ? `Market area: ${input.area}` : "",
+    voiceLines ? `Brand voice guidelines:\n${voiceLines}` : "",
     `Campaign type: ${input.type}`,
     guidance.brief,
     `Recommended format for this type: ${guidance.format} (override only if the inputs clearly call for a different format).`,

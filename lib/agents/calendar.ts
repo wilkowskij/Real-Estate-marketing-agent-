@@ -6,7 +6,7 @@ import type { CampaignType, PostFormat } from "@/lib/supabase/types";
  *
  * The content-mix RATIOS are enforced deterministically in code (reliable,
  * testable) so the balance never drifts on an LLM whim. A single Claude call
- * then fills each pre-allocated slot with a concrete Monmouth County angle +
+ * then fills each pre-allocated slot with a concrete local-area angle +
  * hook. That keeps cost flat (one call for the whole month) while staying local
  * and on-brand. Full copy/graphics are generated later, per post, on demand.
  */

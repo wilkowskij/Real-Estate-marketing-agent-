@@ -12,17 +12,7 @@ import { MlsImport, type ImportedListing } from "@/components/generate/MlsImport
 import { SavedListings, type SavedListing } from "@/components/generate/SavedListings";
 import { ReelBuilder } from "@/components/generate/ReelBuilder";
 
-type CampaignType =
-  | "just_sold"
-  | "new_listing"
-  | "open_house"
-  | "market_stat"
-  | "neighborhood_spotlight"
-  | "deal_of_week"
-  | "before_after"
-  | "educational"
-  | "testimonial"
-  | "custom";
+type CampaignType = ContentTemplateCampaignType;
 
 const TYPES: { value: CampaignType; label: string }[] = [
   { value: "just_sold", label: "Just Sold" },
@@ -43,6 +33,23 @@ const FORMAT_LABEL: Record<string, string> = {
   infographic: "📊 Infographic",
   single_image: "🖼 Single image",
 };
+
+// Tailwind aspect-ratio class per output size
+const SIZE_ASPECT: Record<string, string> = {
+  ig_square:   "aspect-square",
+  ig_portrait: "aspect-[4/5]",
+  ig_story:    "aspect-[9/16]",
+  fb_feed:     "aspect-[1200/630]",
+  linkedin:    "aspect-[1200/627]",
+};
+
+// Quick-format presets shown above the size select
+const QUICK_FORMATS = [
+  { key: "ig_portrait", label: "Portrait" },
+  { key: "ig_square",   label: "Square"   },
+  { key: "ig_story",    label: "Story 9:16" },
+  { key: "fb_feed",     label: "FB / LinkedIn" },
+] as const;
 
 interface UploadedPhoto {
   assetId: string;
@@ -142,7 +149,36 @@ export function GenerateClient() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [library, setLibrary] = useState<UploadedPhoto[] | null>(null);
+  const { recents, save: saveRecentListing } = useRecentListings();
   const [showLibrary, setShowLibrary] = useState(false);
+  // Open House QR code
+  const [openHouseUrl, setOpenHouseUrl] = useState("");
+  const [qrBusy, setQrBusy] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+
+  async function downloadQr() {
+    if (!openHouseUrl.trim()) return;
+    setQrBusy(true);
+    setQrError(null);
+    try {
+      // Use our server-side proxy to avoid CORS restrictions on the QR API
+      const proxyUrl = `/api/qr?size=400&url=${encodeURIComponent(openHouseUrl.trim())}`;
+      const res  = await fetch(proxyUrl);
+      if (!res.ok) throw new Error("QR download failed");
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = href;
+      a.download = "open-house-qr.png";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(href), 100);
+    } catch (e: any) {
+      setQrError(e.message ?? "Download failed");
+    } finally {
+      setQrBusy(false);
+    }
+  }
+
   // AI-first intake: a single prompt box parses into the detailed fields, which
   // start collapsed so the page is simple by default.
   const [brief, setBrief] = useState("");
@@ -335,6 +371,10 @@ export function GenerateClient() {
       setError("Add at least one photo, or turn on “Generate image with AI.”");
       return;
     }
+    // Persist listing fields for next session
+    if (listing.address.trim()) {
+      saveRecentListing(listing);
+    }
     setGenerating(true);
     setError(null);
     setResult(null);
@@ -421,6 +461,13 @@ export function GenerateClient() {
     { key: "sms", label: "SMS", icon: "💬" },
   ] as const;
 
+  function applyTemplate(t: ContentTemplate) {
+    setType(t.type as CampaignType);
+    setBrief(t.brief);
+    setInstructions(t.instructions);
+    setShowDetails(false);
+  }
+
   return (
     <>
       {editing && (
@@ -431,7 +478,11 @@ export function GenerateClient() {
           onSave={onSaveEdit}
         />
       )}
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_460px]">
+      <div className="mt-6">
+        <TemplatePicker onSelect={applyTemplate} />
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_460px]">
       {/* Form */}
       <Card>
         <CardBody className="space-y-6">
@@ -540,12 +591,35 @@ export function GenerateClient() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Label>Address</Label>
+              <div className="mb-1 flex items-center justify-between">
+                <Label>Address</Label>
+                {recents.length > 0 && (
+                  <select
+                    onChange={(e) => {
+                      const r = recents.find((x) => x.address === e.target.value);
+                      if (r) setListing(r);
+                    }}
+                    defaultValue=""
+                    className="mb-1 text-xs text-gold-deep hover:underline bg-transparent border-none cursor-pointer focus:outline-none"
+                  >
+                    <option value="" disabled>↩ Recent listing</option>
+                    {recents.map((r) => (
+                      <option key={r.address} value={r.address}>{r.address}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <Input
+                list="recent-addresses"
                 value={listing.address}
                 onChange={(e) => editListing({ address: e.target.value })}
                 placeholder="14 Riverside Ave"
               />
+              <datalist id="recent-addresses">
+                {recents.map((r) => (
+                  <option key={r.address} value={r.address} />
+                ))}
+              </datalist>
             </div>
             <div>
               <Label>Town</Label>
@@ -589,7 +663,23 @@ export function GenerateClient() {
               />
             </div>
             <div>
-              <Label>Output size</Label>
+              <Label>Output format</Label>
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {QUICK_FORMATS.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setSizeKey(f.key)}
+                    className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                      sizeKey === f.key
+                        ? "border-gold bg-gold/10 font-semibold text-gold-deep"
+                        : "border-paper-line text-ink-soft hover:border-gold/50"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
               <Select value={sizeKey} onChange={(e) => setSizeKey(e.target.value)}>
                 {Object.values(PLATFORM_SIZES).map((s) => (
                   <option key={s.key} value={s.key}>
@@ -812,8 +902,10 @@ export function GenerateClient() {
                 className="w-full rounded-lg"
               />
             ) : (
-              <div className="flex aspect-[4/5] items-center justify-center rounded-lg bg-paper text-sm text-ink-muted">
-                Your finished graphic appears here.
+              <div
+                className={`flex items-center justify-center rounded-lg bg-paper text-sm text-ink-muted ${SIZE_ASPECT[sizeKey] ?? "aspect-[4/5]"}`}
+              >
+                {sizeKey === "ig_story" ? "9:16 Story format" : "Your finished graphic appears here."}
               </div>
             )}
           </CardBody>
@@ -827,6 +919,54 @@ export function GenerateClient() {
             result={messageResult}
             campaignType={type}
           />
+        )}
+
+        {/* Open House QR code — shown whenever open_house is selected */}
+        {channel === "social" && type === "open_house" && (
+          <Card>
+            <CardBody className="space-y-3">
+              <p className="eyebrow">Open House QR Code</p>
+              <p className="text-xs text-ink-muted">
+                Paste any URL — your website, Calendly link, or listing page — and print
+                the QR code for flyers, signs, and handouts at the open house.
+              </p>
+              <div>
+                <label htmlFor="open-house-url" className="eyebrow mb-1 block text-xs">
+                  URL to encode
+                </label>
+                <input
+                  id="open-house-url"
+                  type="url"
+                  value={openHouseUrl}
+                  onChange={(e) => setOpenHouseUrl(e.target.value)}
+                  placeholder="https://your-site.com/open-house"
+                  className="w-full rounded-lg border border-paper-line bg-paper px-3 py-2.5 text-sm text-ink focus:border-gold focus:outline-none"
+                />
+              </div>
+              {openHouseUrl.trim() && (
+                <div className="flex flex-col items-center gap-3">
+                  {/* Served via /api/qr proxy to avoid CORS */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/qr?size=200&url=${encodeURIComponent(openHouseUrl.trim())}`}
+                    alt="QR code"
+                    width={200}
+                    height={200}
+                    className="rounded-lg border border-paper-line"
+                  />
+                  {qrError && <p className="text-xs text-error">{qrError}</p>}
+                  <button
+                    type="button"
+                    onClick={downloadQr}
+                    disabled={qrBusy}
+                    className="rounded-lg border border-paper-line px-4 py-2 text-sm font-medium text-ink hover:border-gold disabled:opacity-50"
+                  >
+                    {qrBusy ? "Downloading…" : "⬇ Download QR PNG"}
+                  </button>
+                </div>
+              )}
+            </CardBody>
+          </Card>
         )}
 
         {channel === "social" && result && (

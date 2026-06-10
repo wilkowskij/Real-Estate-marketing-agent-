@@ -306,6 +306,14 @@ export async function POST(req: NextRequest) {
   await recordUsage(supabase, ctx.orgId, "ai_generation", 1, { type: input.type });
   if (generatedImage) await recordUsage(supabase, ctx.orgId, "image_generation", 1);
 
+  // Inject UTM parameters into any URLs in the copy so attribution tracking
+  // starts from the first post. campaign?.id may be null on a DB error, but
+  // the other params are always available.
+  const trackedCopy = injectUtmIntoCopy(marketing.copy, {
+    source: "social",
+    campaignId: campaign?.id,
+  });
+
   const previewUrl = await signedUrl(supabase, renderPath);
   const slop = detectSlop(marketing.copy, {
     localTerms: localTermsFor(ctx.brand.marketArea),
@@ -314,7 +322,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     campaignId: campaign?.id,
     listingId,
-    copy: marketing.copy,
+    copy: trackedCopy,
     design,
     previewUrl,
     enhanced,
