@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Label, Input } from "@/components/ui/Field";
@@ -26,7 +25,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName } },
+          options: {
+            data: { full_name: fullName },
+            // After confirming, Supabase returns the user to our verify route,
+            // which sets the session and lands them in the dashboard.
+            emailRedirectTo: `${window.location.origin}/auth/confirm?next=/dashboard`,
+          },
         });
         if (error) throw error;
         setSent(true);
@@ -45,13 +49,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   if (sent) {
     return (
-      <p className="text-sm text-ink-soft">
-        Check your inbox to confirm your email, then{" "}
-        <Link href="/login" className="text-gold-deep underline">
-          sign in
-        </Link>
-        .
-      </p>
+      <div className="rounded-lg bg-gold/10 p-4 text-sm text-ink-soft">
+        <p className="font-semibold text-navy">Check your inbox 📬</p>
+        <p className="mt-1">
+          We sent a confirmation link to <span className="font-medium">{email}</span>.
+          Click it and you&apos;ll be taken straight into your studio.
+        </p>
+      </div>
     );
   }
 

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90" width="360" height="90" role="img" aria-label="NorthStar Realty">
+  <!-- Dark-background variant: paper ink, gold star. Use for the white-label sidebar. -->
+  <g>
+    <!-- four-point north star -->
+    <path d="M45 16 L53 37 L74 45 L53 53 L45 74 L37 53 L16 45 L37 37 Z" fill="#E0B85C"/>
+    <circle cx="45" cy="45" r="3.2" fill="#15564E"/>
+  </g>
+  <text x="92" y="44" font-family="Cormorant Garamond, Georgia, 'Times New Roman', serif" font-size="34" font-weight="600" letter-spacing="1.5" fill="#FBF8F1">NORTHSTAR</text>
+  <text x="93" y="66" font-family="Inter, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" letter-spacing="6" fill="#EFE7D6">REALTY</text>
+</svg>

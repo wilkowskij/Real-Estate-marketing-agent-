@@ -1,4 +1,5 @@
-import type { BrandKit, Profile } from "@/lib/supabase/types";
+import type { BrandKit, MarketArea, Profile } from "@/lib/supabase/types";
+import { normalizeMarketArea } from "@/lib/branding/marketArea";
 
 /**
  * The flattened brand object the Design Agent + templates consume.
@@ -12,6 +13,10 @@ export interface ResolvedBrand {
   fonts: { heading: string; body: string };
   disclaimer: string | null;
   layoutTheme: string;
+  /** The geographic market this brand sells in — drives the AI's local angle. */
+  marketArea: MarketArea;
+  /** When true, the app shell is themed with this brand instead of "Marquee". */
+  whiteLabel: boolean;
   agent: {
     fullName: string | null;
     licenseNumber: string | null;
@@ -28,6 +33,7 @@ export const LOCKABLE_FIELDS = [
   "fonts",
   "disclaimer",
   "layout_theme",
+  "market_area",
 ] as const;
 export type LockableField = (typeof LOCKABLE_FIELDS)[number];
 
@@ -65,6 +71,11 @@ export function resolveBrand(args: {
     fonts: pick("fonts", orgKit.fonts, memberKit?.fonts),
     disclaimer: pick("disclaimer", orgKit.disclaimer, memberKit?.disclaimer),
     layoutTheme: pick("layout_theme", orgKit.layout_theme, memberKit?.layout_theme),
+    marketArea: normalizeMarketArea(
+      pick("market_area", orgKit.market_area, memberKit?.market_area)
+    ),
+    // White-label is an org-wide decision; members never override it.
+    whiteLabel: Boolean(orgKit.white_label),
     agent: {
       fullName: profile?.full_name ?? null,
       licenseNumber: profile?.license_number ?? null,

@@ -8,12 +8,37 @@ import { PlanMonthButton } from "./PlanMonthButton";
 
 export const dynamic = "force-dynamic";
 
+const PLATFORM_META: Record<string, { label: string; icon: string }> = {
+  instagram: { label: "Instagram", icon: "📸" },
+  facebook: { label: "Facebook", icon: "👍" },
+  linkedin: { label: "LinkedIn", icon: "💼" },
+  twitter: { label: "X", icon: "𝕏" },
+  x: { label: "X", icon: "𝕏" },
+};
+const PLATFORM_SORT = ["instagram", "facebook", "linkedin", "twitter", "x"];
+
+type QPost = { id: string; platform: string; caption: string | null; state: string; scheduled_at: string | null };
+
+/** Group queue posts by platform, ordered by the canonical platform sort. */
+function groupByPlatform(posts: QPost[]): [string, QPost[]][] {
+  const groups = new Map<string, QPost[]>();
+  for (const p of posts) {
+    if (!groups.has(p.platform)) groups.set(p.platform, []);
+    groups.get(p.platform)!.push(p);
+  }
+  const rank = (k: string) => {
+    const i = PLATFORM_SORT.indexOf(k);
+    return i === -1 ? 999 : i;
+  };
+  return [...groups.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]));
+}
+
 const JOB_LABEL: Record<string, { title: string; cadence: string; blurb: string }> = {
   local_news: {
     title: "Recurring: local market",
     cadence: "Weekly · review first",
     blurb:
-      "Your strategy agent searches Monmouth County real-estate news each week and drafts a post. Nothing publishes without your approval unless you opt in.",
+      "Your strategy agent searches your market's real-estate news each week and drafts a post. Nothing publishes without your approval unless you opt in.",
   },
   trend_watch: {
     title: "Trend watch",
@@ -88,9 +113,24 @@ export default async function CalendarPage() {
         <CardBody>
           <h3 className="text-lg text-navy">Approval queue</h3>
           {queue && queue.length > 0 ? (
-            <div className="mt-2 divide-y divide-paper-line">
-              {queue.map((p) => (
-                <QueueItem key={p.id} post={p} />
+            <div className="mt-3 space-y-6">
+              {groupByPlatform(queue).map(([platform, posts]) => (
+                <div key={platform}>
+                  <div className="flex items-center gap-2 border-b border-paper-line pb-2">
+                    <span>{PLATFORM_META[platform]?.icon ?? "📄"}</span>
+                    <h4 className="text-sm font-semibold capitalize text-navy">
+                      {PLATFORM_META[platform]?.label ?? platform}
+                    </h4>
+                    <span className="rounded-full bg-paper px-2 py-0.5 text-xs text-ink-muted">
+                      {posts.length}
+                    </span>
+                  </div>
+                  <div className="divide-y divide-paper-line">
+                    {posts.map((p) => (
+                      <QueueItem key={p.id} post={p} />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           ) : (

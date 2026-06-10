@@ -10,6 +10,7 @@ import { PLATFORM_SIZES, DEFAULT_SIZE } from "@/lib/design/platforms";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 import { aiCampaignsRemaining, recordUsage } from "@/lib/billing/subscription";
 import { detectSlop } from "@/lib/agents/stopSlop";
+import { areaLabel, localTermsFor } from "@/lib/branding/marketArea";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -110,11 +111,14 @@ export async function POST(req: NextRequest) {
         created_by: ctx.userId,
         address: input.listing.address,
         town: input.listing.town ?? null,
+        state: ctx.brand.marketArea.state,
+        county: ctx.brand.marketArea.county,
         price: input.listing.price ?? null,
         beds: input.listing.beds ?? null,
         baths: input.listing.baths ?? null,
         sqft: input.listing.sqft ?? null,
         status: input.type === "just_sold" ? "sold" : "active",
+        source: "campaign",
       })
       .select("id")
       .single();
@@ -142,6 +146,8 @@ export async function POST(req: NextRequest) {
         listing: input.listing,
         instructions: input.instructions,
         agentName: ctx.brand.agent.fullName ?? undefined,
+        marketArea: ctx.brand.marketArea,
+        disclaimer: ctx.brand.disclaimer,
       }),
       photoRefs.length > 0
         ? runDesignAgent({ photos: photoRefs, campaignType: input.type })
@@ -165,7 +171,9 @@ export async function POST(req: NextRequest) {
       const { prompt } = await buildImagePrompt({
         type: input.type,
         headline: marketing.copy.headline,
-        area: input.listing?.town ? `${input.listing.town}, NJ` : "Monmouth County, NJ",
+        area: input.listing?.town
+          ? `${input.listing.town}, ${ctx.brand.marketArea.state}`
+          : areaLabel(ctx.brand.marketArea),
         colors: ctx.brand.colors,
         instructions: input.instructions,
       });
@@ -299,7 +307,10 @@ export async function POST(req: NextRequest) {
   if (generatedImage) await recordUsage(supabase, ctx.orgId, "image_generation", 1);
 
   const previewUrl = await signedUrl(supabase, renderPath);
-  const slop = detectSlop(marketing.copy);
+  const slop = detectSlop(marketing.copy, {
+    localTerms: localTermsFor(ctx.brand.marketArea),
+    areaLabel: areaLabel(ctx.brand.marketArea),
+  });
   return NextResponse.json({
     campaignId: campaign?.id,
     listingId,

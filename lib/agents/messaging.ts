@@ -1,11 +1,12 @@
 import { getAnthropic, MODEL, cachedSystem, extractText } from "@/lib/anthropic/client";
-import type { CampaignType, EmailCopy, SmsCopy, Listing } from "@/lib/supabase/types";
-import { LOCAL_EXPERTISE } from "@/lib/agents/marketing";
+import type { CampaignType, EmailCopy, SmsCopy, Listing, MarketArea } from "@/lib/supabase/types";
+import { buildLocalExpertise, attributionGuidance } from "@/lib/agents/marketing";
+import { DEFAULT_MARKET_AREA, areaLabel } from "@/lib/branding/marketArea";
 
 /**
- * Messaging Agent — email + SMS nurture copy for the same NJ / Monmouth County
- * specialist. Shares the cached LOCAL_EXPERTISE system block with the social
- * Marketing Agent (so the prompt cache is warm and calls stay cheap), but emits
+ * Messaging Agent — email + SMS nurture copy for the same local specialist.
+ * Shares the cached local-expertise system block with the social Marketing
+ * Agent (so the prompt cache is warm and calls stay cheap), but emits
  * channel-appropriate shapes instead of a social post.
  *
  * Email and SMS are direct-to-contact: they go to a database/sphere, an
@@ -31,7 +32,7 @@ const EMAIL_GUIDANCE: Partial<Record<CampaignType, string>> = {
   just_sold: "A 'just sold in your neighborhood' note to the sphere — social proof that invites seller conversations. Do not state the sale price unless provided.",
   new_listing: "A new-listing announcement email to the database — lead with the lifestyle + 2-3 standout factual features; drive to a private showing.",
   open_house: "An open-house invitation email — date/time/address up top, why it's worth the stop, easy RSVP.",
-  market_stat: "A market-update email — one concrete Monmouth County stat (only if provided), what it means for them, and an offer to talk through their situation.",
+  market_stat: "A market-update email — one concrete local market stat (only if provided), what it means for them, and an offer to talk through their situation.",
   neighborhood_spotlight: "A neighborhood-spotlight email — sell the town's lifestyle (real businesses, the commute, the shore), build the agent as the local expert.",
   educational: "An educational email — one genuinely useful buyer/seller tip or process explainer. Value-first, no hard sell.",
   custom: "A general nurture email per the provided instructions.",
@@ -54,6 +55,10 @@ export interface MessagingInput {
   agentName?: string;
   /** Optional first name to personalize the greeting. */
   recipientName?: string;
+  /** The org's market — tailors the local angle and references. */
+  marketArea?: MarketArea;
+  /** Brokerage disclaimer/license line — appended to email (not SMS, length). */
+  disclaimer?: string | null;
 }
 
 export async function runMessagingAgent(
@@ -63,6 +68,7 @@ export async function runMessagingAgent(
   | { channel: "sms"; copy: SmsCopy; usage: { input: number; output: number } }
 > {
   const client = getAnthropic();
+  const area = input.marketArea ?? DEFAULT_MARKET_AREA;
   const guidance =
     (input.channel === "email" ? EMAIL_GUIDANCE : SMS_GUIDANCE)[input.type] ??
     "A general real-estate nurture message per the provided instructions.";
@@ -86,9 +92,14 @@ export async function runMessagingAgent(
     `Content type: ${input.type}`,
     guidance,
     CHANNEL_RULES,
+    `Market area: ${areaLabel(area)}${area.region ? ` — ${area.region}` : ""}. Keep local references specific to THIS market.`,
     input.listing ? `Listing details:\n${JSON.stringify(input.listing, null, 2)}` : "",
     input.agentName ? `Agent name: ${input.agentName}` : "",
     input.recipientName ? `Recipient first name: ${input.recipientName}` : "",
+    // Email carries the disclaimer/MLS attribution; SMS stays short (no append).
+    input.channel === "email"
+      ? attributionGuidance({ mls: area.mls, disclaimer: input.disclaimer, type: input.type })
+      : "",
     input.instructions ? `Extra instructions: ${input.instructions}` : "",
     `\nReturn ONLY a JSON object matching:\n${schema}`,
   ]
@@ -98,7 +109,7 @@ export async function runMessagingAgent(
   const msg = await client.messages.create({
     model: MODEL,
     max_tokens: 1200,
-    system: cachedSystem(LOCAL_EXPERTISE),
+    system: cachedSystem(buildLocalExpertise(area)),
     messages: [{ role: "user", content: userContent }],
   });
 

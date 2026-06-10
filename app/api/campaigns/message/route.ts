@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrgContext } from "@/lib/org";
 import { runMessagingAgent } from "@/lib/agents/messaging";
 import { detectSlopInText } from "@/lib/agents/stopSlop";
+import { areaLabel, localTermsFor } from "@/lib/branding/marketArea";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 import { aiCampaignsRemaining, recordUsage } from "@/lib/billing/subscription";
 
@@ -73,6 +74,8 @@ export async function POST(req: NextRequest) {
       instructions: input.instructions,
       agentName: ctx.profile?.full_name ?? undefined,
       recipientName: input.recipientName,
+      marketArea: ctx.brand.marketArea,
+      disclaimer: ctx.brand.disclaimer,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? "Generation failed" }, { status: 502 });
@@ -98,7 +101,11 @@ export async function POST(req: NextRequest) {
     result.channel === "email"
       ? `${result.copy.subject} ${result.copy.body} ${result.copy.cta}`
       : result.copy.message;
-  const slop = detectSlopInText(scanText, { requireLocal: result.channel === "email" });
+  const slop = detectSlopInText(scanText, {
+    requireLocal: result.channel === "email",
+    localTerms: localTermsFor(ctx.brand.marketArea),
+    areaLabel: areaLabel(ctx.brand.marketArea),
+  });
 
   return NextResponse.json({
     channel: result.channel,

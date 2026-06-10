@@ -42,6 +42,7 @@ describe("buildSchedule", () => {
       instagram: { dows: [1, 3, 5], hour: 10 },
       facebook: { dows: [5, 6], hour: 10 },
       linkedin: { dows: [2, 4], hour: 9 },
+      twitter: { dows: [1, 2, 3, 4, 5], hour: 12 },
     };
     for (const s of slots) {
       const d = new Date(s.scheduledAt);
@@ -50,6 +51,17 @@ describe("buildSchedule", () => {
       expect(rule.dows).toContain(d.getDay());
       expect(d.getHours()).toBe(rule.hour);
     }
+  });
+
+  it("restricts scheduling to the selected platforms", () => {
+    const slots = buildSchedule(20, new Date("2026-06-01"), CONTENT_MIX, ["linkedin"]);
+    expect(slots.length).toBe(20);
+    expect(slots.every((s) => s.platform === "linkedin")).toBe(true);
+  });
+
+  it("falls back to all platforms when the selection is empty", () => {
+    const slots = buildSchedule(12, new Date("2026-06-01"), CONTENT_MIX, []);
+    expect(slots.length).toBe(12);
   });
 
   it("schedules in non-decreasing date order", () => {

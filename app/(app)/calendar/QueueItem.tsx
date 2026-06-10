@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { useModalDismiss } from "@/lib/useModalDismiss";
 
 interface QueuePost {
   id: string;
@@ -49,6 +50,7 @@ export function QueueItem({ post }: { post: QueuePost }) {
   const [scheduledAt, setScheduledAt] = useState(post.scheduled_at ?? "");
   const [campaignId, setCampaignId] = useState("");
   const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([]);
+  const drawerRef = useModalDismiss<HTMLDivElement>(open, () => setOpen(false));
 
   async function openDrawer() {
     setOpen(true);
@@ -98,6 +100,38 @@ export function QueueItem({ post }: { post: QueuePost }) {
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Save failed");
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!confirm("Delete this post from the queue?")) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Delete failed");
+      setOpen(false);
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+      setBusy(false);
+    }
+  }
+
+  /** Regenerate a fresh angle/hook for this planned slot. */
+  async function recreate() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/recreate`, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Recreate failed");
+      if (json.caption) setCaption(json.caption);
       router.refresh();
     } catch (e: any) {
       setError(e.message);
@@ -164,7 +198,16 @@ export function QueueItem({ post }: { post: QueuePost }) {
               {post.caption ?? <em>No caption yet</em>}
             </p>
           </button>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={recreate}
+              disabled={busy}
+              title="Regenerate the angle"
+              className="rounded-lg border border-paper-line px-2 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-gold/60 hover:text-ink disabled:opacity-50"
+            >
+              ↻ Recreate
+            </button>
             {post.state === "draft" && (
               <Button variant="secondary" size="sm" onClick={() => call("approve")} disabled={busy}>
                 Approve
@@ -173,6 +216,16 @@ export function QueueItem({ post }: { post: QueuePost }) {
             <Button variant="gold" size="sm" onClick={() => call("publish")} disabled={busy}>
               {busy ? "…" : "Publish"}
             </Button>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={busy}
+              aria-label="Delete post"
+              title="Delete from queue"
+              className="rounded-lg border border-paper-line px-2 py-1.5 text-xs font-semibold text-error transition-colors hover:border-error/60 disabled:opacity-50"
+            >
+              ✕
+            </button>
           </div>
         </div>
         {error && !open && <p className="mt-1 text-xs text-error">{error}</p>}
@@ -202,7 +255,7 @@ export function QueueItem({ post }: { post: QueuePost }) {
             onClick={() => setOpen(false)}
           />
           {/* Panel */}
-          <div className="relative z-50 flex h-full w-full max-w-lg flex-col overflow-y-auto bg-white shadow-xl">
+          <div ref={drawerRef} role="dialog" aria-modal="true" className="relative z-50 flex h-full w-full max-w-lg flex-col overflow-y-auto bg-white shadow-xl">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-paper-line px-6 py-4">
               <div className="flex items-center gap-2">
@@ -308,9 +361,12 @@ export function QueueItem({ post }: { post: QueuePost }) {
 
             {/* Footer actions */}
             <div className="sticky bottom-0 border-t border-paper-line bg-white px-6 py-4">
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button variant="secondary" size="sm" onClick={saveCaption} disabled={busy}>
                   Save edits
+                </Button>
+                <Button variant="secondary" size="sm" onClick={recreate} disabled={busy}>
+                  ↻ Recreate
                 </Button>
                 {post.state === "draft" && (
                   <Button variant="secondary" size="sm" onClick={() => call("approve")} disabled={busy}>
@@ -320,6 +376,14 @@ export function QueueItem({ post }: { post: QueuePost }) {
                 <Button variant="gold" size="sm" onClick={() => call("publish")} disabled={busy}>
                   {busy ? "Publishing…" : "Publish now"}
                 </Button>
+                <button
+                  type="button"
+                  onClick={remove}
+                  disabled={busy}
+                  className="ml-auto text-sm font-semibold text-error hover:underline disabled:opacity-50"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>

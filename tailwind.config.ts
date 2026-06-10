@@ -63,9 +63,17 @@ const config: Config = {
       boxShadow: {
         card: "0 1px 2px rgba(44,44,44,0.04), 0 12px 32px -12px rgba(44,44,44,0.18)",
         lift: "0 24px 60px -24px rgba(44,44,44,0.35)",
+        soft: "0 1px 3px rgba(44,44,44,0.05), 0 8px 24px -10px rgba(44,44,44,0.14)",
       },
       borderRadius: {
-        xl2: "1.25rem",
+        // Softer corners across the app (buttons, inputs, cards all inherit).
+        DEFAULT: "0.5rem",
+        md: "0.625rem",
+        lg: "0.75rem",
+        xl: "1rem",
+        "2xl": "1.375rem",
+        xl2: "1.5rem",
+        "3xl": "1.75rem",
       },
     },
   },

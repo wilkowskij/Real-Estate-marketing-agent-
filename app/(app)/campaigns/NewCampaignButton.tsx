@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Label, Input, Textarea } from "@/components/ui/Field";
+import { useModalDismiss } from "@/lib/useModalDismiss";
 
 /** Create a new campaign object via a small modal dialog. */
 export function NewCampaignButton() {
@@ -13,6 +14,7 @@ export function NewCampaignButton() {
   const [objective, setObjective] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useModalDismiss<HTMLDivElement>(open, () => setOpen(false));
 
   async function create() {
     if (name.trim().length < 1) return;
@@ -46,7 +48,7 @@ export function NewCampaignButton() {
       {open && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-navy/30 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative z-50 w-full max-w-md rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
+          <div ref={dialogRef} role="dialog" aria-modal="true" className="relative z-50 w-full max-w-md rounded-xl2 border border-paper-line bg-white p-6 shadow-xl">
             <h2 className="font-display text-xl text-navy">New campaign</h2>
             <p className="mt-1 text-sm text-ink-muted">
               Name it, set the strategy, then attach content from across channels.

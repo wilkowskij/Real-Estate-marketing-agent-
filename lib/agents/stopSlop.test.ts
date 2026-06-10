@@ -39,4 +39,23 @@ describe("detectSlopInText", () => {
     expect(r.clean).toBe(false);
     expect(r.issues.length).toBeGreaterThan(0);
   });
+
+  it("uses the org's own market for the local-specificity check", () => {
+    const localTerms = ["austin", "travis", "travis county", "texas"];
+    // Austin copy passes against the Texas market…
+    const tx = detectSlopInText("Just listed in Austin near downtown.", {
+      localTerms,
+      areaLabel: "Travis County, TX",
+    });
+    expect(tx.clean).toBe(true);
+
+    // …but the same copy fails the default Monmouth/NJ terms, and the flag names
+    // the configured area.
+    const nj = detectSlopInText("A new place just listed near the river.", {
+      localTerms,
+      areaLabel: "Travis County, TX",
+    });
+    expect(nj.clean).toBe(false);
+    expect(nj.issues.some((i) => /Travis County, TX local specificity/.test(i))).toBe(true);
+  });
 });

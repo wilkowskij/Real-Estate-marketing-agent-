@@ -2,7 +2,7 @@
 
 A living checklist of what's left. Tick a box (`[ ]` → `[x]`) and commit as you
 go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build work
-(ask Claude). Last updated: 2026-06-03.
+(ask Claude). Last updated: 2026-06-04 (later).
 
 ---
 
@@ -10,9 +10,14 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 
 ### Stripe billing (code is built — needs your account wiring)
 - [x] Create a Stripe account (or use existing) and switch to **live mode** when ready
-- [x] Create 4 recurring products/prices: Starter $49, Pro $99, Team $249, Brokerage $499
-- [x] Add env vars in Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-      `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_BROKERAGE`
+- [ ] **Pricing repackaged (action needed):** create the new recurring prices —
+      Solo $59, Team $399 (base, 10 seats), Brokerage $899 (base, 25 seats), plus
+      two per-additional-user prices: Team seat $39, Brokerage seat $32.
+      See [`docs/PRICING.md`](PRICING.md). (The old Starter/Pro/Team/Brokerage
+      $49/$99/$249/$499 prices are superseded.)
+- [ ] Update env vars in Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+      `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_TEAM_SEAT`,
+      `STRIPE_PRICE_BROKERAGE`, `STRIPE_PRICE_BROKERAGE_SEAT`
 - [x] Add the webhook endpoint in Stripe → `https://<your-domain>/api/webhooks/stripe`
       (events: `checkout.session.completed`, `customer.subscription.*`, `invoice.*`)
 - [x] Enable the Stripe **Customer Portal** (Billing → Customer portal settings)
@@ -38,6 +43,16 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [ ] Confirm `OPENAI_API_KEY` + `IMAGE_PROVIDER=openai` set (AI image generation)
 - [ ] Confirm `NEXT_PUBLIC_APP_URL` matches the production domain
 
+### Optional integrations (code is built — wire when you want them)
+- [ ] **MLS listing import:** add `RENTCAST_API_KEY` in Vercel to enable
+      "Import from MLS" on Create (searches your configured market state).
+- [ ] **Support/feedback → Notion:** add `NOTION_API_KEY` + `NOTION_FEEDBACK_DB_ID`
+      in Vercel and share the Notion DB with your integration. Without them,
+      feedback still saves to the `feedback` table. See [`.env.example`](../.env.example).
+- [ ] **Reel video rendering:** set `VIDEO_PROVIDER=shotstack` + `SHOTSTACK_API_KEY`
+      to render reels to MP4. Without it, "Assemble reel" still produces a
+      storyboard / downloadable shot list.
+
 ### Smoke test the live app
 - [ ] Sign up → auto-creates a solo org
 - [ ] Company → Brand & documents: upload a brand guide, set colors/logo
@@ -58,6 +73,9 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [x] Social OAuth + publishers + publish queue (per-person connections, IG/FB/LI/X)
 - [x] Stripe billing module (plans, checkout, portal, webhooks, usage metering)
 - [x] Simplified UI → Company + Profile hubs
+- [x] **MLS import (RentCast)** — "Import from MLS" on Create searches active /
+      recently-sold listings by address/ZIP/city and pre-fills every field, so a
+      campaign is ~2 clicks. Needs `RENTCAST_API_KEY`.
 - [x] **Stripe verified end-to-end** in production (checkout → webhook → DB)
 - [x] **Email + SMS content types** (Messaging Agent, channel switcher, previews,
       Stop Slop, usage-metered)
@@ -70,6 +88,17 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
 - [x] **Speech-to-text dictation** on the Create brief (Web Speech API)
 - [x] **Photo UX** — client-side resize (fixes 4.5 MB upload 413), multi-upload,
       per-thumbnail delete
+- [x] **Market area selection** — state + county + region + key towns per
+      brand kit (`brand_kits.market_area` jsonb, layers + locks like other
+      brand fields). Drives local expertise, hashtags, Stop Slop local-terms,
+      image prompts, and the calendar planner — no more hardcoded Monmouth/NJ.
+- [x] **MLS selection + market-aware listing pull** — agents pick the MLS they
+      belong to in Brand settings (free text + common-MLS suggestions, stored in
+      `market_area`); "Import from MLS" defaults a city search to the agent's
+      configured state and labels which MLS/area results came from.
+- [x] **In-app support & feedback → Notion** — footer widget on every page for
+      bug reports / feedback / feature requests; stored org-scoped in `feedback`
+      (RLS) and best-effort mirrored into a Notion DB for triage/prioritization.
 
 ### Next up (net-new pillars)
 - [x] **Email + SMS** content types in the marketing agent — channel switcher on
@@ -79,14 +108,46 @@ go. Grouped by **who owns it**: 🧑 = you (manual/dashboard work), 🤖 = build
       — `marketing_campaigns` + `campaign_messages` tables (RLS), `/campaigns`
       hub + detail page, attach social posts from the queue drawer, save
       generated email/SMS into a campaign from Create
-- [ ] **Analytics engine** — pull platform insights, store `social_metrics`
-- [ ] **Lead capture / CRM** — landing pages, forms, QR, open-house, `leads` table
-- [ ] **Revenue attribution** — post → click → lead → deal (`opportunities`, `deals`)
-- [ ] **Video marketing engine** — scene detect → clips → reels (Shotstack + scene AI)
-- [ ] **Stories / Reels** publishing endpoints
-- [ ] **White-label theming** for brokerages
-- [ ] Brokerage-wide "who's connected" view (team social coverage)
-- [ ] Mobile sidebar nav (currently desktop-only)
+- [x] **Analytics engine** — `social_metrics` table + per-platform fetcher
+      framework + daily refresh cron + `/analytics` dashboard (production stats
+      + content-mix actual-vs-target now; engagement populates once a platform's
+      insights API is approved)
+- [x] **Lead capture / CRM** — `lead_forms` + `leads` tables (RLS), public
+      `/l/<slug>` landing pages + open-house sign-in, QR codes + shareable links,
+      public capture API (service-role, honeypot), `/leads` hub with a status
+      pipeline (new → contacted → qualified → won/lost)
+- [x] **Revenue attribution** — post → click → lead → deal. `deals` +
+      `tracked_links` tables (RLS), public `/r/<slug>` redirect with atomic
+      click counting, convert-lead-to-deal + deals pipeline in the Leads hub,
+      per-campaign tracked links in campaign detail, and a Revenue & attribution
+      section in Analytics (funnel + closed revenue by source)
+- [x] **Saved listings from MLS** — imported RentCast listings persist as
+      reusable `listings` records (zip/mls_number/source/last_synced_at + dedupe
+      by MLS number). "Save" on each MLS result + a "My listings" picker on
+      Create that reuses a saved property (links the campaign to it). New rows
+      stamp the brand state/county. *(Auto-refresh of price/status — future.)*
+- [x] **MLS attribution in generated copy** — `attributionGuidance()` feeds the
+      agent's MLS + brokerage disclaimer into the marketing (social) and
+      messaging (email) agents: appends the disclaimer verbatim, references the
+      MLS as a data source on listing posts, never fabricates a brokerage.
+- [x] **Feedback status view (customer-facing)** — `/feedback` shows each org
+      the feedback its members submitted with read-only status (Received →
+      Under review → Planned → Shipped / Not planned). Org-scoped via RLS;
+      status is set by the team in Notion. *(Staff cross-org triage — future.)*
+- [x] **White-label theming** — orgs can brand the app shell (logo/name/accent
+      instead of "Marquee", "Powered by Marquee" note); toggle in the company
+      brand editor; sidebar market-area card now reflects the configured area.
+- [x] **Reel/video engine (built, gated)** — generated reel scripts become a
+      storyboard (deterministic shot list) you can film or download now; a
+      pluggable `VideoProvider` renders an MP4 when configured. "Assemble reel"
+      on the Create result; `/api/video/render`; graceful stub → manual export,
+      exactly like social publishing. *Flip on with `VIDEO_PROVIDER=shotstack` +
+      `SHOTSTACK_API_KEY` (needs a Shotstack account).*
+- [ ] **Stories / Reels** publishing endpoints. ⚠️ Blocked on Meta/LinkedIn app review.
+- [x] Brokerage-wide "who's connected" view — Company → Connections: per-agent
+      × platform coverage matrix, per-platform coverage bars, and company-owned
+      accounts (read-only; connecting stays per-agent)
+- [x] Mobile sidebar nav — hamburger + slide-over drawer (desktop sidebar unchanged)
 
 ---
 

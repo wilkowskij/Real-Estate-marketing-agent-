@@ -1,5 +1,34 @@
 import { describe, it, expect } from "vitest";
-import { parseCopy } from "./marketing";
+import { parseCopy, attributionGuidance } from "./marketing";
+
+describe("attributionGuidance", () => {
+  it("returns nothing when no MLS or disclaimer is set", () => {
+    expect(attributionGuidance({ type: "just_sold" })).toBe("");
+    expect(attributionGuidance({ type: "new_listing", mls: "  ", disclaimer: "" })).toBe("");
+  });
+
+  it("appends the disclaimer verbatim and names the MLS", () => {
+    const g = attributionGuidance({
+      type: "just_sold",
+      mls: "Monmouth-Ocean MLS",
+      disclaimer: "Each office independently owned and operated.",
+    });
+    expect(g).toContain("Monmouth-Ocean MLS");
+    expect(g).toContain('"Each office independently owned and operated."');
+    expect(g).toContain("VERBATIM");
+  });
+
+  it("allows MLS data attribution on listing posts but forbids fabrication", () => {
+    const g = attributionGuidance({ type: "new_listing", mls: "Bright MLS" });
+    expect(g).toContain("listing post");
+    expect(g).toMatch(/NEVER fabricate/i);
+  });
+
+  it("does not add MLS attribution to non-listing content", () => {
+    const g = attributionGuidance({ type: "educational", mls: "Bright MLS", disclaimer: "X" });
+    expect(g).toContain("Do not add MLS attribution to non-listing content");
+  });
+});
 
 describe("parseCopy (format-aware)", () => {
   it("keeps reel_script only when format=reel", () => {

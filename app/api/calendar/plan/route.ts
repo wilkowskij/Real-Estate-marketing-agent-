@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrgContext } from "@/lib/org";
 import { planContentCalendar } from "@/lib/agents/calendar";
+import { areaLabel } from "@/lib/branding/marketArea";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 
 export const runtime = "nodejs";
@@ -16,6 +17,8 @@ const Body = z.object({
   area: z.string().optional(),
   /** Relative per-bucket weights from the mix-settings sliders (0–100 each). */
   mix: z.record(z.string(), z.number().min(0).max(100)).optional(),
+  /** Social platforms to schedule across (default: all). */
+  platforms: z.array(z.enum(["instagram", "facebook", "linkedin", "twitter"])).optional(),
 });
 
 /**
@@ -36,8 +39,9 @@ export async function POST(req: NextRequest) {
   const { posts, usage } = await planContentCalendar({
     count: parsed.data.count ?? 20,
     start: parsed.data.start ? new Date(parsed.data.start) : undefined,
-    area: parsed.data.area,
+    area: parsed.data.area ?? areaLabel(ctx.brand.marketArea),
     mix: parsed.data.mix,
+    platforms: parsed.data.platforms,
   });
 
   const supabase = createSupabaseServerClient();

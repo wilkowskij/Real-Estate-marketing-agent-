@@ -23,6 +23,7 @@ const FIELD_LABELS: Record<LockableField, string> = {
   fonts: "Fonts",
   disclaimer: "Disclaimer / brokerage line",
   layout_theme: "Layout theme",
+  market_area: "Market area",
 };
 
 /**

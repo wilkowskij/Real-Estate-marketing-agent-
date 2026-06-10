@@ -43,6 +43,26 @@ export interface ContactBlock {
   website?: string;
 }
 
+/**
+ * The geographic market an agent/org works in. Drives the AI's local expertise
+ * (towns, commute patterns, hashtags) and the Stop-Slop local-specificity check,
+ * so marketing copy is tailored to wherever the user actually sells — not a
+ * hardcoded region.
+ */
+export interface MarketArea {
+  /** Two-letter state code, e.g. "NJ", "TX", "CA". */
+  state: string;
+  /** County name without the word "County", e.g. "Monmouth", "Travis". */
+  county: string;
+  /** Optional informal region label, e.g. "Jersey Shore", "Bay Area". */
+  region?: string;
+  /** Key towns/neighborhoods the agent serves (used for hyperlocal angles). */
+  towns: string[];
+  /** The MLS the agent belongs to, e.g. "Monmouth-Ocean MLS". Used for listing
+   *  attribution and to label where listing data is pulled from. */
+  mls?: string;
+}
+
 export interface BrandKit {
   id: string;
   org_id: string;
@@ -56,6 +76,9 @@ export interface BrandKit {
   disclaimer: string | null;
   layout_theme: string;
   locked_fields: string[];
+  market_area: MarketArea;
+  /** When true (org kit only), the app shell shows this brand, not "Marquee". */
+  white_label: boolean;
   is_default: boolean;
 }
 
@@ -74,12 +97,19 @@ export interface Listing {
   town: string | null;
   state: string;
   county: string;
+  zip: string | null;
   price: number | null;
   beds: number | null;
   baths: number | null;
   sqft: number | null;
   status: ListingStatus;
   description: string | null;
+  /** The MLS listing id, when imported — used to dedupe + refresh. */
+  mls_number: string | null;
+  /** Where this row came from: 'mls' | 'manual' | 'campaign'. */
+  source: string;
+  last_synced_at: string | null;
+  created_at: string;
 }
 
 export interface CopyPackage {
@@ -207,6 +237,96 @@ export interface CampaignMessage {
   campaign_type: CampaignType;
   content: EmailCopy | SmsCopy;
   state: "draft" | "approved" | "sent";
+  created_at: string;
+}
+
+export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost";
+
+/** A public lead-capture form / landing page. */
+export interface LeadForm {
+  id: string;
+  org_id: string;
+  created_by: string;
+  slug: string;
+  title: string;
+  kind: "general" | "open_house" | "listing";
+  listing_id: string | null;
+  marketing_campaign_id: string | null;
+  headline: string | null;
+  subhead: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+/** A captured lead with a simple CRM status pipeline. */
+export interface Lead {
+  id: string;
+  org_id: string;
+  lead_form_id: string | null;
+  listing_id: string | null;
+  marketing_campaign_id: string | null;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  message: string | null;
+  source: string | null;
+  status: LeadStatus;
+  created_at: string;
+}
+
+export type FeedbackType = "bug" | "feedback" | "feature";
+export type FeedbackStatus = "new" | "triaged" | "planned" | "done" | "wont_do";
+
+/** An in-app support/feedback submission, optionally mirrored to Notion. */
+export interface Feedback {
+  id: string;
+  org_id: string;
+  created_by: string;
+  type: FeedbackType;
+  subject: string;
+  message: string;
+  contact_email: string | null;
+  page_url: string | null;
+  status: FeedbackStatus;
+  notion_page_id: string | null;
+  notion_synced_at: string | null;
+  created_at: string;
+}
+
+export type DealStage =
+  | "prospect"
+  | "appointment"
+  | "agreement"
+  | "under_contract"
+  | "closed_won"
+  | "closed_lost";
+
+/** A lead that progressed toward a closing, with durable attribution. */
+export interface Deal {
+  id: string;
+  org_id: string;
+  created_by: string;
+  lead_id: string | null;
+  marketing_campaign_id: string | null;
+  listing_id: string | null;
+  title: string;
+  value: number | null;
+  stage: DealStage;
+  source: string | null;
+  closed_at: string | null;
+  created_at: string;
+}
+
+/** A short link that logs a click then redirects (for post→click attribution). */
+export interface TrackedLink {
+  id: string;
+  org_id: string;
+  created_by: string;
+  slug: string;
+  destination: string;
+  label: string | null;
+  marketing_campaign_id: string | null;
+  clicks: number;
   created_at: string;
 }
 

@@ -31,8 +31,12 @@ const SLOP_PATTERNS: { re: RegExp; msg: string }[] = [
   { re: /\bschedule (a |your )?(showing|tour|visit)\b/i, msg: 'Cliché CTA: "schedule a showing"' },
 ];
 
-/** Monmouth County / NJ local signal words. Absence = missing local angle. */
-const LOCAL_TERMS = [
+/**
+ * Default local signal words (the original Monmouth County / NJ market). Callers
+ * that know the org's market pass their own terms via `localTerms` so the check
+ * adapts to wherever the agent actually sells.
+ */
+const DEFAULT_LOCAL_TERMS = [
   "red bank", "asbury park", "middletown", "freehold", "rumson", "long branch",
   "holmdel", "colts neck", "manasquan", "spring lake", "belmar", "fair haven",
   "atlantic highlands", "belford", "pier village", "monmouth", "new jersey",
@@ -40,21 +44,33 @@ const LOCAL_TERMS = [
   "hoboken", "north jersey",
 ];
 
+export interface SlopOptions {
+  /** When false, skip the local-specificity check (e.g. for short SMS). */
+  requireLocal?: boolean;
+  /** Local signal words for this org's market (defaults to Monmouth/NJ). */
+  localTerms?: string[];
+  /** Area label for the flag message, e.g. "Travis County, TX". */
+  areaLabel?: string;
+}
+
 /**
  * Scan a generated copy package for slop indicators. Returns a list of
  * human-readable issues — empty list means the copy passed. No LLM call; runs
  * in microseconds inside the generate route.
  */
-export function detectSlop(copy: Pick<CopyPackage, "headline" | "caption" | "cta">): SlopResult {
-  return detectSlopInText(`${copy.headline} ${copy.caption} ${copy.cta}`);
+export function detectSlop(
+  copy: Pick<CopyPackage, "headline" | "caption" | "cta">,
+  opts: SlopOptions = {}
+): SlopResult {
+  return detectSlopInText(`${copy.headline} ${copy.caption} ${copy.cta}`, opts);
 }
 
 /**
  * Channel-agnostic slop scan over arbitrary copy text (email subject+body, an
  * SMS message, etc.). Same cliché + local-specificity checks, no LLM call.
  */
-export function detectSlopInText(raw: string, opts: { requireLocal?: boolean } = {}): SlopResult {
-  const { requireLocal = true } = opts;
+export function detectSlopInText(raw: string, opts: SlopOptions = {}): SlopResult {
+  const { requireLocal = true, localTerms = DEFAULT_LOCAL_TERMS, areaLabel } = opts;
   const text = raw.toLowerCase();
   const issues: string[] = [];
 
@@ -62,8 +78,10 @@ export function detectSlopInText(raw: string, opts: { requireLocal?: boolean } =
     if (re.test(text)) issues.push(msg);
   }
 
-  if (requireLocal && !LOCAL_TERMS.some((t) => text.includes(t))) {
-    issues.push("No Monmouth County / NJ local specificity — add a town, landmark, or market angle");
+  const terms = localTerms.length > 0 ? localTerms : DEFAULT_LOCAL_TERMS;
+  if (requireLocal && !terms.some((t) => text.includes(t.toLowerCase()))) {
+    const where = areaLabel ? `${areaLabel} ` : "";
+    issues.push(`No ${where}local specificity — add a town, landmark, or market angle`);
   }
 
   return { clean: issues.length === 0, issues };
