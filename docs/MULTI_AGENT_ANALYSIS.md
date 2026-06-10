@@ -283,16 +283,16 @@ Ranked by `(user impact × market value) / effort`:
 | ~~4~~ | ~~UTM link auto-injection~~ | ~~0.5 days~~ | ~~High~~ | ✅ **DONE** — `lib/utm.ts` utility; wired into generate route and message route |
 | ~~5~~ | ~~Auto-approve toggle~~ | ~~1 day~~ | ~~High~~ | ✅ **DONE** — `auto_approve` column on `recurring_jobs`; toggle in RecurringJobControls; cron route skips queue when enabled |
 | ~~6~~ | ~~Mobile navigation~~ | ~~2 days~~ | ~~High~~ | ✅ **DONE** — Hamburger menu + slide-out drawer in AppShell; `NavItems` component shared across desktop/mobile |
-| 7 | Open House QR code | 1 day | Medium | Simple, memorable, RE-specific. Used at every open house. |
-| 8 | Bulk export (ZIP + CSV) | 2 days | Medium | Free tier retention. Easy manual posting via Buffer/Later. |
+| ~~7~~ | ~~Open House QR code~~ | ~~1 day~~ | ~~Medium~~ | ✅ **DONE** — QR section in GenerateClient on `open_house` type; server-side proxy at `/api/qr` avoids CORS; download button with error feedback |
+| ~~8~~ | ~~Bulk export (ZIP + CSV)~~ | ~~2 days~~ | ~~Medium~~ | ✅ **DONE** — `GET /api/posts/export?from=&to=` CSV route; "Export week CSV" button on Calendar page |
 
 ### Tier 2 — Medium Effort, High Impact (1–2 weeks each)
 
 | # | Feature | Effort | Impact | Why Now |
 |---|---|---|---|---|
-| 9 | Analytics stub dashboard | 3 days | Critical | Every competitor has this. Uses existing tables — no new API calls needed. |
-| 10 | Multi-format variants (Stories 9:16) | 3 days | High | 500M daily Stories users. New `@vercel/og` template is the main build. |
-| 11 | Listing trigger sequences | 2 days | High | Lofty's #1 differentiator. Even without MLS API, a manual listing form firing a 5-post plan is high value. |
+| ~~9~~ | ~~Analytics stub dashboard~~ | ~~3 days~~ | ~~Critical~~ | ✅ **DONE** — `/analytics` page with KPI row, monthly bar chart, platform/status breakdowns, content-type mix, publish rate; "Analytics" in nav |
+| ~~10~~ | ~~Multi-format variants (Stories 9:16)~~ | ~~3 days~~ | ~~High~~ | ✅ **DONE** — Dynamic preview aspect ratio per sizeKey; quick-format chip row (Portrait / Square / Story 9:16 / FB+LinkedIn) in Generate flow |
+| ~~11~~ | ~~Listing trigger sequences~~ | ~~2 days~~ | ~~High~~ | ✅ **DONE** — `POST /api/listings/sequence` creates 5 bulk-inserted drafts over 14 days; `ListingSequenceForm` inline on Calendar page |
 | 12 | Content template library | 5 days | High | Coffee & Contracts built their whole business on this. Reduces activation time for new users. |
 | 13 | Address autocomplete + pre-fill | 4 days | High | Cuts listing data entry by 80%. Most common friction point in the Create flow. |
 | 14 | Brokerage content push | 1 week | High | Hootsuite charges $399/mo for basic approval workflow. Unlocks team/franchise sales. |
@@ -353,36 +353,30 @@ Ranked by `(user impact × market value) / effort`:
 
 ### Sprint 2 — Credibility & Retention (Weeks 3–4)
 
-**Step 7: Analytics Stub Dashboard** (Days 11–13)
-- New route: `app/(app)/analytics/page.tsx`
-- Queries existing `posts`, `agent_runs`, `marketing_campaigns` tables
-- Charts (Recharts): posts created per month, posts by status, content mix breakdown, estimated reach from stored post counts
-- No social API integration yet — purely internal data
-- Replaces the "no analytics" credibility gap immediately
+~~**Step 7: Analytics Stub Dashboard** (Days 11–13)~~ ✅ **DONE**
+- `app/(app)/analytics/page.tsx` — CSS-only charts, no new dependencies
+- Queries `posts` (state/platform/monthly), `campaigns` (type mix), `marketing_campaigns` (count)
+- KPI row + monthly bar + platform/status bars + content type mix + publish rate card
+- "Analytics" added to AppShell NAV
 
-**Step 8: Multi-Format Variants** (Days 14–16)
-- New `@vercel/og` template at 1080×1920 (vertical/Stories format)
-- Add `story` to format type options in marketing agent and generate client
-- Generate route produces both square and vertical versions in one call
-- Display vertical preview in the post drawer
+~~**Step 8: Multi-Format Variants** (Days 14–16)~~ ✅ **DONE**
+- `SIZE_ASPECT` map + `QUICK_FORMATS` chips in `GenerateClient.tsx`
+- Preview placeholder changes aspect ratio dynamically (square / portrait / 9:16 story / landscape)
+- `ig_story` (1080×1920) was already in `lib/design/platforms.ts`
 
-**Step 9: Listing Trigger Sequences** (Days 17–18)
-- "Add listing" form that accepts address + status
-- On submission, calls the calendar agent to generate a 5-post content plan for that listing
-- Sequence template: announce (Day 1) → feature (Day 3) → highlight (Day 5) → social proof (Day 10) → follow-up (Day 14)
-- Posts land in the approval queue for review
+~~**Step 9: Listing Trigger Sequences** (Days 17–18)~~ ✅ **DONE**
+- `POST /api/listings/sequence` — bulk-inserts 5 drafts over Days 0/3/7/10/14
+- `ListingSequenceForm` inline on the Calendar page approval queue header
+- Posts use pre-written templates per type; user can regenerate captions from the queue
 
-**Step 10: Bulk Export** (Days 19–20)
-- `GET /api/posts/export?from=&to=` — returns a ZIP
-- ZIP contains: one JPEG per post, a `posts.csv` with columns: `date`, `platform`, `caption`, `hashtags`, `image_filename`
-- "Export week" button on the calendar page
-- Uses `jszip` npm package (~1 day to wire up)
+~~**Step 10: Bulk Export** (Days 19–20)~~ ✅ **DONE**
+- `GET /api/posts/export?from=&to=` returns RFC-4180 CSV; no `jszip` needed (captions exported as text)
+- `ExportButton` on Calendar page exports the current 7-day window; error feedback included
 
-**Step 11: Open House QR Code** (Day 21)
-- On `open_house` campaign type in `GenerateClient.tsx`, show a QR code section
-- Use `qrcode` npm package (5KB, no external service)
-- QR points to a configurable URL (agent's website, Calendly, or future landing page)
-- "Download QR" button exports as PNG
+~~**Step 11: Open House QR Code** (Day 21)~~ ✅ **DONE**
+- QR section renders in right panel when `type === "open_house"` in `GenerateClient.tsx`
+- `/api/qr` server-side proxy route avoids browser CORS restrictions on QR API
+- `downloadQr()` fetches through proxy, creates blob URL, triggers download with error feedback
 
 ---
 

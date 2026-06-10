@@ -5,23 +5,26 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { QueueItem } from "./QueueItem";
 import { RecurringJobControls, type RecurringJobRow } from "./RecurringJobControls";
 import { PlanMonthButton } from "./PlanMonthButton";
+import { ListingSequenceForm } from "./ListingSequenceForm";
+import { ExportButton } from "./ExportButton";
 
 export const dynamic = "force-dynamic";
 
-const JOB_LABEL: Record<string, { title: string; cadence: string; blurb: string }> = {
-  local_news: {
-    title: "Recurring: local market",
-    cadence: "Weekly · review first",
-    blurb:
-      "Your strategy agent searches Monmouth County real-estate news each week and drafts a post. Nothing publishes without your approval unless you opt in.",
-  },
-  trend_watch: {
-    title: "Trend watch",
-    cadence: "Daily · review first",
-    blurb:
-      "Tasteful, on-brand takes on broader trends — scored for relevance to real estate in your area before they reach your queue.",
-  },
-};
+function buildJobLabels(area: string): Record<string, { title: string; cadence: string; blurb: string }> {
+  return {
+    local_news: {
+      title: "Recurring: local market",
+      cadence: "Weekly · review first",
+      blurb: `Your strategy agent searches ${area} real-estate news each week and drafts a post. Nothing publishes without your approval unless you opt in.`,
+    },
+    trend_watch: {
+      title: "Trend watch",
+      cadence: "Daily · review first",
+      blurb:
+        "Tasteful, on-brand takes on broader trends — scored for relevance to real estate in your area before they reach your queue.",
+    },
+  };
+}
 
 /**
  * Content calendar + automation. Recurring local-news / trend-watch jobs drop
@@ -36,7 +39,7 @@ export default async function CalendarPage() {
     ? await Promise.all([
         supabase
           .from("recurring_jobs")
-          .select("id, kind, cadence, config, auto_publish, enabled")
+          .select("id, kind, cadence, config, auto_publish, auto_approve, enabled")
           .eq("org_id", ctx.orgId),
         supabase
           .from("posts")
@@ -48,6 +51,7 @@ export default async function CalendarPage() {
       ])
     : [{ data: [] }, { data: [] }];
 
+  const JOB_LABEL = buildJobLabels(ctx?.orgArea ?? "your area");
   // Always show both automation cards; merge any configured jobs over defaults.
   const kinds = ["local_news", "trend_watch"] as const;
   const jobByKind = new Map((jobs ?? []).map((j) => [j.kind, j]));
@@ -59,7 +63,10 @@ export default async function CalendarPage() {
           <p className="eyebrow">Calendar</p>
           <h1 className="mt-2 text-4xl text-navy">Keep the feed alive.</h1>
         </div>
-        <PlanMonthButton />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportButton />
+          <PlanMonthButton />
+        </div>
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -86,7 +93,10 @@ export default async function CalendarPage() {
 
       <Card className="mt-6">
         <CardBody>
-          <h3 className="text-lg text-navy">Approval queue</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-lg text-navy">Approval queue</h3>
+            <ListingSequenceForm />
+          </div>
           {queue && queue.length > 0 ? (
             <div className="mt-2 divide-y divide-paper-line">
               {queue.map((p) => (

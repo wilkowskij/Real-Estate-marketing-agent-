@@ -7,13 +7,14 @@ import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const NAV = [
-  { href: "/dashboard", label: "Studio", icon: "◆" },
-  { href: "/generate", label: "Create", icon: "✦" },
-  { href: "/campaigns", label: "Campaigns", icon: "❖" },
-  { href: "/calendar", label: "Calendar", icon: "▦" },
-  { href: "/library", label: "Library", icon: "▣" },
-  { href: "/company", label: "Company", icon: "⬡" },
-  { href: "/profile", label: "Profile", icon: "◈" },
+  { href: "/dashboard",  label: "Studio",    icon: "◆" },
+  { href: "/generate",   label: "Create",    icon: "✦" },
+  { href: "/campaigns",  label: "Campaigns", icon: "❖" },
+  { href: "/calendar",   label: "Calendar",  icon: "▦" },
+  { href: "/analytics",  label: "Analytics", icon: "◫" },
+  { href: "/library",    label: "Library",   icon: "▣" },
+  { href: "/company",    label: "Company",   icon: "⬡" },
+  { href: "/profile",    label: "Profile",   icon: "◈" },
 ];
 
 function NavItems({

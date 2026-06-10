@@ -41,6 +41,23 @@ const FORMAT_LABEL: Record<string, string> = {
   single_image: "🖼 Single image",
 };
 
+// Tailwind aspect-ratio class per output size
+const SIZE_ASPECT: Record<string, string> = {
+  ig_square:   "aspect-square",
+  ig_portrait: "aspect-[4/5]",
+  ig_story:    "aspect-[9/16]",
+  fb_feed:     "aspect-[1200/630]",
+  linkedin:    "aspect-[1200/627]",
+};
+
+// Quick-format presets shown above the size select
+const QUICK_FORMATS = [
+  { key: "ig_portrait", label: "Portrait" },
+  { key: "ig_square",   label: "Square"   },
+  { key: "ig_story",    label: "Story 9:16" },
+  { key: "fb_feed",     label: "FB / LinkedIn" },
+] as const;
+
 interface UploadedPhoto {
   assetId: string;
   previewUrl: string;
@@ -137,6 +154,34 @@ export function GenerateClient() {
   const [result, setResult] = useState<Result | null>(null);
   const [library, setLibrary] = useState<UploadedPhoto[] | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
+  // Open House QR code
+  const [openHouseUrl, setOpenHouseUrl] = useState("");
+  const [qrBusy, setQrBusy] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+
+  async function downloadQr() {
+    if (!openHouseUrl.trim()) return;
+    setQrBusy(true);
+    setQrError(null);
+    try {
+      // Use our server-side proxy to avoid CORS restrictions on the QR API
+      const proxyUrl = `/api/qr?size=400&url=${encodeURIComponent(openHouseUrl.trim())}`;
+      const res  = await fetch(proxyUrl);
+      if (!res.ok) throw new Error("QR download failed");
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = href;
+      a.download = "open-house-qr.png";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(href), 100);
+    } catch (e: any) {
+      setQrError(e.message ?? "Download failed");
+    } finally {
+      setQrBusy(false);
+    }
+  }
+
   // AI-first intake: a single prompt box parses into the detailed fields, which
   // start collapsed so the page is simple by default.
   const [brief, setBrief] = useState("");
@@ -522,7 +567,23 @@ export function GenerateClient() {
               />
             </div>
             <div>
-              <Label>Output size</Label>
+              <Label>Output format</Label>
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {QUICK_FORMATS.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setSizeKey(f.key)}
+                    className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                      sizeKey === f.key
+                        ? "border-gold bg-gold/10 font-semibold text-gold-deep"
+                        : "border-paper-line text-ink-soft hover:border-gold/50"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
               <Select value={sizeKey} onChange={(e) => setSizeKey(e.target.value)}>
                 {Object.values(PLATFORM_SIZES).map((s) => (
                   <option key={s.key} value={s.key}>
@@ -745,8 +806,10 @@ export function GenerateClient() {
                 className="w-full rounded-lg"
               />
             ) : (
-              <div className="flex aspect-[4/5] items-center justify-center rounded-lg bg-paper text-sm text-ink-muted">
-                Your finished graphic appears here.
+              <div
+                className={`flex items-center justify-center rounded-lg bg-paper text-sm text-ink-muted ${SIZE_ASPECT[sizeKey] ?? "aspect-[4/5]"}`}
+              >
+                {sizeKey === "ig_story" ? "9:16 Story format" : "Your finished graphic appears here."}
               </div>
             )}
           </CardBody>
@@ -760,6 +823,54 @@ export function GenerateClient() {
             result={messageResult}
             campaignType={type}
           />
+        )}
+
+        {/* Open House QR code — shown whenever open_house is selected */}
+        {channel === "social" && type === "open_house" && (
+          <Card>
+            <CardBody className="space-y-3">
+              <p className="eyebrow">Open House QR Code</p>
+              <p className="text-xs text-ink-muted">
+                Paste any URL — your website, Calendly link, or listing page — and print
+                the QR code for flyers, signs, and handouts at the open house.
+              </p>
+              <div>
+                <label htmlFor="open-house-url" className="eyebrow mb-1 block text-xs">
+                  URL to encode
+                </label>
+                <input
+                  id="open-house-url"
+                  type="url"
+                  value={openHouseUrl}
+                  onChange={(e) => setOpenHouseUrl(e.target.value)}
+                  placeholder="https://your-site.com/open-house"
+                  className="w-full rounded-lg border border-paper-line bg-paper px-3 py-2.5 text-sm text-ink focus:border-gold focus:outline-none"
+                />
+              </div>
+              {openHouseUrl.trim() && (
+                <div className="flex flex-col items-center gap-3">
+                  {/* Served via /api/qr proxy to avoid CORS */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/qr?size=200&url=${encodeURIComponent(openHouseUrl.trim())}`}
+                    alt="QR code"
+                    width={200}
+                    height={200}
+                    className="rounded-lg border border-paper-line"
+                  />
+                  {qrError && <p className="text-xs text-error">{qrError}</p>}
+                  <button
+                    type="button"
+                    onClick={downloadQr}
+                    disabled={qrBusy}
+                    className="rounded-lg border border-paper-line px-4 py-2 text-sm font-medium text-ink hover:border-gold disabled:opacity-50"
+                  >
+                    {qrBusy ? "Downloading…" : "⬇ Download QR PNG"}
+                  </button>
+                </div>
+              )}
+            </CardBody>
+          </Card>
         )}
 
         {channel === "social" && result && (
