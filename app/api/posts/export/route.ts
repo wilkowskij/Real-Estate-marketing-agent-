@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 function csvEscape(value: string | null | undefined): string {
   const s = value ?? "";
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
     return `"${s.replace(/"/g, '""')}"`;
   }
   return s;

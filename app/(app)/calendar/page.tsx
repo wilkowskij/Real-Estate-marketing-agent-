@@ -43,7 +43,7 @@ export default async function CalendarPage() {
           .eq("org_id", ctx.orgId),
         supabase
           .from("posts")
-          .select("id, platform, caption, state, scheduled_at")
+          .select("id, platform, caption, state, scheduled_at, is_brokerage_push")
           .eq("org_id", ctx.orgId)
           .in("state", ["draft", "approved", "scheduled"])
           .order("created_at", { ascending: false })
@@ -52,6 +52,7 @@ export default async function CalendarPage() {
     : [{ data: [] }, { data: [] }];
 
   const JOB_LABEL = buildJobLabels(ctx?.orgArea ?? "your area");
+  const isAdmin = ctx?.role === "admin" || ctx?.role === "owner";
   // Always show both automation cards; merge any configured jobs over defaults.
   const kinds = ["local_news", "trend_watch"] as const;
   const jobByKind = new Map((jobs ?? []).map((j) => [j.kind, j]));
@@ -100,7 +101,7 @@ export default async function CalendarPage() {
           {queue && queue.length > 0 ? (
             <div className="mt-2 divide-y divide-paper-line">
               {queue.map((p) => (
-                <QueueItem key={p.id} post={p} />
+                <QueueItem key={p.id} post={p} isAdmin={isAdmin} />
               ))}
             </div>
           ) : (

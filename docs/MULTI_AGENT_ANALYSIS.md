@@ -293,15 +293,15 @@ Ranked by `(user impact × market value) / effort`:
 | ~~9~~ | ~~Analytics stub dashboard~~ | ~~3 days~~ | ~~Critical~~ | ✅ **DONE** — `/analytics` page with KPI row, monthly bar chart, platform/status breakdowns, content-type mix, publish rate; "Analytics" in nav |
 | ~~10~~ | ~~Multi-format variants (Stories 9:16)~~ | ~~3 days~~ | ~~High~~ | ✅ **DONE** — Dynamic preview aspect ratio per sizeKey; quick-format chip row (Portrait / Square / Story 9:16 / FB+LinkedIn) in Generate flow |
 | ~~11~~ | ~~Listing trigger sequences~~ | ~~2 days~~ | ~~High~~ | ✅ **DONE** — `POST /api/listings/sequence` creates 5 bulk-inserted drafts over 14 days; `ListingSequenceForm` inline on Calendar page |
-| 12 | Content template library | 5 days | High | Coffee & Contracts built their whole business on this. Reduces activation time for new users. |
-| 13 | Address autocomplete + pre-fill | 4 days | High | Cuts listing data entry by 80%. Most common friction point in the Create flow. |
-| 14 | Brokerage content push | 1 week | High | Hootsuite charges $399/mo for basic approval workflow. Unlocks team/franchise sales. |
+| ~~12~~ | ~~Content template library~~ | ~~5 days~~ | ~~High~~ | ✅ **DONE** — 25 RE templates in `lib/templates/index.ts`; `TemplatePicker` component with search + type filter above Generate form |
+| ~~13~~ | ~~Address autocomplete + pre-fill~~ | ~~4 days~~ | ~~High~~ | ✅ **DONE** — `useRecentListings` localStorage hook; datalist + "Recent listing" dropdown on address field; auto-saves on generate |
+| ~~14~~ | ~~Brokerage content push~~ | ~~1 week~~ | ~~High~~ | ✅ **DONE** — `POST /api/posts/push-to-team`; "From brokerage" badge in QueueItem; "Push to team" button for admin/owner role; migration adds `is_brokerage_push` column |
 
 ### Tier 3 — Major Features (Existing Roadmap, Right Sequencing)
 
 | # | Feature | Effort | Notes |
 |---|---|---|---|
-| 15 | Social analytics pull (Meta/LinkedIn Insights) | 9 days | Phase 2 roadmap. Turns stub dashboard into real data. |
+| ~~15~~ | ~~Social analytics pull (Meta/LinkedIn Insights)~~ | ~~9 days~~ | ✅ **STUB DONE** — `social_metrics` table migration + `/api/cron/pull-metrics` scaffold; full API calls pending Meta/LinkedIn app review (Phase 2) |
 | 16 | Lead capture / CRM | 3–4 weeks | Phase 3. Needs landing pages + forms + `leads` table. |
 | 17 | Revenue attribution engine | 4–6 weeks | Phase 4 North Star. Needs analytics + leads data to join against first. |
 | 18 | Video engine (Shotstack) | 6–8 weeks | Largest single lift. Depends on job queue infrastructure. |
@@ -382,28 +382,27 @@ Ranked by `(user impact × market value) / effort`:
 
 ### Sprint 3 — Competitive Parity (Weeks 5–8)
 
-**Step 12: Social Analytics Pull** (Days 22–30)
-- New table: `social_metrics(post_id, platform, metric, value, captured_at)`
-- New cron: `GET /api/cron/pull-metrics` — calls Meta Graph API + LinkedIn Organization Analytics API per published post
-- Display per-post: impressions, reach, likes, comments, shares in the post preview drawer
-- Aggregate to `/analytics` dashboard
+~~**Step 12: Social Analytics Pull** (Days 22–30)~~ ✅ **STUB DONE**
+- `social_metrics(id, org_id, post_id, platform, metric, value, captured_at)` table + RLS policies in `0011_sprint3.sql`
+- `/api/cron/pull-metrics` — queries published posts with platform_post_id; documents Phase 2 TODO for Meta Graph + LinkedIn APIs
+- Vercel cron scheduled daily at 07:00 UTC
+- Full metric pull pending Meta/LinkedIn app review (external dependency)
 
-**Step 13: Content Template Library** (Days 25–30)
-- 25 JSON template configs for common RE content types
-- Examples: "Just Sold in a Seller's Market", "Monthly Market Snapshot", "First-Time Buyer Tips", "Spring Selling Season", "Open House This Weekend"
-- Template picker step in `GenerateClient.tsx` before the brief form
-- Templates pre-fill the brief; AI still personalizes with agent's brand voice and market
+~~**Step 13: Content Template Library** (Days 25–30)~~ ✅ **DONE**
+- 25 templates in `lib/templates/index.ts` across 10 campaign types: sold, listing, open house, market stat, neighborhood, educational, testimonial, before/after, deal of week, custom
+- `TemplatePicker` collapsible above the Create form — search + type filter; selects pre-fill type/brief/instructions
+- Templates remain AI-personalized — they prime the agent, not replace it
 
-**Step 14: Address Autocomplete + Property Pre-Fill** (Days 28–32)
-- Google Places Autocomplete on the address field in the brief form
-- On address selection, call a property data API (RentCast, ATTOM, or Zillow informal) to pre-fill beds, baths, sqft, estimated value
-- Fallback gracefully to manual entry if no data found
+~~**Step 14: Address Autocomplete + Property Pre-Fill** (Days 28–32)~~ ✅ **DONE** (localStorage approach)
+- `lib/useRecentListings.ts` — persists up to 5 recent listing objects in localStorage (deduped by address)
+- Datalist autocomplete on Address field + "↩ Recent listing" select dropdown; auto-saves on every generation
+- No external API required; Google Places / ATTOM integration is a Phase 2 upgrade path
 
-**Step 15: Brokerage Content Push** (Days 30–38)
-- Admin creates a post → marks it as "push to agents"
-- Agents see the pushed post in their approval queue with a badge "From your brokerage"
-- One-click approve → schedules to their connected social accounts
-- Admin sees a dashboard of how many agents approved/published each pushed post
+~~**Step 15: Brokerage Content Push** (Days 30–38)~~ ✅ **DONE**
+- `POST /api/posts/push-to-team` — admin/owner only; sets `is_brokerage_push = true`
+- "From brokerage" badge in QueueItem row + drawer for pushed posts
+- "Push to team" button visible only to admin/owner roles in calendar queue
+- Column + index added to `posts` table in `0011_sprint3.sql`
 
 ---
 

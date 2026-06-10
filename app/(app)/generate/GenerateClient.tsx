@@ -8,18 +8,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Label, Input, Textarea, Select } from "@/components/ui/Field";
 import { PLATFORM_SIZES } from "@/lib/design/platforms";
 import { PhotoEditor, type EditResult } from "./PhotoEditor";
+import { TemplatePicker } from "./TemplatePicker";
+import type { ContentTemplate, ContentTemplateCampaignType } from "@/lib/templates";
+import { useRecentListings } from "@/lib/useRecentListings";
 
-type CampaignType =
-  | "just_sold"
-  | "new_listing"
-  | "open_house"
-  | "market_stat"
-  | "neighborhood_spotlight"
-  | "deal_of_week"
-  | "before_after"
-  | "educational"
-  | "testimonial"
-  | "custom";
+type CampaignType = ContentTemplateCampaignType;
 
 const TYPES: { value: CampaignType; label: string }[] = [
   { value: "just_sold", label: "Just Sold" },
@@ -153,6 +146,7 @@ export function GenerateClient() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [library, setLibrary] = useState<UploadedPhoto[] | null>(null);
+  const { recents, save: saveRecentListing } = useRecentListings();
   const [showLibrary, setShowLibrary] = useState(false);
   // Open House QR code
   const [openHouseUrl, setOpenHouseUrl] = useState("");
@@ -330,6 +324,10 @@ export function GenerateClient() {
       setError("Add at least one photo, or turn on “Generate image with AI.”");
       return;
     }
+    // Persist listing fields for next session
+    if (listing.address.trim()) {
+      saveRecentListing(listing);
+    }
     setGenerating(true);
     setError(null);
     setResult(null);
@@ -415,6 +413,13 @@ export function GenerateClient() {
     { key: "sms", label: "SMS", icon: "💬" },
   ] as const;
 
+  function applyTemplate(t: ContentTemplate) {
+    setType(t.type as CampaignType);
+    setBrief(t.brief);
+    setInstructions(t.instructions);
+    setShowDetails(false);
+  }
+
   return (
     <>
       {editing && (
@@ -425,7 +430,11 @@ export function GenerateClient() {
           onSave={onSaveEdit}
         />
       )}
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_460px]">
+      <div className="mt-6">
+        <TemplatePicker onSelect={applyTemplate} />
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_460px]">
       {/* Form */}
       <Card>
         <CardBody className="space-y-6">
@@ -518,12 +527,35 @@ export function GenerateClient() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Label>Address</Label>
+              <div className="mb-1 flex items-center justify-between">
+                <Label>Address</Label>
+                {recents.length > 0 && (
+                  <select
+                    onChange={(e) => {
+                      const r = recents.find((x) => x.address === e.target.value);
+                      if (r) setListing(r);
+                    }}
+                    defaultValue=""
+                    className="mb-1 text-xs text-gold-deep hover:underline bg-transparent border-none cursor-pointer focus:outline-none"
+                  >
+                    <option value="" disabled>↩ Recent listing</option>
+                    {recents.map((r) => (
+                      <option key={r.address} value={r.address}>{r.address}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <Input
+                list="recent-addresses"
                 value={listing.address}
                 onChange={(e) => setListing({ ...listing, address: e.target.value })}
                 placeholder="14 Riverside Ave"
               />
+              <datalist id="recent-addresses">
+                {recents.map((r) => (
+                  <option key={r.address} value={r.address} />
+                ))}
+              </datalist>
             </div>
             <div>
               <Label>Town</Label>

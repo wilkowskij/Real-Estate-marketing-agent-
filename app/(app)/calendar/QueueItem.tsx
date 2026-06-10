@@ -11,6 +11,13 @@ interface QueuePost {
   caption: string | null;
   state: string;
   scheduled_at: string | null;
+  is_brokerage_push?: boolean;
+}
+
+interface QueueItemProps {
+  post: QueuePost;
+  /** When true, show the "Push to team" button (admin/owner only). */
+  isAdmin?: boolean;
 }
 
 interface PostDetail extends QueuePost {
@@ -36,7 +43,7 @@ function formatDate(iso: string | null) {
 }
 
 /** One row in the approval queue — click to open the full preview drawer. */
-export function QueueItem({ post }: { post: QueuePost }) {
+export function QueueItem({ post, isAdmin = false }: QueueItemProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<PostDetail | null>(null);
@@ -51,6 +58,26 @@ export function QueueItem({ post }: { post: QueuePost }) {
   const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([]);
   const [regenerating, setRegenerating] = useState(false);
   const [regenSuccess, setRegenSuccess] = useState(false);
+  const [pushed, setPushed] = useState(post.is_brokerage_push ?? false);
+
+  async function pushToTeam() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/posts/push-to-team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Push failed");
+      setPushed(true);
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function openDrawer() {
     setOpen(true);
@@ -181,6 +208,11 @@ export function QueueItem({ post }: { post: QueuePost }) {
               </span>
               <span className="text-sm font-medium capitalize text-ink">{post.platform}</span>
               <Badge>{post.state}</Badge>
+              {pushed && (
+                <span className="rounded-full bg-navy/10 px-2 py-0.5 text-[10px] font-semibold text-navy/70">
+                  From brokerage
+                </span>
+              )}
               {post.scheduled_at && (
                 <span className="text-xs text-ink-muted">{formatDate(post.scheduled_at)}</span>
               )}
@@ -190,6 +222,11 @@ export function QueueItem({ post }: { post: QueuePost }) {
             </p>
           </button>
           <div className="flex shrink-0 gap-2">
+            {isAdmin && !pushed && (
+              <Button variant="ghost" size="sm" onClick={pushToTeam} disabled={busy} title="Mark as brokerage content for the whole team">
+                Push to team
+              </Button>
+            )}
             {post.state === "draft" && (
               <Button variant="secondary" size="sm" onClick={() => call("approve")} disabled={busy}>
                 Approve

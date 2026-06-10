@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrgContext } from "@/lib/org";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -43,7 +44,7 @@ function monthLabel(d: Date) {
 
 export default async function AnalyticsPage() {
   const ctx = await getOrgContext();
-  if (!ctx) return null;
+  if (!ctx) redirect("/login");
 
   const supabase = createSupabaseServerClient();
 
