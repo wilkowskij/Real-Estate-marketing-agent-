@@ -91,7 +91,7 @@ export async function searchSaleListings(params: ListingSearch): Promise<Rentcas
     headers: { "X-Api-Key": key, Accept: "application/json" },
     // RentCast data is fine to cache briefly; avoids burning the quota on repeats.
     next: { revalidate: 300 },
-  });
+  } as RequestInit & { next?: { revalidate?: number } });
 
   if (res.status === 404) return []; // no listings for that query
   if (!res.ok) {

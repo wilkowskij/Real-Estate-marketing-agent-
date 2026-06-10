@@ -177,6 +177,10 @@ export interface MarketingInput {
   agentName?: string;
   /** The org's market — tailors the local angle, towns, and hashtags. */
   marketArea?: MarketArea;
+  /** Plain-text market area label (e.g. "Monmouth County, NJ"). */
+  area?: string;
+  /** Brand voice settings from org config. */
+  brandVoice?: Record<string, string> | null;
   /** Brokerage disclaimer/license line to append verbatim (compliance). */
   disclaimer?: string | null;
   /** When true, allow the web_search tool for current market data. */

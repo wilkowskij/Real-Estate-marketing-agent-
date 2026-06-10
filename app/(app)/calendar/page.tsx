@@ -19,7 +19,7 @@ const PLATFORM_META: Record<string, { label: string; icon: string }> = {
 };
 const PLATFORM_SORT = ["instagram", "facebook", "linkedin", "twitter", "x"];
 
-type QPost = { id: string; platform: string; caption: string | null; state: string; scheduled_at: string | null };
+type QPost = { id: string; platform: string; caption: string | null; state: string; scheduled_at: string | null; is_brokerage_push?: boolean };
 
 /** Group queue posts by platform, ordered by the canonical platform sort. */
 function groupByPlatform(posts: QPost[]): [string, QPost[]][] {
