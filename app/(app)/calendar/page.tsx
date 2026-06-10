@@ -102,7 +102,7 @@ export default async function CalendarPage() {
               <CardBody>
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg text-navy">{meta.title}</h3>
-                  <Badge>{job?.enabled === false ? "Paused" : meta.cadence}</Badge>
+                  <Badge>{(job as RecurringJobRow | undefined)?.enabled === false ? "Paused" : meta.cadence}</Badge>
                 </div>
                 <p className="mt-3 text-sm text-ink-muted">{meta.blurb}</p>
                 <RecurringJobControls

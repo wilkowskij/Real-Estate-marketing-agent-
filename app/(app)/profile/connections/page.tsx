@@ -35,7 +35,8 @@ export default async function ConnectionsPage({
         .eq("membership_id", ctx.membershipId)
     : { data: [] as any[] };
 
-  const connectedByPlatform = new Map((accounts ?? []).map((a) => [a.platform, a]));
+  type AccountRow = { id: string; platform: string; account_label: string | null; created_at: string };
+  const connectedByPlatform = new Map<string, AccountRow>((accounts ?? []).map((a) => [a.platform, a as AccountRow]));
 
   return (
     <div>
