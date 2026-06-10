@@ -57,6 +57,9 @@ export function QueueItem({ post, isAdmin = false }: QueueItemProps) {
   const [scheduledAt, setScheduledAt] = useState(post.scheduled_at ?? "");
   const [campaignId, setCampaignId] = useState("");
   const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([]);
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenSuccess, setRegenSuccess] = useState(false);
+  const [pushed, setPushed] = useState(post.is_brokerage_push ?? false);
   const drawerRef = useModalDismiss<HTMLDivElement>(open, () => setOpen(false));
 
   async function openDrawer() {
