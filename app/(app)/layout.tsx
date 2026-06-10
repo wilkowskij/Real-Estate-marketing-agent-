@@ -1,9 +1,11 @@
 import { AppShell } from "@/components/AppShell";
+import { getOrgContext } from "@/lib/org";
 
-export default function AppGroupLayout({
+export default async function AppGroupLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AppShell>{children}</AppShell>;
+  const ctx = await getOrgContext();
+  return <AppShell area={ctx?.orgArea}>{children}</AppShell>;
 }

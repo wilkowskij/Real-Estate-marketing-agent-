@@ -31,13 +31,16 @@ const SLOP_PATTERNS: { re: RegExp; msg: string }[] = [
   { re: /\bschedule (a |your )?(showing|tour|visit)\b/i, msg: 'Cliché CTA: "schedule a showing"' },
 ];
 
-/** Monmouth County / NJ local signal words. Absence = missing local angle. */
-const LOCAL_TERMS = [
-  "red bank", "asbury park", "middletown", "freehold", "rumson", "long branch",
-  "holmdel", "colts neck", "manasquan", "spring lake", "belmar", "fair haven",
-  "atlantic highlands", "belford", "pier village", "monmouth", "new jersey",
-  " nj ", "nj real", "jersey shore", "shore town", "coast line", "nyc commut",
-  "hoboken", "north jersey",
+/**
+ * Generic local-specificity signals. Any two-letter US state abbreviation or
+ * a US zip-code pattern counts; so does a comma followed by a capitalized word
+ * (city, state pattern). These are broad — the org area words are also checked
+ * when provided via detectSlopInText's `area` option.
+ */
+const LOCAL_SIGNAL_PATTERNS = [
+  /\b[A-Z]{2}\b/, // state abbreviation (TX, FL, CA, NJ …)
+  /\b\d{5}\b/, // zip code
+  /,\s+[A-Z]/, // "City, S" pattern
 ];
 
 /**
@@ -45,16 +48,26 @@ const LOCAL_TERMS = [
  * human-readable issues — empty list means the copy passed. No LLM call; runs
  * in microseconds inside the generate route.
  */
-export function detectSlop(copy: Pick<CopyPackage, "headline" | "caption" | "cta">): SlopResult {
-  return detectSlopInText(`${copy.headline} ${copy.caption} ${copy.cta}`);
+export function detectSlop(
+  copy: Pick<CopyPackage, "headline" | "caption" | "cta">,
+  area?: string
+): SlopResult {
+  return detectSlopInText(`${copy.headline} ${copy.caption} ${copy.cta}`, { area });
 }
 
 /**
  * Channel-agnostic slop scan over arbitrary copy text (email subject+body, an
  * SMS message, etc.). Same cliché + local-specificity checks, no LLM call.
+ *
+ * @param opts.requireLocal - whether to enforce local specificity (default true)
+ * @param opts.area - org's configured market area; words from it are added to
+ *   the local-signal check so area-specific terms count (e.g. "Austin", "TX")
  */
-export function detectSlopInText(raw: string, opts: { requireLocal?: boolean } = {}): SlopResult {
-  const { requireLocal = true } = opts;
+export function detectSlopInText(
+  raw: string,
+  opts: { requireLocal?: boolean; area?: string } = {}
+): SlopResult {
+  const { requireLocal = true, area } = opts;
   const text = raw.toLowerCase();
   const issues: string[] = [];
 
@@ -62,8 +75,18 @@ export function detectSlopInText(raw: string, opts: { requireLocal?: boolean } =
     if (re.test(text)) issues.push(msg);
   }
 
-  if (requireLocal && !LOCAL_TERMS.some((t) => text.includes(t))) {
-    issues.push("No Monmouth County / NJ local specificity — add a town, landmark, or market angle");
+  if (requireLocal) {
+    // Check generic location signals (state abbreviation, zip, "City, S" pattern).
+    const hasGenericSignal = LOCAL_SIGNAL_PATTERNS.some((re) => re.test(raw));
+    // Also check for any word from the org's configured area (case-insensitive).
+    const areaWords = area
+      ? area.toLowerCase().split(/[\s,]+/).filter((w) => w.length > 2)
+      : [];
+    const hasAreaWord = areaWords.length > 0 && areaWords.some((w) => text.includes(w));
+
+    if (!hasGenericSignal && !hasAreaWord) {
+      issues.push("No local specificity detected — add a town, neighborhood, or market area name");
+    }
   }
 
   return { clean: issues.length === 0, issues };

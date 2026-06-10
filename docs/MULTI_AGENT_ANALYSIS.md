@@ -277,12 +277,12 @@ Ranked by `(user impact × market value) / effort`:
 
 | # | Feature | Effort | Impact | Why Now |
 |---|---|---|---|---|
-| 1 | Geographic settings | 2 days | Critical | Unlocks entire US market. Currently NJ-only. |
-| 2 | Brand voice onboarding | 2 days | Critical | Jasper charges $500+/mo for this. Counters Roomvu's #1 weakness (generic content). |
-| 3 | Caption regeneration | 1 day | High | Most-needed daily workflow. Currently requires full regeneration. |
-| 4 | UTM link auto-injection | 0.5 days | High | Attribution foundation. 20 lines of code. Free to build. |
-| 5 | Auto-approve toggle | 1 day | High | Dippidi's core pitch is "set and forget." We require daily approvals. |
-| 6 | Mobile navigation | 2 days | High | Agents are on phones at showings and open houses. Already flagged in checklist. |
+| ~~1~~ | ~~Geographic settings~~ | ~~2 days~~ | ~~Critical~~ | ✅ **DONE** — `area`/`state` added to `orgs` table; threaded through all 6 agent prompt files, 4 API routes, AppShell sidebar, Company Brand settings |
+| ~~2~~ | ~~Brand voice onboarding~~ | ~~2 days~~ | ~~Critical~~ | ✅ **DONE** — 5-field brand voice config in `orgs.brand_voice`; injected into marketing + messaging agent user content; form in Company Brand page |
+| ~~3~~ | ~~Caption regeneration~~ | ~~1 day~~ | ~~High~~ | ✅ **DONE** — `POST /api/posts/[id]/regenerate-caption`; "↻ Regenerate caption" button in QueueItem drawer with success feedback |
+| ~~4~~ | ~~UTM link auto-injection~~ | ~~0.5 days~~ | ~~High~~ | ✅ **DONE** — `lib/utm.ts` utility; wired into generate route and message route |
+| ~~5~~ | ~~Auto-approve toggle~~ | ~~1 day~~ | ~~High~~ | ✅ **DONE** — `auto_approve` column on `recurring_jobs`; toggle in RecurringJobControls; cron route skips queue when enabled |
+| ~~6~~ | ~~Mobile navigation~~ | ~~2 days~~ | ~~High~~ | ✅ **DONE** — Hamburger menu + slide-out drawer in AppShell; `NavItems` component shared across desktop/mobile |
 | 7 | Open House QR code | 1 day | Medium | Simple, memorable, RE-specific. Used at every open house. |
 | 8 | Bulk export (ZIP + CSV) | 2 days | Medium | Free tier retention. Easy manual posting via Buffer/Later. |
 

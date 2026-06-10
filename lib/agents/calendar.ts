@@ -6,7 +6,7 @@ import type { CampaignType, PostFormat } from "@/lib/supabase/types";
  *
  * The content-mix RATIOS are enforced deterministically in code (reliable,
  * testable) so the balance never drifts on an LLM whim. A single Claude call
- * then fills each pre-allocated slot with a concrete Monmouth County angle +
+ * then fills each pre-allocated slot with a concrete local-area angle +
  * hook. That keeps cost flat (one call for the whole month) while staying local
  * and on-brand. Full copy/graphics are generated later, per post, on demand.
  */
@@ -172,16 +172,16 @@ export function buildSchedule(
   return out;
 }
 
-const PLANNER_SYSTEM = `You are a real estate content strategist for New Jersey /
-Monmouth County. Given a pre-built posting SCHEDULE (each slot already has a
-content type, format, platform, and date), assign each slot a specific, local,
-non-repeating ANGLE/HOOK suited to that type. Use the proven viral angles:
-bidding-war/over-asking, rate-impact explainers, NYC->Shore migration,
-hyperlocal neighborhood spotlights (name real Monmouth towns), school/commute,
-deal-of-week, before/after, testimonials. Keep hooks concrete and conversational;
-for Reels make the hook a scroll-stopper that ends implying a question. Never
-invent specific statistics — keep angles qualitative unless a number is given.
-Respect Fair Housing (no steering language).`;
+const PLANNER_SYSTEM = `You are a real estate content strategist. Given a pre-built
+posting SCHEDULE (each slot already has a content type, format, platform, and date)
+and a market area, assign each slot a specific, local, non-repeating ANGLE/HOOK
+suited to that type. Use the proven viral angles: bidding-war/over-asking, rate-impact
+explainers, migration/relocation stories into the area, hyperlocal neighborhood
+spotlights (name real towns and neighborhoods in the provided area), school/commute,
+deal-of-week, before/after renovations, client testimonials. Keep hooks concrete and
+conversational; for Reels make the hook a scroll-stopper that ends implying a
+question. Never invent specific statistics — keep angles qualitative unless a number
+is given. Respect Fair Housing (no steering language).`;
 
 /**
  * Fill a schedule with concrete angles via ONE Claude call. Falls back to the

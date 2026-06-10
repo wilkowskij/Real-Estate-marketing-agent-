@@ -10,6 +10,7 @@ const Body = z.object({
   cadence: z.string().optional(),
   enabled: z.boolean().optional(),
   auto_publish: z.boolean().optional(),
+  auto_approve: z.boolean().optional(),
   config: z.record(z.unknown()).optional(),
 });
 
@@ -21,7 +22,7 @@ export async function GET() {
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("recurring_jobs")
-    .select("id, kind, cadence, config, auto_publish, enabled, last_run_at")
+    .select("id, kind, cadence, config, auto_publish, auto_approve, enabled, last_run_at")
     .eq("org_id", ctx.orgId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -56,6 +57,7 @@ export async function PUT(req: NextRequest) {
     if (b.cadence !== undefined) update.cadence = b.cadence;
     if (b.enabled !== undefined) update.enabled = b.enabled;
     if (b.auto_publish !== undefined) update.auto_publish = b.auto_publish;
+    if (b.auto_approve !== undefined) update.auto_approve = b.auto_approve;
     if (b.config !== undefined) update.config = b.config;
 
     const { error } = await supabase
@@ -70,6 +72,7 @@ export async function PUT(req: NextRequest) {
       cadence: b.cadence ?? "weekly",
       enabled: b.enabled ?? true,
       auto_publish: b.auto_publish ?? false,
+      auto_approve: b.auto_approve ?? false,
       config: b.config ?? {},
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

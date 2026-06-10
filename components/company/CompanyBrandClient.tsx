@@ -15,23 +15,40 @@ import type { ResolvedBrand } from "@/lib/branding/resolveBrand";
  * Personal agent details (headshot/name/license) live in the user Profile, not
  * here. Fields are disabled for non-admins and for org-locked fields.
  */
+const BRAND_VOICE_FIELDS: { key: string; label: string; placeholder: string }[] = [
+  { key: "style", label: "Tone / style", placeholder: "e.g. Conversational and direct, never corporate" },
+  { key: "target_buyer", label: "Target buyer profile", placeholder: "e.g. Move-up buyers, first-time buyers, investors" },
+  { key: "specialty", label: "Market specialty", placeholder: "e.g. Luxury waterfront, new construction, distressed" },
+  { key: "differentiator", label: "What makes you different", placeholder: "e.g. 20 years in the market, former contractor, bilingual" },
+  { key: "sample_post", label: "Sample post you love", placeholder: "Paste a caption you've written that felt authentic" },
+];
+
 export function CompanyBrandClient({
   brand,
   canEditBrand,
   lockedFields,
   logoLightUrl,
   logoDarkUrl,
+  orgArea,
+  orgState,
+  brandVoice: initialBrandVoice,
 }: {
   brand: ResolvedBrand;
   canEditBrand: boolean;
   lockedFields: string[];
   logoLightUrl: string | null;
   logoDarkUrl: string | null;
+  orgArea?: string;
+  orgState?: string;
+  brandVoice?: Record<string, string>;
 }) {
   const router = useRouter();
   const [name, setName] = useState(brand.name ?? "");
   const [colors, setColors] = useState(brand.colors);
   const [disclaimer, setDisclaimer] = useState(brand.disclaimer ?? "");
+  const [area, setArea] = useState(orgArea ?? "");
+  const [state, setState] = useState(orgState ?? "");
+  const [brandVoice, setBrandVoice] = useState<Record<string, string>>(initialBrandVoice ?? {});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +64,14 @@ export function CompanyBrandClient({
       const res = await fetch("/api/brand", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, colors, disclaimer: disclaimer || null }),
+        body: JSON.stringify({
+          name,
+          colors,
+          disclaimer: disclaimer || null,
+          area: area || undefined,
+          state: state || undefined,
+          brandVoice,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Save failed");
@@ -133,6 +157,62 @@ export function CompanyBrandClient({
           </CardBody>
         </Card>
       </div>
+
+      {/* Market Settings */}
+      <Card>
+        <CardBody className="space-y-4">
+          <div>
+            <h3 className="text-lg text-navy">Market area</h3>
+            <p className="mt-0.5 text-xs text-ink-muted">
+              All AI-generated content — social posts, emails, SMS, and the content calendar — uses this as the local market context.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Label>Area / county / city</Label>
+              <Input
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                placeholder="e.g. Monmouth County, Austin, Miami Beach"
+                disabled={brandDisabled}
+              />
+            </div>
+            <div>
+              <Label>State</Label>
+              <Input
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder="e.g. NJ, TX, FL"
+                disabled={brandDisabled}
+                maxLength={50}
+              />
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Brand Voice */}
+      <Card>
+        <CardBody className="space-y-4">
+          <div>
+            <h3 className="text-lg text-navy">Brand voice</h3>
+            <p className="mt-0.5 text-xs text-ink-muted">
+              These 5 inputs are injected into every AI generation so content sounds like you, not a generic real estate robot.
+            </p>
+          </div>
+          {BRAND_VOICE_FIELDS.map(({ key, label, placeholder }) => (
+            <div key={key}>
+              <Label>{label}</Label>
+              <Input
+                value={brandVoice[key] ?? ""}
+                onChange={(e) => setBrandVoice((v) => ({ ...v, [key]: e.target.value }))}
+                placeholder={placeholder}
+                disabled={brandDisabled}
+              />
+            </div>
+          ))}
+        </CardBody>
+      </Card>
 
       {canEditBrand && (
         <div className="mt-6 flex items-center justify-end gap-3">

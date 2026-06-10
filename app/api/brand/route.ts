@@ -15,6 +15,10 @@ const Body = z.object({
   disclaimer: z.string().nullable().optional(),
   layoutTheme: z.string().optional(),
   lockedFields: z.array(z.enum(LOCKABLE_FIELDS)).optional(),
+  // org-level market settings
+  area: z.string().min(1).max(100).optional(),
+  state: z.string().min(1).max(50).optional(),
+  brandVoice: z.record(z.string(), z.string()).optional(),
   // profile (personal) fields
   fullName: z.string().nullable().optional(),
   licenseNumber: z.string().nullable().optional(),
@@ -51,25 +55,44 @@ export async function PUT(req: NextRequest) {
     b.layoutTheme !== undefined ||
     b.lockedFields !== undefined;
 
-  if (wantsBrandChange) {
+  const wantsOrgSettingsChange =
+    b.area !== undefined || b.state !== undefined || b.brandVoice !== undefined;
+
+  if (wantsBrandChange || wantsOrgSettingsChange) {
     if (ctx.role !== "owner" && ctx.role !== "admin") {
       return NextResponse.json(
         { error: "Only org admins can edit the company brand kit." },
         { status: 403 }
       );
     }
-    const kitUpdate: Record<string, unknown> = {};
-    if (b.name !== undefined) kitUpdate.name = b.name;
-    if (b.colors !== undefined) kitUpdate.colors = b.colors;
-    if (b.disclaimer !== undefined) kitUpdate.disclaimer = b.disclaimer;
-    if (b.layoutTheme !== undefined) kitUpdate.layout_theme = b.layoutTheme;
-    if (b.lockedFields !== undefined) kitUpdate.locked_fields = b.lockedFields;
 
-    const { error } = await supabase
-      .from("brand_kits")
-      .update(kitUpdate)
-      .eq("id", ctx.orgKit.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (wantsBrandChange) {
+      const kitUpdate: Record<string, unknown> = {};
+      if (b.name !== undefined) kitUpdate.name = b.name;
+      if (b.colors !== undefined) kitUpdate.colors = b.colors;
+      if (b.disclaimer !== undefined) kitUpdate.disclaimer = b.disclaimer;
+      if (b.layoutTheme !== undefined) kitUpdate.layout_theme = b.layoutTheme;
+      if (b.lockedFields !== undefined) kitUpdate.locked_fields = b.lockedFields;
+
+      const { error } = await supabase
+        .from("brand_kits")
+        .update(kitUpdate)
+        .eq("id", ctx.orgKit.id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (wantsOrgSettingsChange) {
+      const orgUpdate: Record<string, unknown> = {};
+      if (b.area !== undefined) orgUpdate.area = b.area;
+      if (b.state !== undefined) orgUpdate.state = b.state;
+      if (b.brandVoice !== undefined) orgUpdate.brand_voice = b.brandVoice;
+
+      const { error } = await supabase
+        .from("orgs")
+        .update(orgUpdate)
+        .eq("id", ctx.orgId);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   // Profile is the user's own — always allowed.

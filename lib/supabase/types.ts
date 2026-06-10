@@ -217,6 +217,8 @@ export interface RecurringJob {
   cadence: string;
   config: Record<string, unknown>;
   auto_publish: boolean;
+  /** When true, posts that pass the Fair Housing gate are scheduled without manual approval. */
+  auto_approve: boolean;
   enabled: boolean;
   last_run_at: string | null;
 }

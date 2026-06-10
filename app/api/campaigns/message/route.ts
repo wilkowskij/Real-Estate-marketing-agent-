@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getOrgContext } from "@/lib/org";
 import { runMessagingAgent } from "@/lib/agents/messaging";
 import { detectSlopInText } from "@/lib/agents/stopSlop";
+import { injectUtmIntoCopy } from "@/lib/utm";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 import { aiCampaignsRemaining, recordUsage } from "@/lib/billing/subscription";
 
@@ -73,6 +74,8 @@ export async function POST(req: NextRequest) {
       instructions: input.instructions,
       agentName: ctx.profile?.full_name ?? undefined,
       recipientName: input.recipientName,
+      area: ctx.orgArea,
+      brandVoice: ctx.brandVoice,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? "Generation failed" }, { status: 502 });
@@ -92,17 +95,20 @@ export async function POST(req: NextRequest) {
     cost_usd: estimateCostUsd(MODEL, result.usage.input, result.usage.output),
   });
 
+  // Inject UTM params into any links in the copy (email body/CTA, SMS message).
+  const trackedCopy = injectUtmIntoCopy(result.copy as any, { source: result.channel, medium: "direct" });
+
   // Stop Slop — SMS is too short to demand local terms, so only require local
   // specificity on email.
   const scanText =
     result.channel === "email"
-      ? `${result.copy.subject} ${result.copy.body} ${result.copy.cta}`
-      : result.copy.message;
-  const slop = detectSlopInText(scanText, { requireLocal: result.channel === "email" });
+      ? `${(trackedCopy as any).subject ?? ""} ${(trackedCopy as any).body ?? ""} ${(trackedCopy as any).cta ?? ""}`
+      : (trackedCopy as any).message ?? "";
+  const slop = detectSlopInText(scanText, { requireLocal: result.channel === "email", area: ctx.orgArea });
 
   return NextResponse.json({
     channel: result.channel,
-    copy: result.copy,
+    copy: trackedCopy,
     slopIssues: slop.clean ? [] : slop.issues,
   });
 }

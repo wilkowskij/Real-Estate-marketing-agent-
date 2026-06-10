@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const { posts, usage } = await planContentCalendar({
     count: parsed.data.count ?? 20,
     start: parsed.data.start ? new Date(parsed.data.start) : undefined,
-    area: parsed.data.area,
+    area: parsed.data.area ?? ctx.orgArea,
     mix: parsed.data.mix,
   });
 

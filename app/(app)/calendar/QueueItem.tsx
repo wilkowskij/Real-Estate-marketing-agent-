@@ -49,6 +49,8 @@ export function QueueItem({ post }: { post: QueuePost }) {
   const [scheduledAt, setScheduledAt] = useState(post.scheduled_at ?? "");
   const [campaignId, setCampaignId] = useState("");
   const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([]);
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenSuccess, setRegenSuccess] = useState(false);
 
   async function openDrawer() {
     setOpen(true);
@@ -77,12 +79,35 @@ export function QueueItem({ post }: { post: QueuePost }) {
 
   async function attachCampaign(next: string) {
     setCampaignId(next);
-    await fetch(`/api/posts/${post.id}`, {
+    const res = await fetch(`/api/posts/${post.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ marketingCampaignId: next || null }),
     });
-    router.refresh();
+    if (!res.ok) {
+      setCampaignId(campaignId); // revert on failure
+      setError("Failed to attach campaign. Please try again.");
+    } else {
+      router.refresh();
+    }
+  }
+
+  async function regenerateCaption() {
+    setRegenerating(true);
+    setError(null);
+    setRegenSuccess(false);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/regenerate-caption`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Regeneration failed");
+      setCaption(json.caption);
+      setRegenSuccess(true);
+      setTimeout(() => setRegenSuccess(false), 3000);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setRegenerating(false);
+    }
   }
 
   async function saveCaption() {
@@ -193,16 +218,16 @@ export function QueueItem({ post }: { post: QueuePost }) {
         )}
       </div>
 
-      {/* Preview drawer */}
+      {/* Preview drawer — z-20/z-30 so mobile nav (z-40/z-50) always renders on top */}
       {open && (
-        <div className="fixed inset-0 z-40 flex justify-end">
+        <div className="fixed inset-0 z-20 flex justify-end">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-navy/30 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
           {/* Panel */}
-          <div className="relative z-50 flex h-full w-full max-w-lg flex-col overflow-y-auto bg-white shadow-xl">
+          <div className="relative z-30 flex h-full w-full max-w-lg flex-col overflow-y-auto bg-white shadow-xl">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-paper-line px-6 py-4">
               <div className="flex items-center gap-2">
@@ -246,7 +271,20 @@ export function QueueItem({ post }: { post: QueuePost }) {
 
               {/* Caption editor */}
               <div>
-                <label className="eyebrow mb-1 block">Caption</label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="eyebrow">Caption</label>
+                  <button
+                    type="button"
+                    onClick={regenerateCaption}
+                    disabled={regenerating}
+                    className="text-xs text-gold hover:underline disabled:opacity-50"
+                  >
+                    {regenerating ? "Regenerating…" : "↻ Regenerate caption"}
+                  </button>
+                </div>
+                {regenSuccess && (
+                  <p className="mb-1 text-xs text-green-600">Caption regenerated — review and save.</p>
+                )}
                 <textarea
                   rows={8}
                   value={caption}

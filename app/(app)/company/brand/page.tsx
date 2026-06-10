@@ -23,6 +23,11 @@ export default async function CompanyBrandPage() {
     signedUrl(supabase, ctx.brand.logoDarkPath),
   ]);
 
+  // Parse orgArea back into area + state components for the form.
+  const parts = ctx.orgArea.split(", ");
+  const orgState = parts.length > 1 ? parts[parts.length - 1] : "NJ";
+  const orgAreaName = parts.slice(0, -1).join(", ") || parts[0];
+
   return (
     <CompanyBrandClient
       brand={ctx.brand}
@@ -30,6 +35,9 @@ export default async function CompanyBrandPage() {
       lockedFields={ctx.orgKit.locked_fields ?? []}
       logoLightUrl={logoLightUrl}
       logoDarkUrl={logoDarkUrl}
+      orgArea={orgAreaName}
+      orgState={orgState}
+      brandVoice={ctx.brandVoice}
     />
   );
 }

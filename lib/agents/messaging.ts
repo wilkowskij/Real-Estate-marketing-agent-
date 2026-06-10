@@ -3,10 +3,10 @@ import type { CampaignType, EmailCopy, SmsCopy, Listing } from "@/lib/supabase/t
 import { LOCAL_EXPERTISE } from "@/lib/agents/marketing";
 
 /**
- * Messaging Agent — email + SMS nurture copy for the same NJ / Monmouth County
- * specialist. Shares the cached LOCAL_EXPERTISE system block with the social
- * Marketing Agent (so the prompt cache is warm and calls stay cheap), but emits
- * channel-appropriate shapes instead of a social post.
+ * Messaging Agent — email + SMS nurture copy. Shares the cached LOCAL_EXPERTISE
+ * system block with the social Marketing Agent (so the prompt cache is warm and
+ * calls stay cheap), but emits channel-appropriate shapes instead of a social
+ * post. Area + brand voice are injected per-request in the user content.
  *
  * Email and SMS are direct-to-contact: they go to a database/sphere, an
  * open-house sign-in list, or a single lead. The compliance bar is the same
@@ -31,7 +31,7 @@ const EMAIL_GUIDANCE: Partial<Record<CampaignType, string>> = {
   just_sold: "A 'just sold in your neighborhood' note to the sphere — social proof that invites seller conversations. Do not state the sale price unless provided.",
   new_listing: "A new-listing announcement email to the database — lead with the lifestyle + 2-3 standout factual features; drive to a private showing.",
   open_house: "An open-house invitation email — date/time/address up top, why it's worth the stop, easy RSVP.",
-  market_stat: "A market-update email — one concrete Monmouth County stat (only if provided), what it means for them, and an offer to talk through their situation.",
+  market_stat: "A market-update email — one concrete local market stat (only if provided), what it means for them, and an offer to talk through their situation.",
   neighborhood_spotlight: "A neighborhood-spotlight email — sell the town's lifestyle (real businesses, the commute, the shore), build the agent as the local expert.",
   educational: "An educational email — one genuinely useful buyer/seller tip or process explainer. Value-first, no hard sell.",
   custom: "A general nurture email per the provided instructions.",
@@ -52,6 +52,10 @@ export interface MessagingInput {
   listing?: Partial<Listing>;
   instructions?: string;
   agentName?: string;
+  /** Market area the agent serves (e.g. "Austin, TX"). */
+  area?: string;
+  /** Brand voice config from org settings. */
+  brandVoice?: Record<string, string>;
   /** Optional first name to personalize the greeting. */
   recipientName?: string;
 }
@@ -81,7 +85,16 @@ export async function runMessagingAgent(
   "compliance_notes": string[]  // Fair-Housing notes/flags; [] if clean
 }`;
 
+  const voiceLines = input.brandVoice
+    ? Object.entries(input.brandVoice)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `  ${k}: ${v}`)
+        .join("\n")
+    : null;
+
   const userContent = [
+    input.area ? `Market area: ${input.area}` : "",
+    voiceLines ? `Brand voice guidelines:\n${voiceLines}` : "",
     `Channel: ${input.channel.toUpperCase()}`,
     `Content type: ${input.type}`,
     guidance,

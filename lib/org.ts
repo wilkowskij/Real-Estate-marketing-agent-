@@ -14,6 +14,10 @@ export interface OrgContext {
   profile: Profile | null;
   brand: ResolvedBrand;
   subscription: OrgSubscription;
+  /** Market area (e.g. "Monmouth County, NJ") — configurable per org. */
+  orgArea: string;
+  /** Brand voice guidance stored as key-value pairs. */
+  brandVoice: Record<string, string>;
 }
 
 /**
@@ -39,9 +43,10 @@ export async function getOrgContext(): Promise<OrgContext | null> {
     .single();
   if (!membership) return null;
 
-  const [{ data: kits }, { data: profile }, subscription] = await Promise.all([
+  const [{ data: kits }, { data: profile }, { data: org }, subscription] = await Promise.all([
     supabase.from("brand_kits").select("*").eq("org_id", membership.org_id),
     supabase.from("profiles").select("*").eq("user_id", user.id).single(),
+    supabase.from("orgs").select("area, state, brand_voice").eq("id", membership.org_id).single(),
     getOrgSubscription(supabase, membership.org_id),
   ]);
 
@@ -53,6 +58,11 @@ export async function getOrgContext(): Promise<OrgContext | null> {
 
   const brand = resolveBrand({ orgKit, memberKit, profile: profile as Profile | null });
 
+  const area = (org as any)?.area ?? "Monmouth County";
+  const state = (org as any)?.state ?? "NJ";
+  const orgArea = `${area}, ${state}`;
+  const brandVoice = ((org as any)?.brand_voice ?? {}) as Record<string, string>;
+
   return {
     userId: user.id,
     orgId: membership.org_id,
@@ -63,5 +73,7 @@ export async function getOrgContext(): Promise<OrgContext | null> {
     profile: (profile as Profile) ?? null,
     brand,
     subscription,
+    orgArea,
+    brandVoice,
   };
 }

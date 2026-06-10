@@ -10,6 +10,7 @@ import { PLATFORM_SIZES, DEFAULT_SIZE } from "@/lib/design/platforms";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 import { aiCampaignsRemaining, recordUsage } from "@/lib/billing/subscription";
 import { detectSlop } from "@/lib/agents/stopSlop";
+import { injectUtmIntoCopy } from "@/lib/utm";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -142,6 +143,8 @@ export async function POST(req: NextRequest) {
         listing: input.listing,
         instructions: input.instructions,
         agentName: ctx.brand.agent.fullName ?? undefined,
+        area: ctx.orgArea,
+        brandVoice: ctx.brandVoice,
       }),
       photoRefs.length > 0
         ? runDesignAgent({ photos: photoRefs, campaignType: input.type })
@@ -165,7 +168,7 @@ export async function POST(req: NextRequest) {
       const { prompt } = await buildImagePrompt({
         type: input.type,
         headline: marketing.copy.headline,
-        area: input.listing?.town ? `${input.listing.town}, NJ` : "Monmouth County, NJ",
+        area: input.listing?.town ? `${input.listing.town}, ${ctx.orgArea.split(", ").pop() ?? ""}` : ctx.orgArea,
         colors: ctx.brand.colors,
         instructions: input.instructions,
       });
@@ -298,12 +301,20 @@ export async function POST(req: NextRequest) {
   await recordUsage(supabase, ctx.orgId, "ai_generation", 1, { type: input.type });
   if (generatedImage) await recordUsage(supabase, ctx.orgId, "image_generation", 1);
 
+  // Inject UTM parameters into any URLs in the copy so attribution tracking
+  // starts from the first post. campaign?.id may be null on a DB error, but
+  // the other params are always available.
+  const trackedCopy = injectUtmIntoCopy(marketing.copy, {
+    source: "social",
+    campaignId: campaign?.id,
+  });
+
   const previewUrl = await signedUrl(supabase, renderPath);
-  const slop = detectSlop(marketing.copy);
+  const slop = detectSlop(trackedCopy, ctx.orgArea);
   return NextResponse.json({
     campaignId: campaign?.id,
     listingId,
-    copy: marketing.copy,
+    copy: trackedCopy,
     design,
     previewUrl,
     enhanced,

@@ -4,25 +4,29 @@ import type { CampaignType, CopyPackage, Listing, PostFormat } from "@/lib/supab
 const FORMATS: PostFormat[] = ["reel", "carousel", "infographic", "single_image"];
 
 /**
- * Marketing Agent — the NJ / Monmouth County specialist.
+ * Marketing Agent — local real estate marketing specialist.
  * Owns WHAT to say. Returns a structured copy package per campaign type.
  *
  * Local expertise lives in a cached system block so repeat calls are cheap.
+ * Area-specific context (market name, brand voice) is injected per-request
+ * in the user content so the system prompt stays cacheable across all markets.
  */
-export const LOCAL_EXPERTISE = `You are a senior real estate marketing copywriter who specializes in
-New Jersey, and specifically Monmouth County. You know the local market intimately:
+export const LOCAL_EXPERTISE = `You are a senior real estate marketing copywriter with deep expertise
+in local markets. You produce high-converting, brand-safe content grounded in the
+agent's specific market area. The market area and any brand voice guidance will be
+provided with each request — always treat that information as authoritative.
 
-- Towns & character: Red Bank (walkable downtown, dining, arts), Asbury Park
-  (beach, music, nightlife), Middletown (top schools, commuter-friendly to NYC),
-  Freehold (historic + retail), Rumson & Fair Haven (affluent, riverfront),
-  Long Branch & Pier Village (oceanfront condos), Holmdel, Colts Neck (horse
-  country, large lots), Manasquan/Spring Lake/Belmar (shore towns).
-- Buyer drivers here: NYC commute (NJ Transit North Jersey Coast Line, ferry from
-  Belford/Atlantic Highlands), school districts, shore/beach access, taxes,
-  new construction vs. historic charm.
-- Seasonality: spring market surge, summer shore demand, fall NYC-relocation buyers.
+LOCAL EXPERTISE — when the market area is provided:
+- Reference specific towns, neighborhoods, landmarks, and commute routes by name.
+- Use local buyer drivers: school districts, commute access, proximity to
+  lifestyle amenities (beach, parks, dining, transit), price-per-sqft vs.
+  nearby metros, new construction vs. historic charm.
+- Reflect local seasonality: spring surge, summer demand peaks, fall
+  relocation-buyer season, winter motivated sellers.
+- Generate hashtags using the area name, state abbreviation, and specific
+  town/neighborhood names relevant to the post.
 
-WHAT PERFORMS (from current NJ/Monmouth social-media market research — use this):
+WHAT PERFORMS (research-backed social-media data — use this):
 - FORMAT RANKING: short video / Reels (15-60s) win by far (far more shares and
   listing inquiries than static); then carousels (6-13 slides, best for
   educational saves/shares); then single data infographics (one bold stat,
@@ -31,7 +35,7 @@ WHAT PERFORMS (from current NJ/Monmouth social-media market research — use thi
 - VIRAL TOPIC TIERS:
   - Tier 1 (highest reach, emotional + urgent): bidding-war / over-asking
     stories; interest-rate impact explainers ("how a 0.5% move changes the
-    monthly payment"); the NYC/Hoboken -> Shore-town migration story.
+    monthly payment"); migration/relocation stories into the market.
   - Tier 2 (local + educational): neighborhood spotlights (hyperlocal beats
     generic); school-district breakdowns; "deal of the week"; before/after
     renovations.
@@ -44,11 +48,8 @@ WHAT PERFORMS (from current NJ/Monmouth social-media market research — use thi
   post just match the requested type): ~25-30% educational, ~20-25% community,
   ~15-20% social proof, ~15-20% personal brand, only 10-15% actual listings.
   ~80%+ of posts give value with NO hard sell.
-- AVOID (declining/■): generic blue-and-white templates, cluttered text-heavy
-  designs, phone-quality snapshots as main content, hard-sell copy
-  ("BUY NOW", "CALL ME").
-- HASHTAGS that matter locally: #NJRealEstate #MonmouthCounty #NJHomes
-  #ShoreRealEstate #AsburyPark #RedBank #HolmdelNJ #NJLuxuryHomes.
+- AVOID: generic blue-and-white templates, cluttered text-heavy designs,
+  phone-quality snapshots as main content, hard-sell copy ("BUY NOW", "CALL ME").
 
 COMPLIANCE — this is mandatory, never violate it:
 - Follow Fair Housing. NEVER reference or imply preferences about race, color,
@@ -85,12 +86,12 @@ const CAMPAIGN_GUIDANCE: Record<CampaignType, { brief: string; format: PostForma
   },
   market_stat: {
     brief:
-      "A MARKET STAT post (educational, Tier 1). Take ONE surprising, specific Monmouth County market fact (over-asking %, price-per-sqft trend, days-on-market, rate impact, NYC->Shore migration) and make it instantly legible. Slightly frustrated, real tone; end on a question that invites comments. Only use numbers actually provided — never invent stats.",
+      "A MARKET STAT post (educational, Tier 1). Take ONE surprising, specific local market fact (over-asking %, price-per-sqft trend, days-on-market, rate impact, migration patterns) and make it instantly legible. Slightly frustrated, real tone; end on a question that invites comments. Only use numbers actually provided — never invent stats.",
     format: "reel",
   },
   neighborhood_spotlight: {
     brief:
-      "A NEIGHBORHOOD SPOTLIGHT (community). Hyperlocal beats generic: a specific Monmouth town's lifestyle (Asbury Park beachfront, Red Bank downtown, the commute, local businesses). Sell the area, not a listing.",
+      "A NEIGHBORHOOD SPOTLIGHT (community). Hyperlocal beats generic: reference a specific town or neighborhood's lifestyle, local businesses, commute, and character by name. Sell the area, not a listing.",
     format: "carousel",
   },
   deal_of_week: {
@@ -124,6 +125,10 @@ export interface MarketingInput {
   listing?: Partial<Listing>;
   instructions?: string;
   agentName?: string;
+  /** Market area the agent serves (e.g. "Austin, TX" or "Monmouth County, NJ"). */
+  area?: string;
+  /** Brand voice config from org settings — injected to personalize tone. */
+  brandVoice?: Record<string, string>;
   /** When true, allow the web_search tool for current market data. */
   allowWebSearch?: boolean;
 }
@@ -135,7 +140,16 @@ export async function runMarketingAgent(
 
   const guidance = CAMPAIGN_GUIDANCE[input.type];
 
+  const voiceLines = input.brandVoice
+    ? Object.entries(input.brandVoice)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `  ${k}: ${v}`)
+        .join("\n")
+    : null;
+
   const userContent = [
+    input.area ? `Market area: ${input.area}` : "",
+    voiceLines ? `Brand voice guidelines:\n${voiceLines}` : "",
     `Campaign type: ${input.type}`,
     guidance.brief,
     `Recommended format for this type: ${guidance.format} (override only if the inputs clearly call for a different format).`,
