@@ -11,6 +11,9 @@ import { PhotoEditor, type EditResult } from "./PhotoEditor";
 import { MlsImport, type ImportedListing } from "@/components/generate/MlsImport";
 import { SavedListings, type SavedListing } from "@/components/generate/SavedListings";
 import { ReelBuilder } from "@/components/generate/ReelBuilder";
+import type { ContentTemplate, ContentTemplateCampaignType } from "@/lib/templates";
+import { useRecentListings } from "@/lib/useRecentListings";
+import { TemplatePicker } from "./TemplatePicker";
 
 type CampaignType = ContentTemplateCampaignType;
 

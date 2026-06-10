@@ -172,7 +172,7 @@ export function AppShell({
     router.refresh();
   }
 
-  const marketLabel = area ?? "Your Market";
+  const marketLabel = areaLabel ?? "Your Market";
 
   return (
     <div className="flex min-h-screen bg-paper">

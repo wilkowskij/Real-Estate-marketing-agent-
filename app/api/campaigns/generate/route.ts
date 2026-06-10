@@ -11,6 +11,7 @@ import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 import { aiCampaignsRemaining, recordUsage } from "@/lib/billing/subscription";
 import { detectSlop } from "@/lib/agents/stopSlop";
 import { areaLabel, localTermsFor } from "@/lib/branding/marketArea";
+import { injectUtmIntoCopy } from "@/lib/utm";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;

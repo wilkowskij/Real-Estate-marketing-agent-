@@ -5,6 +5,7 @@ import { getOrgContext } from "@/lib/org";
 import { runMessagingAgent } from "@/lib/agents/messaging";
 import { detectSlopInText } from "@/lib/agents/stopSlop";
 import { areaLabel, localTermsFor } from "@/lib/branding/marketArea";
+import { injectUtmIntoCopy } from "@/lib/utm";
 import { MODEL, estimateCostUsd } from "@/lib/anthropic/client";
 import { aiCampaignsRemaining, recordUsage } from "@/lib/billing/subscription";
 
