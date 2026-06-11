@@ -9,9 +9,10 @@ export const dynamic = "force-dynamic";
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { verify?: string };
+  searchParams: { verify?: string; invite?: string };
 }) {
   const verifyFailed = searchParams?.verify === "failed";
+  const invite = searchParams?.invite;
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-navy px-6">
       {/* Warm radial glow so the page feels luxe, not stark. */}
@@ -44,7 +45,7 @@ export default function LoginPage({
                 new confirmation email.
               </div>
             )}
-            <AuthForm mode="login" />
+            <AuthForm mode="login" inviteToken={invite} />
             <p className="text-center text-sm text-ink-muted">
               New here?{" "}
               <Link href="/signup" className="text-gold-deep underline">

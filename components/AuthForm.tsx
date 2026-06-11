@@ -6,7 +6,14 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Label, Input } from "@/components/ui/Field";
 
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+export function AuthForm({
+  mode,
+  inviteToken,
+}: {
+  mode: "login" | "signup";
+  /** When present, redirect to the invite page after auth so the join completes. */
+  inviteToken?: string;
+}) {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
   const [email, setEmail] = useState("");
@@ -15,6 +22,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Where to land after successful auth.
+  const postAuthPath = inviteToken ? `/invite/${inviteToken}` : "/dashboard";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,9 +37,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           password,
           options: {
             data: { full_name: fullName },
-            // After confirming, Supabase returns the user to our verify route,
-            // which sets the session and lands them in the dashboard.
-            emailRedirectTo: `${window.location.origin}/auth/confirm?next=/dashboard`,
+            emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(postAuthPath)}`,
           },
         });
         if (error) throw error;
@@ -37,7 +45,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push("/dashboard");
+        router.push(postAuthPath);
         router.refresh();
       }
     } catch (e: any) {

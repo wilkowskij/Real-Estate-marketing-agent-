@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -43,9 +43,121 @@ export function TeamClient({
 }) {
   return (
     <>
+      {isAdmin && <InviteLinkCard />}
       <MembersCard members={members} currentUserId={currentUserId} isAdmin={isAdmin} />
       <LocksCard isAdmin={isAdmin} lockedFields={lockedFields} />
     </>
+  );
+}
+
+/** Generate / display / copy the white-labeled invite link for this org. */
+function InviteLinkCard() {
+  const [url, setUrl] = useState<string | null | undefined>(undefined); // undefined = not loaded
+  const [role, setRole] = useState<"member" | "admin">("member");
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load existing link on mount.
+  useEffect(() => {
+    fetch("/api/team/invite-link")
+      .then((r) => (r.ok ? r.json() : { url: null }))
+      .then((j) => {
+        setUrl(j.url ?? null);
+        if (j.role) setRole(j.role);
+      })
+      .catch(() => setUrl(null));
+  }, []);
+
+  async function generate() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/team/invite-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed");
+      setUrl(json.url);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copy() {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  return (
+    <Card>
+      <CardBody>
+        <h3 className="text-lg text-navy">Invite link</h3>
+        <p className="mt-1 text-sm text-ink-muted">
+          Send this link to any agent. They'll see your brokerage branding and join
+          with one click — no manual email lookup needed.
+        </p>
+
+        {url === undefined ? (
+          <p className="mt-4 text-sm text-ink-muted">Loading…</p>
+        ) : url ? (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center gap-2 rounded-xl border border-paper-line bg-paper px-3 py-2.5">
+              <span className="flex-1 truncate font-mono text-xs text-ink-soft">{url}</span>
+              <button
+                type="button"
+                onClick={copy}
+                className="shrink-0 rounded-lg border border-paper-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-white"
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Select
+                className="h-9 w-36"
+                value={role}
+                onChange={(e) => setRole(e.target.value as "member" | "admin")}
+              >
+                <option value="member">Member role</option>
+                <option value="admin">Admin role</option>
+              </Select>
+              <Button variant="secondary" size="sm" onClick={generate} disabled={busy}>
+                {busy ? "Rotating…" : "Rotate link"}
+              </Button>
+              <span className="text-xs text-ink-muted">
+                Rotating invalidates the old link immediately.
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Select
+              className="h-9 w-36"
+              value={role}
+              onChange={(e) => setRole(e.target.value as "member" | "admin")}
+            >
+              <option value="member">Member role</option>
+              <option value="admin">Admin role</option>
+            </Select>
+            <Button variant="gold" onClick={generate} disabled={busy}>
+              {busy ? "Generating…" : "Generate invite link"}
+            </Button>
+          </div>
+        )}
+
+        {error && <p className="mt-2 text-sm text-error">{error}</p>}
+      </CardBody>
+    </Card>
   );
 }
 

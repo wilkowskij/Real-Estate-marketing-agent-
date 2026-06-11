@@ -6,7 +6,12 @@ import { Card, CardBody } from "@/components/ui/Card";
 // instead of being instantiated during the static build (where they're absent).
 export const dynamic = "force-dynamic";
 
-export default function SignupPage() {
+export default function SignupPage({
+  searchParams,
+}: {
+  searchParams: { invite?: string };
+}) {
+  const invite = searchParams.invite;
   return (
     <main className="flex min-h-screen items-center justify-center bg-navy px-6">
       <div className="w-full max-w-md">
@@ -18,11 +23,12 @@ export default function SignupPage() {
             <div>
               <h1 className="text-2xl text-navy">Start your studio</h1>
               <p className="mt-1 text-sm text-ink-muted">
-                A solo workspace is created for you automatically — invite a team
-                anytime.
+                {invite
+                  ? "Create an account to join your team."
+                  : "A solo workspace is created for you automatically — invite a team anytime."}
               </p>
             </div>
-            <AuthForm mode="signup" />
+            <AuthForm mode="signup" inviteToken={invite} />
             <p className="text-center text-sm text-ink-muted">
               Already have an account?{" "}
               <Link href="/login" className="text-gold-deep underline">
