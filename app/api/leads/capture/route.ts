@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getResendClient, FROM_EMAIL } from "@/lib/email/client";
 import { buildOpenHousePacketEmail } from "@/lib/email/templates/openHousePacket";
-import { signedUrl } from "@/lib/storage";
+import { signedUrl, MEDIA_BUCKET } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
   const supabase = createSupabaseAdminClient();
   const { data: form } = await supabase
     .from("lead_forms")
-    .select("id, org_id, listing_id, marketing_campaign_id, kind, active, created_by")
+    .select(
+      "id, org_id, listing_id, marketing_campaign_id, kind, active, created_by, packet_mode, packet_pdf_path, packet_details"
+    )
     .eq("slug", b.slug)
     .maybeSingle();
   if (!form || !form.active) {
@@ -60,13 +62,16 @@ export async function POST(req: NextRequest) {
   });
   if (error) return NextResponse.json({ error: "Could not submit. Please try again." }, { status: 500 });
 
-  // Send open house packet email — fire and forget (don't block the response).
+  // Send open house packet email — fire and forget.
   if (form.kind === "open_house" && b.email) {
     sendOpenHousePacket({
       supabase,
       orgId: form.org_id,
       listingId: form.listing_id,
       agentUserId: form.created_by,
+      packetMode: (form.packet_mode ?? "mls") as "mls" | "manual" | "pdf",
+      packetPdfPath: form.packet_pdf_path ?? null,
+      packetDetails: (form.packet_details ?? {}) as Record<string, unknown>,
       recipientName: b.name ?? "there",
       recipientEmail: b.email,
     }).catch(() => {/* silently swallow — email is best-effort */});
@@ -76,7 +81,7 @@ export async function POST(req: NextRequest) {
 }
 
 // ---------------------------------------------------------------------------
-// Email helper — separated so errors never surface to the lead submitter.
+// Email helper
 // ---------------------------------------------------------------------------
 
 async function sendOpenHousePacket({
@@ -84,6 +89,9 @@ async function sendOpenHousePacket({
   orgId,
   listingId,
   agentUserId,
+  packetMode,
+  packetPdfPath,
+  packetDetails,
   recipientName,
   recipientEmail,
 }: {
@@ -91,21 +99,16 @@ async function sendOpenHousePacket({
   orgId: string;
   listingId: string | null;
   agentUserId: string;
+  packetMode: "mls" | "manual" | "pdf";
+  packetPdfPath: string | null;
+  packetDetails: Record<string, unknown>;
   recipientName: string;
   recipientEmail: string;
 }) {
   const resend = getResendClient();
-  if (!resend) return; // unconfigured — skip silently
+  if (!resend) return;
 
-  // Fetch listing, agent profile, and org brand in parallel.
-  const [listingRes, profileRes, brandRes] = await Promise.all([
-    listingId
-      ? supabase
-          .from("listings")
-          .select("address, town, state, price, beds, baths, sqft, description")
-          .eq("id", listingId)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+  const [profileRes, brandRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("full_name, license_number, contact_block")
@@ -119,11 +122,73 @@ async function sendOpenHousePacket({
       .maybeSingle(),
   ]);
 
-  const listing = listingRes.data;
   const profile = profileRes.data;
   const brand = brandRes.data;
+  const contact = (profile?.contact_block ?? {}) as Record<string, string>;
+  const accentColor = (brand?.colors as Record<string, string> | null)?.accent ?? "#C9A96E";
 
-  // Resolve a listing photo (first photo asset, 7-day signed URL).
+  let logoUrl: string | null = null;
+  if (brand?.logo_light_path) {
+    logoUrl = await signedUrl(supabase, brand.logo_light_path, 7 * 24 * 3600);
+  }
+
+  const agentInfo = {
+    fullName: profile?.full_name ?? "Your Agent",
+    email: contact.email ?? null,
+    phone: contact.phone ?? null,
+    licenseNumber: profile?.license_number ?? null,
+  };
+  const orgInfo = { name: brand?.name ?? "Marquee", logoUrl, accentColor };
+
+  // ── PDF mode: attach the pre-made PDF ─────────────────────────────────
+  if (packetMode === "pdf" && packetPdfPath) {
+    const { data: pdfData, error: dlError } = await supabase.storage
+      .from(MEDIA_BUCKET)
+      .download(packetPdfPath);
+    if (dlError || !pdfData) return;
+
+    const pdfBuffer = Buffer.from(await pdfData.arrayBuffer());
+    const subject = `Your open house packet`;
+
+    const html = buildSimplePdfEmail({ recipientName, agent: agentInfo, org: orgInfo, accentColor });
+
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: recipientEmail,
+      subject,
+      html,
+      attachments: [{ filename: "open-house-packet.pdf", content: pdfBuffer }],
+    });
+    return;
+  }
+
+  // ── Manual mode: use agent-entered details ─────────────────────────────
+  if (packetMode === "manual") {
+    const det = packetDetails as {
+      address?: string; town?: string; state?: string; price?: number;
+      beds?: number; baths?: number; sqft?: number; description?: string;
+    };
+    const { subject, html } = buildOpenHousePacketEmail({
+      recipientName,
+      listing: {
+        address: det.address ?? "Property",
+        town: det.town ?? null,
+        state: det.state ?? "NJ",
+        price: det.price ?? null,
+        beds: det.beds ?? null,
+        baths: det.baths ?? null,
+        sqft: det.sqft ?? null,
+        description: det.description ?? null,
+        photoUrl: null,
+      },
+      agent: agentInfo,
+      org: orgInfo,
+    });
+    await resend.emails.send({ from: FROM_EMAIL, to: recipientEmail, subject, html });
+    return;
+  }
+
+  // ── MLS mode (default): pull listing from DB ───────────────────────────
   let photoUrl: string | null = null;
   if (listingId) {
     const { data: asset } = await supabase
@@ -139,48 +204,70 @@ async function sendOpenHousePacket({
     }
   }
 
-  // Resolve org logo signed URL.
-  let logoUrl: string | null = null;
-  if (brand?.logo_light_path) {
-    logoUrl = await signedUrl(supabase, brand.logo_light_path, 7 * 24 * 3600);
-  }
-
-  const contact = (profile?.contact_block ?? {}) as Record<string, string>;
-  const accentColor =
-    (brand?.colors as Record<string, string> | null)?.accent ?? "#C9A96E";
+  const listingRow = listingId
+    ? (
+        await supabase
+          .from("listings")
+          .select("address, town, state, price, beds, baths, sqft, description")
+          .eq("id", listingId)
+          .maybeSingle()
+      ).data
+    : null;
 
   const { subject, html } = buildOpenHousePacketEmail({
     recipientName,
-    listing: listing
-      ? {
-          address: listing.address,
-          town: listing.town,
-          state: listing.state,
-          price: listing.price,
-          beds: listing.beds,
-          baths: listing.baths,
-          sqft: listing.sqft,
-          description: listing.description,
-          photoUrl,
-        }
+    listing: listingRow
+      ? { ...listingRow, photoUrl }
       : { address: "Property", state: "NJ" },
-    agent: {
-      fullName: profile?.full_name ?? "Your Agent",
-      email: contact.email ?? null,
-      phone: contact.phone ?? null,
-      licenseNumber: profile?.license_number ?? null,
-    },
-    org: {
-      name: brand?.name ?? "Marquee",
-      logoUrl,
-      accentColor,
-    },
+    agent: agentInfo,
+    org: orgInfo,
   });
+  await resend.emails.send({ from: FROM_EMAIL, to: recipientEmail, subject, html });
+}
 
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: recipientEmail,
-    subject,
-    html,
-  });
+// Simple HTML email body used with PDF attachments.
+function buildSimplePdfEmail({
+  recipientName,
+  agent,
+  org,
+  accentColor,
+}: {
+  recipientName: string;
+  agent: { fullName: string; email?: string | null; phone?: string | null };
+  org: { name: string; logoUrl?: string | null };
+  accentColor: string;
+}): string {
+  const logoBlock = org.logoUrl
+    ? `<img src="${org.logoUrl}" alt="${org.name}" height="36" style="display:block;height:36px;margin-bottom:8px" />`
+    : `<span style="font-size:22px;font-weight:700;color:#1a2a3a">${org.name}</span>`;
+
+  const agentLine = [agent.phone, agent.email].filter(Boolean).join(" · ");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>Open House Packet</title></head>
+<body style="margin:0;padding:0;background:#f5f1ec;font-family:Georgia,serif">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f5f1ec;padding:32px 16px">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="600"
+             style="max-width:600px;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08)">
+        <tr><td style="background:${accentColor};height:4px;font-size:0">&nbsp;</td></tr>
+        <tr><td style="padding:32px 40px">
+          ${logoBlock}
+          <p style="margin:20px 0 8px;font-size:16px;color:#333">Hi ${recipientName},</p>
+          <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.7">
+            Thank you for visiting today! Your open house packet is attached to this email.
+            Feel free to reach out with any questions.
+          </p>
+          <p style="margin:0;font-size:15px;font-weight:700;color:#1a2a3a">${agent.fullName}</p>
+          ${agentLine ? `<p style="margin:4px 0 0;font-size:14px;color:#555">${agentLine}</p>` : ""}
+        </td></tr>
+        <tr><td style="background:#1a2a3a;padding:16px 40px;border-radius:0 0 8px 8px">
+          <p style="margin:0;font-size:11px;color:#aaa">© Equal Housing Opportunity. Powered by Marquee.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }

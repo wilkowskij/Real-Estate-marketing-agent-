@@ -12,6 +12,23 @@ const CreateBody = z.object({
   subhead: z.string().max(400).optional(),
   listingId: z.string().uuid().optional(),
   marketingCampaignId: z.string().uuid().optional(),
+  /** Only relevant for open_house forms. Defaults to 'mls'. */
+  packetMode: z.enum(["mls", "manual", "pdf"]).default("mls"),
+  /** Storage path for an uploaded PDF (packet_mode = 'pdf'). */
+  packetPdfPath: z.string().max(500).optional(),
+  /** Agent-entered details (packet_mode = 'manual'). */
+  packetDetails: z
+    .object({
+      address: z.string().max(200).optional(),
+      town: z.string().max(120).optional(),
+      state: z.string().max(40).optional(),
+      price: z.number().nonnegative().nullable().optional(),
+      beds: z.number().int().nonnegative().nullable().optional(),
+      baths: z.number().nonnegative().nullable().optional(),
+      sqft: z.number().int().nonnegative().nullable().optional(),
+      description: z.string().max(2000).optional(),
+    })
+    .optional(),
 });
 
 /** Turn a title into a URL-safe slug + short random suffix for uniqueness. */
@@ -61,6 +78,9 @@ export async function POST(req: NextRequest) {
       subhead: b.subhead ?? null,
       listing_id: b.listingId ?? null,
       marketing_campaign_id: b.marketingCampaignId ?? null,
+      packet_mode: b.packetMode,
+      packet_pdf_path: b.packetPdfPath ?? null,
+      packet_details: b.packetDetails ?? {},
     })
     .select("id, slug")
     .single();
