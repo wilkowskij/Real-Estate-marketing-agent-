@@ -29,6 +29,17 @@ export default function SignupPage() {
                 Sign in
               </Link>
             </p>
+            <p className="text-center text-xs text-ink-muted/70">
+              By signing up you agree to our{" "}
+              <Link href="/terms" className="underline hover:text-ink-muted">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="underline hover:text-ink-muted">
+                Privacy Policy
+              </Link>
+              .
+            </p>
           </CardBody>
         </Card>
       </div>

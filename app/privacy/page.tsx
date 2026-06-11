@@ -282,11 +282,16 @@ export default function PrivacyPage() {
 
       {/* Footer */}
       <footer className="border-t border-paper-line px-6 py-8">
-        <div className="mx-auto flex max-w-3xl items-center justify-between text-xs text-ink-muted">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 text-xs text-ink-muted">
           <span>© {new Date().getFullYear()} Marquee. All rights reserved.</span>
-          <Link href="/login" className="hover:text-ink">
-            Sign in
-          </Link>
+          <div className="flex gap-4">
+            <Link href="/terms" className="hover:text-ink hover:underline">
+              Terms of Service
+            </Link>
+            <Link href="/login" className="hover:text-ink hover:underline">
+              Sign in
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

@@ -90,6 +90,18 @@ export function SupportWidget() {
         >
           View your requests
         </Link>
+        <Link
+          href="/terms"
+          className="text-sm text-ink-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
+        >
+          Terms
+        </Link>
+        <Link
+          href="/privacy"
+          className="text-sm text-ink-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
+        >
+          Privacy
+        </Link>
         <span className="ml-auto text-xs text-ink-muted/80">Powered by Claude Opus 4.8 + OpenAI</span>
       </footer>
 

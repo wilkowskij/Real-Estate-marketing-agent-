@@ -51,6 +51,15 @@ export default function LoginPage({
                 Create an account
               </Link>
             </p>
+            <p className="text-center text-xs text-ink-muted/70">
+              <Link href="/terms" className="underline hover:text-ink-muted">
+                Terms of Service
+              </Link>
+              {" · "}
+              <Link href="/privacy" className="underline hover:text-ink-muted">
+                Privacy Policy
+              </Link>
+            </p>
           </CardBody>
         </Card>
       </div>
