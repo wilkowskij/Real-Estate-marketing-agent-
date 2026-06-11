@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { getResendClient, FROM_EMAIL } from "@/lib/email/client";
+import { buildOpenHousePacketEmail } from "@/lib/email/templates/openHousePacket";
+import { signedUrl } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
   const supabase = createSupabaseAdminClient();
   const { data: form } = await supabase
     .from("lead_forms")
-    .select("id, org_id, listing_id, marketing_campaign_id, kind, active")
+    .select("id, org_id, listing_id, marketing_campaign_id, kind, active, created_by")
     .eq("slug", b.slug)
     .maybeSingle();
   if (!form || !form.active) {
@@ -56,5 +59,128 @@ export async function POST(req: NextRequest) {
     source: form.kind === "open_house" ? "open_house" : "landing",
   });
   if (error) return NextResponse.json({ error: "Could not submit. Please try again." }, { status: 500 });
+
+  // Send open house packet email — fire and forget (don't block the response).
+  if (form.kind === "open_house" && b.email) {
+    sendOpenHousePacket({
+      supabase,
+      orgId: form.org_id,
+      listingId: form.listing_id,
+      agentUserId: form.created_by,
+      recipientName: b.name ?? "there",
+      recipientEmail: b.email,
+    }).catch(() => {/* silently swallow — email is best-effort */});
+  }
+
   return NextResponse.json({ ok: true });
+}
+
+// ---------------------------------------------------------------------------
+// Email helper — separated so errors never surface to the lead submitter.
+// ---------------------------------------------------------------------------
+
+async function sendOpenHousePacket({
+  supabase,
+  orgId,
+  listingId,
+  agentUserId,
+  recipientName,
+  recipientEmail,
+}: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  orgId: string;
+  listingId: string | null;
+  agentUserId: string;
+  recipientName: string;
+  recipientEmail: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return; // unconfigured — skip silently
+
+  // Fetch listing, agent profile, and org brand in parallel.
+  const [listingRes, profileRes, brandRes] = await Promise.all([
+    listingId
+      ? supabase
+          .from("listings")
+          .select("address, town, state, price, beds, baths, sqft, description")
+          .eq("id", listingId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("profiles")
+      .select("full_name, license_number, contact_block")
+      .eq("user_id", agentUserId)
+      .maybeSingle(),
+    supabase
+      .from("brand_kits")
+      .select("name, logo_light_path, colors")
+      .eq("org_id", orgId)
+      .eq("is_default", true)
+      .maybeSingle(),
+  ]);
+
+  const listing = listingRes.data;
+  const profile = profileRes.data;
+  const brand = brandRes.data;
+
+  // Resolve a listing photo (first photo asset, 7-day signed URL).
+  let photoUrl: string | null = null;
+  if (listingId) {
+    const { data: asset } = await supabase
+      .from("assets")
+      .select("storage_path")
+      .eq("listing_id", listingId)
+      .eq("kind", "photo")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (asset?.storage_path) {
+      photoUrl = await signedUrl(supabase, asset.storage_path, 7 * 24 * 3600);
+    }
+  }
+
+  // Resolve org logo signed URL.
+  let logoUrl: string | null = null;
+  if (brand?.logo_light_path) {
+    logoUrl = await signedUrl(supabase, brand.logo_light_path, 7 * 24 * 3600);
+  }
+
+  const contact = (profile?.contact_block ?? {}) as Record<string, string>;
+  const accentColor =
+    (brand?.colors as Record<string, string> | null)?.accent ?? "#C9A96E";
+
+  const { subject, html } = buildOpenHousePacketEmail({
+    recipientName,
+    listing: listing
+      ? {
+          address: listing.address,
+          town: listing.town,
+          state: listing.state,
+          price: listing.price,
+          beds: listing.beds,
+          baths: listing.baths,
+          sqft: listing.sqft,
+          description: listing.description,
+          photoUrl,
+        }
+      : { address: "Property", state: "NJ" },
+    agent: {
+      fullName: profile?.full_name ?? "Your Agent",
+      email: contact.email ?? null,
+      phone: contact.phone ?? null,
+      licenseNumber: profile?.license_number ?? null,
+    },
+    org: {
+      name: brand?.name ?? "Marquee",
+      logoUrl,
+      accentColor,
+    },
+  });
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: recipientEmail,
+    subject,
+    html,
+  });
 }
