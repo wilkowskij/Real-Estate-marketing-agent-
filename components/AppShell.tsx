@@ -7,6 +7,14 @@ import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SupportWidget } from "@/components/support/SupportWidget";
 import { useModalDismiss } from "@/lib/useModalDismiss";
+import type { PlanId } from "@/lib/billing/plans";
+
+export interface ShellSubscription {
+  plan: PlanId;
+  trialing: boolean;
+  trialEndsAt: string | null;
+  active: boolean;
+}
 
 const NAV = [
   { href: "/dashboard", label: "Studio", icon: "◆" },
@@ -135,10 +143,14 @@ export function AppShell({
   children,
   brand,
   areaLabel,
+  subscription,
+  creditsRemaining,
 }: {
   children: React.ReactNode;
   brand?: ShellBrand;
   areaLabel?: string;
+  subscription?: ShellSubscription;
+  creditsRemaining?: number | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -209,7 +221,8 @@ export function AppShell({
         <div className="mt-8 px-3">
           <NavLinks pathname={pathname} collapsible={!pinned} />
         </div>
-        <div className={cn("mt-auto px-3", reveal(pinned))}>
+        <div className={cn("mt-auto px-3 space-y-2", reveal(pinned))}>
+          <SubscriptionWidget subscription={subscription} creditsRemaining={creditsRemaining} />
           <div className="rounded-xl bg-white/5 p-3 text-xs text-paper/60">
             <p className="whitespace-nowrap font-semibold text-paper/80">{areaLabel ?? "Monmouth County, NJ"}</p>
             <p className="mt-1.5 whitespace-nowrap text-paper/40">Powered by Claude Opus 4.8 + OpenAI</p>
@@ -285,6 +298,84 @@ export function AppShell({
           <SupportWidget />
         </main>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Sidebar widget showing trial countdown or monthly credit usage. Only renders
+ * when the sidebar is expanded (parent applies the reveal() fade-in class).
+ */
+function SubscriptionWidget({
+  subscription,
+  creditsRemaining,
+}: {
+  subscription?: ShellSubscription;
+  creditsRemaining?: number | null;
+}) {
+  if (!subscription) return null;
+
+  // During trial: show days remaining + progress bar.
+  if (subscription.trialing && subscription.trialEndsAt) {
+    const msLeft = new Date(subscription.trialEndsAt).getTime() - Date.now();
+    const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+    const pct = Math.round((daysLeft / 14) * 100);
+    const urgent = daysLeft <= 3;
+    return (
+      <div className={`rounded-xl p-3 text-xs ${urgent ? "bg-error/15" : "bg-white/5"}`}>
+        <div className="flex items-center justify-between">
+          <span className={`font-semibold whitespace-nowrap ${urgent ? "text-error-soft" : "text-paper/80"}`}>
+            {daysLeft === 0 ? "Trial ended" : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left in trial`}
+          </span>
+          <Link
+            href="/company/subscription"
+            className="ml-2 whitespace-nowrap rounded-full bg-gold px-2.5 py-0.5 text-[11px] font-semibold text-navy hover:bg-gold-soft"
+          >
+            Upgrade
+          </Link>
+        </div>
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+          <div
+            className={`h-full rounded-full transition-all ${urgent ? "bg-error-soft" : "bg-gold"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Paid or free plan: show credits used this month.
+  if (creditsRemaining == null) return null; // unlimited — nothing to show
+  const { plan } = subscription;
+  // Mirror the effective limit shown in the UI (free = 5, solo = 40, etc.)
+  const LIMITS: Record<string, number> = { free: 5, solo: 40, team: 400, brokerage: 1200 };
+  const limit = LIMITS[plan] ?? 40;
+  const used = limit - creditsRemaining;
+  const pct = Math.round((used / limit) * 100);
+  const low = creditsRemaining <= 3;
+
+  return (
+    <div className={`rounded-xl p-3 text-xs ${low ? "bg-error/15" : "bg-white/5"}`}>
+      <div className="flex items-center justify-between">
+        <span className={`whitespace-nowrap font-semibold ${low ? "text-error-soft" : "text-paper/80"}`}>
+          {creditsRemaining} credit{creditsRemaining !== 1 ? "s" : ""} left
+        </span>
+        {(low || plan === "free") && (
+          <Link
+            href="/company/subscription"
+            className="ml-2 whitespace-nowrap rounded-full bg-gold px-2.5 py-0.5 text-[11px] font-semibold text-navy hover:bg-gold-soft"
+          >
+            Upgrade
+          </Link>
+        )}
+      </div>
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full transition-all ${low ? "bg-error-soft" : "bg-gold/70"}`}
+          style={{ width: `${Math.min(pct, 100)}%` }}
+        />
+      </div>
+      <p className="mt-1 whitespace-nowrap text-paper/40">{used} of {limit} used this month</p>
     </div>
   );
 }

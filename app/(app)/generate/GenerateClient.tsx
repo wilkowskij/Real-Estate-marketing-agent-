@@ -14,6 +14,7 @@ import { ReelBuilder } from "@/components/generate/ReelBuilder";
 import type { ContentTemplate, ContentTemplateCampaignType } from "@/lib/templates";
 import { useRecentListings } from "@/lib/useRecentListings";
 import { TemplatePicker } from "./TemplatePicker";
+import { UpgradeModal } from "@/components/billing/UpgradeModal";
 
 type CampaignType = ContentTemplateCampaignType;
 
@@ -150,6 +151,7 @@ export function GenerateClient() {
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [library, setLibrary] = useState<UploadedPhoto[] | null>(null);
   const { recents, save: saveRecentListing } = useRecentListings();
@@ -404,6 +406,10 @@ export function GenerateClient() {
           photoAssetIds: photos.map((p) => p.assetId),
         }),
       });
+      if (res.status === 402) {
+        setShowUpgrade(true);
+        return;
+      }
       let json: any;
       try {
         json = await res.json();
@@ -448,6 +454,10 @@ export function GenerateClient() {
           },
         }),
       });
+      if (res.status === 402) {
+        setShowUpgrade(true);
+        return;
+      }
       const json = await res.json();
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Generation failed");
       setMessageResult(json);
@@ -473,6 +483,7 @@ export function GenerateClient() {
 
   return (
     <>
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
       {editing && (
         <PhotoEditor
           src={editing.previewUrl}

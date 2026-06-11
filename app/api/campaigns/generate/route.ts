@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   const supabase = createSupabaseServerClient();
 
   // Plan gating: enforce the monthly AI-generation allowance for capped plans.
-  const remaining = await aiCampaignsRemaining(supabase, ctx.orgId, ctx.subscription.plan);
+  const remaining = await aiCampaignsRemaining(supabase, ctx.orgId, ctx.subscription);
   if (remaining !== null && remaining <= 0) {
     return NextResponse.json(
       { error: "You've used your monthly AI campaign allowance. Upgrade your plan for more." },
