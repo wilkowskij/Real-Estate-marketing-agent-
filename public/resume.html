@@ -1,0 +1,647 @@
+<title>Jeffrey Wilkowski — Senior AI Product Manager</title>
+<style>
+:root {
+  --navy:#0B1833; --blue:#1558F0; --sky:#38BDF8; --mint:#06D6A0; --amber:#F59E0B;
+  --bg:#EEF3FF; --surface:#FFFFFF; --surface2:#F4F7FF;
+  --text:#0B1833; --sub:#4A5C8A; --border:#C5D4F0;
+  --tag-bg:#DDE8FF; --tag-txt:#1558F0;
+  --chip-bg:#EEF3FF; --chip-txt:#2B3D6B;
+  --before-bg:#FEF9EC; --before-bd:#F0C03A; --before-txt:#7A5209;
+  --after-bg:rgba(6,214,160,.08); --after-bd:rgba(6,214,160,.3);
+  --fit-bg:rgba(21,88,240,.04);
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#050D20; --surface:#0B1833; --surface2:#071228;
+  --text:#E0EAFF; --sub:#7B9ACC; --border:#1A3060;
+  --tag-bg:#102050; --tag-txt:#60AAFF;
+  --chip-bg:#0B1833; --chip-txt:#AAC0EE;
+  --before-bg:#1A120A; --before-bd:#7A5B1A; --before-txt:#DEAD6A;
+  --after-bg:rgba(6,214,160,.06); --after-bd:rgba(6,214,160,.2);
+  --fit-bg:rgba(56,189,248,.05);
+}}
+:root[data-theme="dark"]{
+  --bg:#050D20; --surface:#0B1833; --surface2:#071228;
+  --text:#E0EAFF; --sub:#7B9ACC; --border:#1A3060;
+  --tag-bg:#102050; --tag-txt:#60AAFF;
+  --chip-bg:#0B1833; --chip-txt:#AAC0EE;
+  --before-bg:#1A120A; --before-bd:#7A5B1A; --before-txt:#DEAD6A;
+  --after-bg:rgba(6,214,160,.06); --after-bd:rgba(6,214,160,.2);
+  --fit-bg:rgba(56,189,248,.05);
+}
+:root[data-theme="light"]{
+  --bg:#EEF3FF; --surface:#FFFFFF; --surface2:#F4F7FF;
+  --text:#0B1833; --sub:#4A5C8A; --border:#C5D4F0;
+  --tag-bg:#DDE8FF; --tag-txt:#1558F0;
+  --chip-bg:#EEF3FF; --chip-txt:#2B3D6B;
+  --before-bg:#FEF9EC; --before-bd:#F0C03A; --before-txt:#7A5209;
+  --after-bg:rgba(6,214,160,.08); --after-bd:rgba(6,214,160,.3);
+  --fit-bg:rgba(21,88,240,.04);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  font-size:15px;line-height:1.65;background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── PROGRESS BAR ── */
+#prog{
+  position:fixed;top:0;left:0;height:3px;width:0;z-index:1000;
+  background:linear-gradient(90deg,var(--blue),var(--sky),var(--mint));
+  transition:width .1s linear;
+}
+
+/* ── PAGE ── */
+.page{max-width:920px;margin:0 auto;background:var(--surface)}
+
+.strip{
+  height:6px;
+  background:linear-gradient(90deg,var(--blue) 0%,var(--sky) 55%,var(--mint) 100%);
+  position:sticky;top:3px;z-index:100;
+}
+
+/* ── HERO ── */
+.hero{
+  padding:4rem 3.5rem 2.75rem;border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(circle,var(--border) 1.3px,transparent 1.3px);
+  background-size:24px 24px;opacity:.5;pointer-events:none;
+}
+.hero::after{
+  content:'';position:absolute;top:-50%;right:-20%;width:60%;height:200%;
+  background:linear-gradient(135deg,transparent 30%,rgba(56,189,248,.05) 50%,transparent 70%);
+  pointer-events:none;
+}
+.hero-inner{position:relative;z-index:1}
+
+.eyebrow{
+  font-size:.7rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:1rem;display:flex;align-items:center;gap:.6rem;
+}
+.eyebrow::before{
+  content:'';display:inline-block;width:28px;height:2px;
+  background:linear-gradient(90deg,var(--blue),var(--sky));flex-shrink:0;
+}
+
+h1.name{
+  font-size:3.5rem;font-weight:900;letter-spacing:-.045em;line-height:.95;
+  color:var(--text);margin-bottom:.9rem;
+}
+h1.name .acc{color:var(--blue)}
+
+.tagline{
+  font-family:Georgia,'Times New Roman',serif;font-size:1.1rem;line-height:1.75;
+  color:var(--sub);max-width:58ch;margin-bottom:1.75rem;
+}
+.tagline em{font-style:italic;color:var(--text)}
+
+.contact{
+  display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem;
+  font-size:.84rem;color:var(--sub);
+}
+.contact .sep{opacity:.35}
+.open-pill{
+  font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--mint);background:rgba(6,214,160,.12);border:1px solid rgba(6,214,160,.3);
+  padding:.2rem .7rem;border-radius:100px;
+}
+
+.hstats{
+  display:flex;flex-wrap:wrap;gap:2rem;margin-top:2.25rem;
+  padding-top:2rem;border-top:1px solid var(--border);
+}
+.hs-val{
+  font-size:1.9rem;font-weight:800;letter-spacing:-.04em;color:var(--blue);
+  line-height:1;font-variant-numeric:tabular-nums;display:block;
+}
+.hs-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);margin-top:.2rem;display:block}
+
+/* ── SHARED SECTION ── */
+.sec{padding:3rem 3.5rem;border-bottom:1px solid var(--border)}
+.sec:last-of-type{border-bottom:none}
+
+.sec-lbl{
+  font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem;
+}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── STORY ── */
+.story{
+  font-family:Georgia,'Times New Roman',serif;font-size:1.03rem;line-height:1.85;
+  color:var(--text);max-width:66ch;display:flex;flex-direction:column;gap:1.2rem;
+}
+.story strong{color:var(--blue);font-weight:bold}
+.story .pull{
+  border-left:3px solid var(--blue);padding-left:1.25rem;
+  font-style:italic;color:var(--text);
+}
+
+/* ── TIMELINE ── */
+.tl{display:flex;flex-direction:column}
+.tl-item{
+  display:grid;grid-template-columns:24px 1fr;gap:0 1.25rem;
+  position:relative;padding-bottom:1.5rem;
+}
+.tl-item:not(:last-child)::before{
+  content:'';position:absolute;left:11px;top:22px;bottom:0;
+  width:2px;background:var(--border);
+}
+.tl-dot{
+  width:14px;height:14px;border-radius:50%;background:var(--blue);
+  margin:4px 5px;position:relative;z-index:1;flex-shrink:0;
+  box-shadow:0 0 0 3px rgba(21,88,240,.15);
+  transition:box-shadow .2s;
+}
+.tl-dot.sky{background:var(--sky);box-shadow:0 0 0 3px rgba(56,189,248,.2)}
+.tl-dot.mint{background:var(--mint);box-shadow:0 0 0 3px rgba(6,214,160,.2)}
+.tl-item:hover .tl-dot{box-shadow:0 0 0 6px rgba(21,88,240,.2)}
+
+.tl-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:4px;
+  padding:1rem 1.25rem;cursor:default;
+  transition:border-color .2s,transform .2s;
+}
+.tl-item:hover .tl-card{border-color:var(--blue);transform:translateX(2px)}
+.tl-period{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:.2rem}
+.tl-title{font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:.15rem}
+.tl-desc{font-size:.84rem;line-height:1.55;color:var(--sub)}
+
+/* ── CDK ACHIEVEMENT ── */
+.ach-hd{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem;margin-bottom:1.4rem}
+.ach-title{font-size:1.1rem;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+.ach-org{font-size:.82rem;color:var(--sub);margin-top:.2rem}
+
+.transform{
+  display:grid;grid-template-columns:1fr 60px 1fr;
+  border:1px solid var(--border);border-radius:6px;overflow:hidden;
+  margin-bottom:1.4rem;
+}
+.t-before{background:var(--before-bg);border-right:1px solid var(--before-bd);padding:1.5rem 1.75rem;text-align:center}
+.t-arr{display:flex;align-items:center;justify-content:center;background:var(--surface);font-size:1.3rem;color:var(--blue);font-weight:900;border-right:1px solid var(--border)}
+.t-after{background:var(--after-bg);padding:1.5rem 1.75rem;text-align:center}
+.t-lbl{font-size:.62rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.45rem}
+.t-before .t-lbl{color:var(--before-txt)}
+.t-after .t-lbl{color:var(--mint)}
+.t-val{font-size:2.5rem;font-weight:900;letter-spacing:-.05em;line-height:1;font-variant-numeric:tabular-nums}
+.t-before .t-val{color:var(--before-txt);opacity:.8}
+.t-after .t-val{color:var(--mint)}
+.t-sub{font-size:.75rem;margin-top:.35rem}
+.t-before .t-sub{color:var(--before-txt);opacity:.65}
+.t-after .t-sub{color:var(--mint);opacity:.8}
+
+.ach-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.4rem}
+.am{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.9rem 1rem;text-align:center}
+.am-val{font-size:1.5rem;font-weight:800;color:var(--blue);letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+.am-lbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.09em;color:var(--sub);margin-top:.3rem}
+
+.blist{list-style:none;display:flex;flex-direction:column;gap:.58rem}
+.blist li{font-size:.9rem;line-height:1.55;color:var(--text);padding-left:1.3rem;position:relative}
+.blist li::before{content:'→';position:absolute;left:0;color:var(--blue);font-weight:900}
+.blist li strong{font-weight:700}
+
+/* ── MARQUEE PROJECT ── */
+.proj{
+  border:1px solid var(--border);border-left:4px solid var(--blue);
+  border-radius:0 4px 4px 0;padding:1.75rem 2rem;background:var(--surface2);
+}
+.proj-hd{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem;margin-bottom:.4rem}
+.proj-name{font-size:1.12rem;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+.proj-sub{font-size:.83rem;color:var(--sub);margin-bottom:1rem}
+.live-badge{
+  font-size:.67rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--mint);background:rgba(6,214,160,.12);border:1px solid rgba(6,214,160,.28);
+  padding:.2rem .65rem;border-radius:100px;white-space:nowrap;flex-shrink:0;
+}
+.tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.25rem}
+.tag{
+  font-size:.71rem;font-weight:600;
+  font-family:'SF Mono','Fira Code','Courier New',monospace;
+  color:var(--tag-txt);background:var(--tag-bg);
+  padding:.2rem .6rem;border-radius:3px;border:1px solid var(--border);
+}
+.pmets{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-top:1.3rem}
+.pm{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:.75rem;text-align:center}
+.pm-val{font-size:1.4rem;font-weight:800;color:var(--blue);letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+.pm-val.sky{color:var(--sky)}.pm-val.mint{color:var(--mint)}
+.pm-lbl{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin-top:.25rem}
+
+/* ── FIT BOX ── */
+.fit{
+  background:var(--fit-bg);border:1px solid var(--border);border-radius:4px;
+  padding:1.75rem 2rem;margin-bottom:1.5rem;position:relative;overflow:hidden;
+}
+.fit::before{
+  content:'\275D';position:absolute;right:1.5rem;top:0;
+  font-size:6rem;color:var(--blue);opacity:.06;font-family:Georgia,serif;line-height:1;pointer-events:none;
+}
+.fit-body{
+  font-family:Georgia,'Times New Roman',serif;font-size:1rem;line-height:1.78;
+  color:var(--text);max-width:60ch;margin-bottom:1.5rem;
+}
+.fit-body strong{color:var(--blue)}
+.fit-rows{display:flex;flex-direction:column;gap:.55rem}
+.fit-row{display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;gap:.5rem;font-size:.83rem}
+.fit-l{background:var(--tag-bg);border:1px solid var(--border);border-radius:3px;padding:.4rem .75rem;color:var(--tag-txt);font-weight:600;text-align:right}
+.fit-arr{text-align:center;color:var(--blue);font-weight:900;font-size:.85rem}
+.fit-r{background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:.4rem .75rem;color:var(--text);font-weight:500}
+
+/* ── SKILLS ── */
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.sg-lbl{font-size:.67rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--sub);margin-bottom:.55rem}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem}
+.chip{
+  font-size:.76rem;font-weight:500;color:var(--chip-txt);
+  background:var(--chip-bg);border:1px solid var(--border);
+  padding:.22rem .6rem;border-radius:3px;
+  transition:border-color .15s,color .15s;
+}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+
+/* ── FOOTER ── */
+footer{
+  padding:1.75rem 3.5rem;background:var(--navy);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;
+}
+.ft-name{font-size:1rem;font-weight:700;color:#fff;display:block}
+.ft-contact{font-size:.8rem;color:rgba(255,255,255,.5)}
+.ft-contact a{color:var(--sky)}
+.cta{
+  display:inline-flex;align-items:center;gap:.5rem;
+  background:var(--blue);color:#fff;font-size:.83rem;font-weight:700;
+  letter-spacing:.04em;padding:.7rem 1.4rem;border-radius:4px;
+  transition:background .2s,transform .1s;
+}
+.cta:hover{background:#0D44D6;transform:translateY(-1px);text-decoration:none}
+
+/* ── SCROLL REVEAL ── */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .5s ease,transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  #prog{display:none}
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:680px){
+  .hero,.sec{padding:2rem 1.5rem}
+  h1.name{font-size:2.4rem}
+  .transform{grid-template-columns:1fr}
+  .t-arr{border:none;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:.6rem}
+  .ach-metrics{grid-template-columns:repeat(2,1fr)}
+  .pmets{grid-template-columns:repeat(2,1fr)}
+  .sgrid{grid-template-columns:1fr 1fr}
+  footer{padding:1.5rem}
+  .hstats{gap:1.5rem}
+}
+@media(max-width:440px){
+  h1.name{font-size:2rem}
+  .sgrid{grid-template-columns:1fr}
+  .fit-rows{display:none}
+}
+@media print{
+  #prog,.strip{display:none}
+  body{background:#fff;font-size:13px}
+  :root{--bg:#fff;--surface:#fff;--surface2:#F4F7FF;--text:#0B1833;--sub:#4A5C8A;--border:#C5D4F0}
+  .reveal{opacity:1;transform:none}
+  footer{background:#0B1833}
+}
+</style>
+
+<div id="prog"></div>
+<div class="page">
+<div class="strip"></div>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">Senior Product Manager · AI SaaS · 15+ Years</p>
+    <h1 class="name">Jeffrey<br><span class="acc">Wilkowski</span></h1>
+    <p class="tagline">
+      <em>From fixing diesel engines in a combat zone to shipping AI platforms in&nbsp;4&nbsp;months</em>&nbsp;—
+      I build products that work in the real world, not just on a roadmap slide.
+    </p>
+    <div class="contact">
+      <a href="mailto:wilkowskij@gmail.com">wilkowskij@gmail.com</a>
+      <span class="sep">·</span>
+      <span>New Jersey / New York</span>
+      <span class="sep">·</span>
+      <span>US Army Veteran</span>
+      <span class="sep">·</span>
+      <span class="open-pill">Open to conversations</span>
+    </div>
+    <div class="hstats">
+      <div><span class="hs-val" data-count="15" data-suffix="+">15+</span><span class="hs-lbl">Years in Product</span></div>
+      <div><span class="hs-val" data-count="4" data-suffix=" mos">4 mos</span><span class="hs-lbl">Concept → Launch (CDK)</span></div>
+      <div><span class="hs-val" data-count="15" data-suffix=" people">15 people</span><span class="hs-lbl">Cross-Functional Team Led</span></div>
+      <div><span class="hs-val" data-count="95" data-suffix="%">95%</span><span class="hs-lbl">Processing Time Reduction</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- THE STORY -->
+<section class="sec reveal">
+  <p class="sec-lbl">The Story</p>
+  <div class="story">
+    <p>I spent four years as a <strong>diesel mechanic in the US Army</strong>, including a deployment to Iraq in 2008–2009. In that environment, there's no room for "it should work" — equipment either functions or people are at risk. That standard — <em>does it actually work?</em> — is the lens I carry into every product I build.</p>
+    <p class="pull">"I don't just manage roadmaps. I write the API specs, prototype in Figma, author the data flow diagrams, and — when the moment calls for it — ship the code myself."</p>
+    <p>After transitioning from the military, I moved through operations and field service leadership before landing in product management — where strategy, execution, and customer reality all converge. Over <strong>15+ years</strong> spanning transportation, automotive aftermarket, and enterprise tech, I've learned to sit comfortably at the intersection of product vision and hands-on technical delivery.</p>
+    <p>At <strong>CDK Global</strong>, I led an AI-driven warranty automation platform that cut processing time from one week to one hour and launched a new high-growth revenue stream on AWS — in four months. I wrote the technical specs and API/data flow diagrams engineering built from, built working prototypes to validate before investment, and directed a 15-person cross-functional team from zero to launch.</p>
+    <p>Today, I'm also a <strong>builder</strong>. I shipped Marquee — a live multi-tenant SaaS where four Claude-powered AI agents collaborate to generate personalized, compliant marketing content, with Stripe billing, social OAuth publishing, and 55+ automated tests. Not a side project. Production software.</p>
+  </div>
+</section>
+
+<!-- JOURNEY -->
+<section class="sec reveal">
+  <p class="sec-lbl">The Journey</p>
+  <div class="tl">
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-card">
+        <p class="tl-period">US Army · 4 Years · Iraq Deployment 2008–2009</p>
+        <p class="tl-title">Diesel Mechanic &amp; Combat Veteran</p>
+        <p class="tl-desc">Built an execution-first mindset under extreme conditions. Led maintenance operations with zero tolerance for failure. Foundation: accountability, precision, leading under pressure when stakes are highest.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot sky"></div>
+      <div class="tl-card">
+        <p class="tl-period">Post-Military · Operations &amp; Field Service</p>
+        <p class="tl-title">Operations Leader &amp; Field Service Manager</p>
+        <p class="tl-desc">Managed large-scale field operations and cross-functional teams. Developed the instinct for what works in the field — not just what looks good on a slide. Bridge between frontline reality and executive strategy.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-card">
+        <p class="tl-period">15+ Years · Transportation, Automotive &amp; Enterprise Tech</p>
+        <p class="tl-title">Senior Product Manager — AI/SaaS</p>
+        <p class="tl-desc">Full product lifecycle ownership: strategic roadmapping, rapid prototyping (Figma, low/no-code), technical spec writing, agile execution, stakeholder alignment. Translated customer pain into scalable AI-powered software.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot mint"></div>
+      <div class="tl-card">
+        <p class="tl-period">Now · AI Product Leadership</p>
+        <p class="tl-title">Builder &amp; Product Leader — AI Systems in Production</p>
+        <p class="tl-desc">Shipped Marquee: a live multi-agent AI SaaS, solo. Four Claude-powered agents, Stripe billing, social OAuth, 55+ tests. Still writing the code — not just the PRD.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CDK ACHIEVEMENT -->
+<section class="sec reveal">
+  <p class="sec-lbl">Signature Achievement</p>
+  <div class="ach-hd">
+    <div>
+      <h2 class="ach-title">AI Warranty Automation Platform</h2>
+      <p class="ach-org">CDK Global &nbsp;·&nbsp; AWS Cloud Infrastructure &nbsp;·&nbsp; 4-Month Launch</p>
+    </div>
+  </div>
+
+  <div class="transform">
+    <div class="t-before">
+      <p class="t-lbl">Before</p>
+      <p class="t-val">1 Week</p>
+      <p class="t-sub">Manual · Slow · Error-prone</p>
+    </div>
+    <div class="t-arr">→</div>
+    <div class="t-after">
+      <p class="t-lbl">After</p>
+      <p class="t-val" data-count="1" data-suffix=" Hour">1 Hour</p>
+      <p class="t-sub">AI-Driven · Automated · Scalable</p>
+    </div>
+  </div>
+
+  <div class="ach-metrics">
+    <div class="am"><div class="am-val" data-count="4" data-suffix=" mos">4 mos</div><div class="am-lbl">Concept to Launch</div></div>
+    <div class="am"><div class="am-val" data-count="15" data-suffix=" people">15 people</div><div class="am-lbl">Cross-Functional Team</div></div>
+    <div class="am"><div class="am-val" data-count="95" data-suffix="%">95%</div><div class="am-lbl">Time Reduction</div></div>
+  </div>
+
+  <ul class="blist">
+    <li>Led <strong>end-to-end development</strong> of an AI-driven warranty automation platform on AWS — launching a new high-growth revenue stream for CDK Global</li>
+    <li><strong>Authored the API specs and data flow diagrams</strong> that engineering built directly from — product direction and product architecture, not just strategy from above</li>
+    <li><strong>Built working prototypes in Figma</strong> using low/no-code tools to validate concepts and align stakeholders before any engineering dollars were committed</li>
+    <li><strong>Directed a 15-person cross-functional team</strong> spanning engineering, UX, marketing, and operations from concept to production in four months</li>
+    <li>Translated complex automotive aftermarket warranty workflows into a scalable AI system that <strong>operates at a fraction of the cost</strong> of the manual process</li>
+  </ul>
+</section>
+
+<!-- MARQUEE PROJECT -->
+<section class="sec reveal">
+  <p class="sec-lbl">Technical Proof — "I Build, Not Just Manage"</p>
+  <div class="proj">
+    <div class="proj-hd">
+      <div>
+        <h2 class="proj-name">Marquee — AI Real Estate Marketing Platform</h2>
+        <p class="proj-sub">Built independently · Multi-tenant SaaS · Next.js 14 · Claude API · Supabase · Stripe · Vercel</p>
+      </div>
+      <span class="live-badge">&#9679;&nbsp;Live in Production</span>
+    </div>
+    <div class="tags">
+      <span class="tag">Claude API</span><span class="tag">Multi-Agent</span><span class="tag">Prompt Caching</span>
+      <span class="tag">Next.js 14</span><span class="tag">TypeScript</span><span class="tag">Supabase / Postgres</span>
+      <span class="tag">Row Level Security</span><span class="tag">Stripe</span><span class="tag">Meta / LinkedIn / X OAuth</span><span class="tag">Vitest</span>
+    </div>
+    <ul class="blist">
+      <li><strong>Designed a four-agent AI pipeline</strong> (Marketing, Messaging, Design, Orchestrator) using the Claude API with prompt caching — the same multi-agent architecture powering Revenue Digital Assistants</li>
+      <li><strong>Built multi-tenant SaaS architecture</strong> from scratch — Postgres + Row Level Security, brand inheritance, locked fields, team management, and brand-guide import from PDF/Markdown</li>
+      <li><strong>Shipped Stripe seat-based billing end-to-end</strong> — four pricing tiers, checkout, customer portal, webhook verification, and per-seat usage metering, all live in production</li>
+      <li><strong>Integrated social OAuth publishing</strong> (Instagram, Facebook, LinkedIn, X) with encrypted token storage, automated refresh, and a scheduled publish queue</li>
+      <li><strong>55+ automated tests</strong> covering brand resolution, billing math, compliance gates, calendar scheduling, and copy parsing — TypeScript strict, CI-verified on every push</li>
+    </ul>
+    <div class="pmets">
+      <div class="pm"><div class="pm-val" data-count="4">4</div><div class="pm-lbl">AI Agents</div></div>
+      <div class="pm"><div class="pm-val sky" data-count="10">10</div><div class="pm-lbl">Campaign Types</div></div>
+      <div class="pm"><div class="pm-val mint" data-count="55" data-suffix="+">55+</div><div class="pm-lbl">Tests</div></div>
+      <div class="pm"><div class="pm-val" data-count="4">4</div><div class="pm-lbl">Billing Tiers</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY CONVERSICA -->
+<section class="sec reveal">
+  <p class="sec-lbl">Why Conversica</p>
+  <div class="fit">
+    <p class="fit-body">
+      Conversica builds <strong>AI Assistants that hold real, contextual conversations</strong> to qualify leads, follow up relentlessly, and drive revenue at scale. I've spent my career building exactly that product category — just from a different angle. At CDK, I automated the high-stakes conversations between automotive dealers and warranty processors. At Marquee, I built agents that generate the personalized outreach that starts the sales conversation. <strong>The mission maps directly.</strong> What I bring to Conversica is rare: a product leader who writes the spec <em>and</em> ships the code — with 15 years of taking AI products from zero to revenue.
+    </p>
+    <div class="fit-rows">
+      <div class="fit-row">
+        <div class="fit-l">Multi-agent orchestration (Marquee)</div>
+        <div class="fit-arr">→</div>
+        <div class="fit-r">Revenue Digital Assistant architecture</div>
+      </div>
+      <div class="fit-row">
+        <div class="fit-l">Email + SMS AI copy agents</div>
+        <div class="fit-arr">→</div>
+        <div class="fit-r">Conversica's AI-driven nurture sequences</div>
+      </div>
+      <div class="fit-row">
+        <div class="fit-l">CDK: 1 week → 1 hour</div>
+        <div class="fit-arr">→</div>
+        <div class="fit-r">AI-scaled revenue operations</div>
+      </div>
+      <div class="fit-row">
+        <div class="fit-l">15-person cross-functional leadership</div>
+        <div class="fit-arr">→</div>
+        <div class="fit-r">Leading product teams at a scaling AI company</div>
+      </div>
+      <div class="fit-row">
+        <div class="fit-l">API spec + data flow authoring</div>
+        <div class="fit-arr">→</div>
+        <div class="fit-r">Technical PM who bridges eng and strategy</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section class="sec reveal">
+  <p class="sec-lbl">Core Strengths</p>
+  <div class="sgrid">
+    <div>
+      <p class="sg-lbl">AI &amp; Product</p>
+      <div class="chips">
+        <span class="chip">AI/ML Product Integration</span>
+        <span class="chip">Multi-Agent Systems</span>
+        <span class="chip">LLM Applications</span>
+        <span class="chip">Claude API</span>
+        <span class="chip">Conversational AI</span>
+      </div>
+    </div>
+    <div>
+      <p class="sg-lbl">Strategy &amp; Leadership</p>
+      <div class="chips">
+        <span class="chip">SaaS Platform Strategy</span>
+        <span class="chip">Product Roadmapping</span>
+        <span class="chip">Cross-Functional Leadership</span>
+        <span class="chip">Stakeholder Alignment</span>
+        <span class="chip">Agile / Scrum</span>
+      </div>
+    </div>
+    <div>
+      <p class="sg-lbl">Technical</p>
+      <div class="chips">
+        <span class="chip">API Spec Writing</span>
+        <span class="chip">Data Flow Diagrams</span>
+        <span class="chip">AWS Cloud</span>
+        <span class="chip">Next.js / TypeScript</span>
+        <span class="chip">Supabase / Postgres</span>
+        <span class="chip">Stripe Billing</span>
+      </div>
+    </div>
+    <div>
+      <p class="sg-lbl">Prototyping &amp; Design</p>
+      <div class="chips">
+        <span class="chip">Figma</span>
+        <span class="chip">Low / No-Code Tools</span>
+        <span class="chip">Rapid Prototyping</span>
+        <span class="chip">UX Collaboration</span>
+      </div>
+    </div>
+    <div>
+      <p class="sg-lbl">Execution</p>
+      <div class="chips">
+        <span class="chip">Concept-to-Launch</span>
+        <span class="chip">4-Month Delivery (CDK)</span>
+        <span class="chip">New Revenue Stream Creation</span>
+        <span class="chip">Compliance &amp; Guardrails</span>
+        <span class="chip">Data-Driven Decisions</span>
+      </div>
+    </div>
+    <div>
+      <p class="sg-lbl">Industries</p>
+      <div class="chips">
+        <span class="chip">Transportation</span>
+        <span class="chip">Automotive Aftermarket</span>
+        <span class="chip">Enterprise Tech</span>
+        <span class="chip">Real Estate Tech</span>
+        <span class="chip">Revenue Operations</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <span class="ft-name">Jeffrey Wilkowski</span>
+    <span class="ft-contact">
+      <a href="mailto:wilkowskij@gmail.com">wilkowskij@gmail.com</a>
+      &nbsp;·&nbsp; New Jersey / New York &nbsp;·&nbsp; US Army Veteran
+    </span>
+  </div>
+  <a href="mailto:wilkowskij@gmail.com?subject=Let%27s%20talk%20%E2%80%94%20Conversica" class="cta">
+    Let's build together &nbsp;→
+  </a>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* progress bar */
+  var bar = document.getElementById('prog');
+  if(bar && !rm){
+    window.addEventListener('scroll', function(){
+      var st = window.scrollY || document.documentElement.scrollTop;
+      var dh = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.width = (dh > 0 ? (st/dh)*100 : 0) + '%';
+    },{passive:true});
+  }
+
+  /* scroll reveal */
+  var reveals = document.querySelectorAll('.reveal');
+  if(!rm && 'IntersectionObserver' in window){
+    var ro = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); ro.unobserve(e.target); }
+      });
+    },{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+    reveals.forEach(function(el){ ro.observe(el); });
+  } else {
+    reveals.forEach(function(el){ el.classList.add('in'); });
+  }
+
+  /* count-up */
+  function countUp(el){
+    if(el.dataset.counted) return;
+    el.dataset.counted = '1';
+    var target = parseInt(el.dataset.count, 10);
+    var suffix = el.dataset.suffix || '';
+    if(rm){ el.textContent = target + suffix; return; }
+    var dur = 1100, start = null;
+    function step(ts){
+      if(!start) start = ts;
+      var p = Math.min((ts-start)/dur, 1);
+      var e = 1 - Math.pow(1-p, 3);
+      el.textContent = Math.round(e*target) + suffix;
+      if(p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  var counters = document.querySelectorAll('[data-count]');
+  if('IntersectionObserver' in window){
+    var co = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ countUp(e.target); co.unobserve(e.target); }
+      });
+    },{threshold:.5});
+    counters.forEach(function(el){ co.observe(el); });
+  } else {
+    counters.forEach(countUp);
+  }
+})();
+</script>
