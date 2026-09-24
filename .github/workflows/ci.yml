@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so the secret scan below covers every commit in the push/PR
 
       - uses: actions/setup-node@v4
         with:
@@ -18,6 +20,25 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Environment variable check
+        run: npm run check:env
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Repos owned by a GitHub organization need a free GITLEAKS_LICENSE secret.
+          # Personal account repos do not. Verify current terms before this matters.
+          # GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+      # Lint is deliberately not gating CI yet: `npm run lint` only just became
+      # runnable non-interactively (see docs/decisions for the record), and it
+      # surfaced 6 pre-existing react/no-unescaped-entities errors in app
+      # source that are out of scope for this change. Add this step once those
+      # are fixed, so CI does not go red for unrelated reasons on the next PR.
+      # - name: Lint
+      #   run: npm run lint
 
       - name: Typecheck
         run: npx tsc --noEmit

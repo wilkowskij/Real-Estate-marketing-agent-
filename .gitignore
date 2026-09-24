@@ -2,12 +2,24 @@ node_modules
 .next
 out
 build
-.env
-.env.local
-.env*.local
 .vercel
 *.tsbuildinfo
 next-env.d.ts
 coverage
 .DS_Store
-.claude
+
+# Secrets: every env file except the example. The old `.env`/`.env.local`/
+# `.env*.local` set did not cover .env.production, .env.development, or
+# .env.test — any of those could have been committed by accident. This is
+# broader on purpose; the negation keeps .env.example trackable.
+.env
+.env.*
+!.env.example
+
+# Personal Claude Code overrides. The shared .claude/settings.json IS
+# committed so its permission rules travel with the repo.
+.claude/settings.local.json
+
+# Generated doc artifact — regenerate with `npm run build:testplan` from
+# docs/TEST_PLAN.md rather than hand-editing or committing it.
+docs/TEST_PLAN.html

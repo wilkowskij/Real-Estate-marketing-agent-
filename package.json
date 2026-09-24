@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "check:env": "node scripts/check-env.mjs",
     "build:testplan": "node scripts/build-doc-html.mjs docs/TEST_PLAN.md docs/TEST_PLAN.html \"Marquee — Product Test Plan\""
   },
   "dependencies": {

@@ -1,110 +1,108 @@
-# Operations — Deploy & Environment
+# Operations
 
-How Marquee is hosted, configured, and kept running.
+Monitoring, day-to-day procedures, and incident response for the running app. For architecture, see `ARCHITECTURE.md`. For hosting/env/cron configuration, see `docs/DEPLOYMENT.md`. For per-service setup, see `docs/INTEGRATIONS.md`.
 
-## Architecture
+## Quick reference
 
-- **App**: Next.js 14 (App Router) on **Vercel** (serverless / Fluid Compute).
-- **Data**: Supabase Postgres (RLS), Auth, and Storage (private `media` bucket).
-- **AI**: Claude API (agents) + optional OpenAI `gpt-image-1` (photo enhancement).
-- **Automation**: Vercel Cron → `/api/cron/*` routes.
+- **Hosting:** Vercel (Next.js, Fluid Compute). Deploys on push to the production branch.
+- **Data:** Supabase project `llobtozbbplxkiiqzzfb` (Postgres + RLS, Auth, Storage `media`). UNVERIFIED: this project ref was carried over from the prior version of this document; not independently re-confirmed in this pass.
+- **AI:** Anthropic (agents); OpenAI `gpt-image-1` (optional images).
+- **Dashboards:** Vercel (deploys, runtime logs), Supabase (SQL, logs, advisors), Stripe (billing), Anthropic console (spend/limits), Notion (feedback triage).
+- **Health check:** sign in → Create → generate a Just Sold post end to end.
+Source: prior `docs/RUNBOOK.md`, carried forward; not independently re-verified against live infrastructure in this pass.
 
-## Deploy (Vercel Git integration)
+## Routine procedures
 
-The repo is connected to Vercel's GitHub integration. Every push to the
-**production branch** auto-deploys; PR branches get preview URLs.
+### Deploy and rollback
+- **Deploy:** merge/push to the production branch; Vercel builds and promotes automatically. Watch the deployment; confirm the health check above.
+- **Rollback:** Vercel → Project → Deployments → pick the last green deployment → Promote to Production. This is instant and does not rebuild. It does **not** revert database migrations — see below.
 
-`vercel.json` pins the important bits so detection is deterministic:
+### Database migrations
+Migrations live in `supabase/migrations/NNNN_*.sql`, sequential and forward-only. To "roll back," write a new migration that reverses the change; never edit an already-applied migration file.
 
-```json
-{
-  "framework": "nextjs",
-  "buildCommand": "next build",
-  "crons": [
-    { "path": "/api/cron/recurring",      "schedule": "0 13 * * 1" },
-    { "path": "/api/cron/publish-queue",  "schedule": "0 9 * * *" },
-    { "path": "/api/cron/refresh-tokens", "schedule": "0 6 * * *" }
-  ]
-}
-```
+1. Write `supabase/migrations/NNNN_name.sql`, using `if not exists`/`add column if not exists` so it's safe to re-run.
+2. Apply it to the project (Supabase SQL editor, CLI, or MCP `apply_migration`).
+3. Run the Supabase security and performance advisors — a new table with RLS enabled but no policy shows up here; add a policy before shipping. This repo's own history includes several migrations that fixed RLS gaps after the fact (`0003`, `0008`, `0013`, `0015` — see `docs/decisions/0001-supabase-as-data-auth-storage-platform.md`), so treat this step as load-bearing, not optional.
+4. Update `lib/supabase/types.ts` to match, then run `npx tsc --noEmit`.
+5. Commit the migration and the updated types together.
 
-> **Hobby-plan note:** all crons are daily/weekly because Vercel Hobby only
-> allows daily cron frequency. On Pro you can tighten `publish-queue` to e.g.
-> `*/15 * * * *` for near-real-time scheduled publishing.
+### Rotate a secret
+1. Generate the new value (provider dashboard, or `openssl rand -base64 32` for `SOCIAL_TOKEN_ENC_KEY`/`CRON_SECRET`).
+2. Vercel → Project → Settings → Environment Variables → update (Production **and** Preview) → Redeploy (env changes need a new deploy to take effect).
+3. Verify the dependent flow (for example, rotating `ANTHROPIC_API_KEY` → run a generation).
 
-### First-time project setup
-1. Vercel → **Add New → Project** → import the GitHub repo.
-2. Framework auto-detects **Next.js** (also pinned in `vercel.json`).
-3. Set the **Production Branch** to the branch that holds the app code.
-4. Add the env vars below (Production + Preview).
-5. Deploy. Copy the URL into `NEXT_PUBLIC_APP_URL` and redeploy so OAuth
-   redirects resolve.
+**Rotating `SOCIAL_TOKEN_ENC_KEY` makes already-stored social OAuth tokens permanently undecryptable** — every connected agent must reconnect their account. Only rotate this key if it has actually leaked, and tell users to reconnect before rotating.
 
-## Environment variables
+### Cron jobs
+Defined in `vercel.json`, authenticated by `CRON_SECRET` (see `docs/DEPLOYMENT.md` for the full schedule table).
+- **Confirm:** Vercel → Cron Jobs shows last run and status; runtime logs show the invocation.
+- **Run manually:** `curl -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/<job>`
+- **Note:** the standard's own gitignore/env conventions aside, remember `CRON_SECRET` is a genuine secret — never paste it into a shared terminal history or a non-secret log line when running the manual curl above.
 
-Set these in **Vercel → Project → Settings → Environment Variables**. The
-running app reads its env from **Vercel**, not from GitHub Actions secrets
-(those feed CI only).
+### Feature enablement (per-customer or per-deploy)
+- **MLS import:** set `RENTCAST_API_KEY`, redeploy. Agents then get "Import from MLS."
+- **Feedback → Notion:** set `NOTION_API_KEY` + `NOTION_FEEDBACK_DB_ID`, share the Notion database with the integration, redeploy.
+- **White-label (a brokerage):** the brokerage's admin enables it in Company → Brand and uploads a dark-background (and light-background) logo. No deploy needed.
+- **Social posting:** see `docs/INTEGRATIONS.md` for per-platform OAuth setup and app-review requirements.
 
-### Required to boot + core flow
-| Var | Notes |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (public) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable/anon key (public) |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Secret.** Cron + OAuth callback writes; bypasses RLS. Never `NEXT_PUBLIC_`. |
-| `ANTHROPIC_API_KEY` | Powers the marketing/design/orchestrator agents |
-| `ANTHROPIC_MODEL` / `ANTHROPIC_FAST_MODEL` | Optional overrides (defaults are sensible) |
+## Incident playbooks
 
-### Required for automation + social
-| Var | Notes |
-| --- | --- |
-| `CRON_SECRET` | Long random string; the cron routes require it as a Bearer token |
-| `SOCIAL_TOKEN_ENC_KEY` | 32-byte **base64** — encrypts social OAuth tokens at rest. Generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
-| `NEXT_PUBLIC_APP_URL` | Your deployed URL; used to build OAuth redirect URIs |
+Severity guide: **SEV1** product down / data risk (page now) · **SEV2** a core flow broken for many users · **SEV3** degraded / one feature · **SEV4** cosmetic.
 
-### Optional features
-| Var | Enables |
-| --- | --- |
-| `IMAGE_PROVIDER=openai` + `OPENAI_API_KEY` (+ `OPENAI_IMAGE_MODEL`) | AI photo enhancement (`gpt-image-1`) |
-| `META_APP_ID` / `META_APP_SECRET` | Live Instagram + Facebook posting (after Meta App Review) |
-| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | Live LinkedIn posting (after Marketing API access) |
+### Generation failures
+*Symptom:* Create shows an error / "generation failed."
+- **Confirm:** Vercel runtime logs for `/api/campaigns/generate` (or `/message`). The route wraps AI errors into a readable JSON message; look for the upstream cause in that message.
+- **Fix:** the most common cause is an Anthropic billing/rate-limit/invalid-key problem — check the Anthropic console, top up or raise limits, confirm `ANTHROPIC_API_KEY`. If only image generation fails, set `IMAGE_PROVIDER=stub` to keep copy generation working while `OPENAI_API_KEY` is fixed.
+- **Verify:** generate a Just Sold post end to end.
 
-> **Cron job execution:** Vercel automatically sends the cron requests with the
-> `CRON_SECRET` you set, so the jobs authenticate without extra config.
+### Publishing failures
+*Symptom:* scheduled posts stay queued or land in `failed`.
+- **Confirm:** did `publish-queue` run (Vercel Cron dashboard + logs)? Check the post's `state` and any stored platform error.
+- **Fix:** if the platform's OAuth isn't approved yet, this is expected — posts fall back to manual export (download image + copy caption); the queue UI is identical either way. If a token expired, have the agent reconnect under Profile → Connections; the `refresh-tokens` cron handles routine refresh before expiry.
+- **Verify:** re-run the queue manually (see Cron jobs above) and watch one post publish.
 
-## Database
+### Billing
+*Symptom:* checkout fails, or a paid org shows the wrong plan.
+- **Confirm:** Stripe → Events/Logs for the customer; the org's `subscriptions` row plus `billing_events` (audit log). Confirm the webhook endpoint is receiving `checkout.session.completed` / `customer.subscription.*` / `invoice.*`.
+- **Fix:** if webhooks aren't arriving, re-check `STRIPE_WEBHOOK_SECRET` and the endpoint URL; resend the event from the Stripe dashboard. If billing routes return 503, `STRIPE_SECRET_KEY` is unset (billing is intentionally disabled in that state, not broken).
+- **Verify:** test checkout with Stripe's test card `4242 4242 4242 4242` (test mode) and confirm the plan flips in the database.
 
-Migrations live in `supabase/migrations/` and are applied in order:
+### MLS import
+*Symptom:* "Import from MLS" errors or returns nothing.
+- **Confirm:** logs for `/api/listings/search`. A 503 means `RENTCAST_API_KEY` is missing; a 502 means a RentCast upstream error; an empty result means no listings matched that query/state.
+- **Fix:** set or repair `RENTCAST_API_KEY`. A bare city search defaults to the agent's market-area state (Company → Brand) — a wrong state there yields wrong or empty results.
+- **Verify:** search a known address, save it, confirm it appears in My Listings.
 
-| File | Adds |
-| --- | --- |
-| `0001_init.sql` | Core schema + RLS + new-user bootstrap trigger |
-| `0002_storage.sql` | Private `media` bucket + org-scoped storage policies |
-| `0003_lock_down_helper_functions.sql` | Revokes public EXECUTE on internal SECURITY DEFINER helpers |
-| `0005_extend_campaign_types.sql` | Adds the high-traffic content types |
+### Feedback not reaching Notion
+*Symptom:* submissions don't show up in Notion.
+- **Confirm:** the submission is still captured — it always saves to the `feedback` table even if the Notion mirror fails. Check `feedback.notion_page_id`; null means the mirror didn't run.
+- **Fix:** ensure `NOTION_API_KEY` and `NOTION_FEEDBACK_DB_ID` are set and the target database is shared with the integration, and that the database has a title property. The mirror is best-effort and never blocks capture, so no feedback data is ever lost while this is broken.
+- **Verify:** submit a test feedback item; a new Notion page appears and the row gets a `notion_page_id`.
 
-Apply via the Supabase SQL editor or the Supabase CLI. After schema changes,
-regenerate types into `lib/supabase/database.types.ts` and re-run the security
-advisor (it should report zero lints).
+### Auth and RLS
+*Symptom:* a user can't sign in, or can't see their data, or sees an unexpected error.
+- **Confirm:** Supabase Auth logs (sign-in attempts) and the Supabase security/performance advisors. Most "missing data" reports are a Row Level Security policy gap, not actually lost data.
+- **Fix:** verify `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` are correct. For a brand-new table, check it has an org-scoped policy calling `is_org_member`. Leaked-password protection and provider settings live in Supabase Auth's own dashboard.
+- **Verify:** sign in as the affected user and confirm their data loads.
 
-## CI
+## Backup and restore
 
-`.github/workflows/ci.yml` runs typecheck + tests + build on every push. It does
-**not** deploy — Vercel's Git integration handles deploys.
+UNKNOWN — no backup/restore procedure is documented in this repository. Point-in-time recovery and backup retention are presumed to be whatever the Supabase project's plan tier provides by default, but that is a platform setting, not something this repo configures, and was not confirmed in this pass. This is a real gap: if you need a specific recovery point objective, verify what the current Supabase plan actually provides rather than assuming.
 
-## Monitoring & debugging
+## Monitoring and debugging
 
-- **Deployments / build logs**: Vercel dashboard, or the Vercel MCP
-  (`list_deployments`, `get_deployment_build_logs`, `get_runtime_logs`).
-- **Agent cost**: each generation/plan writes `cost_usd` + token counts to the
-  `agent_runs` table for per-org spend tracking.
-- **Supabase advisors**: run the security/performance advisors after DDL changes.
+- **Deployments and build logs:** Vercel dashboard, or the Vercel MCP tools (`list_deployments`, `get_deployment_build_logs`/equivalent, runtime logs).
+- **Agent cost:** each generation/plan call writes `cost_usd` and token counts to the `agent_runs` table for per-org spend tracking.
+- **Supabase advisors:** run the security and performance advisors after any schema (DDL) change.
 
-## Going to production checklist
+## Who to contact
 
-- [ ] Production branch set in Vercel; build green (`framework: nextjs`)
-- [ ] All required env vars set (Production scope)
-- [ ] `NEXT_PUBLIC_APP_URL` set to the live URL, redeployed
-- [ ] Migrations applied; Supabase security advisor clean
-- [ ] Signup → brand kit → generate smoke-tested
-- [ ] (When ready) Meta/LinkedIn app review submitted for live posting
+UNKNOWN — no on-call rotation, escalation contact, or external status page is documented in this repository. Single-owner project per `git log`; route incidents to the repository owner directly until this changes.
+
+## On-call checklist (start of shift)
+
+- [ ] Latest production deploy is green (Vercel).
+- [ ] Run the health check (generate one post end to end).
+- [ ] Supabase advisors show no new security lint (especially RLS-without-policy).
+- [ ] Cron jobs' last runs are recent and succeeded.
+- [ ] Anthropic spend is within the monthly cap.
