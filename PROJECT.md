@@ -43,10 +43,11 @@ Source: `docs/CHECKLIST.md` "Shipped", `README.md` "Status"
 - **Stories/Reels publishing endpoints** — blocked on Meta/LinkedIn app review, not a build gap.
 - **Auto-refresh of price/status for saved MLS listings** — noted as future work; today's saved listings are a snapshot from import time.
 - **Staff cross-org feedback triage view** — the customer-facing per-org feedback status view exists; a staff-side view across all orgs is future work.
+- **A dedicated MRR/ARR reporting view** — UNVERIFIED whether this exists beyond the Analytics dashboard's revenue-by-source view; the original `docs/PRODUCT_ROADMAP.md` gap analysis called it partial and it's the one item from that document not resolved one way or the other in this pass.
 
-Source: `docs/CHECKLIST.md` "Build backlog" (parenthetical "future" notes) and "Known gates"
+Source: `docs/CHECKLIST.md` "Build backlog" (parenthetical "future" notes) and "Known gates"; the MRR/ARR item from the retired `docs/PRODUCT_ROADMAP.md` (see Build history below)
 
-**Note on `docs/PRODUCT_ROADMAP.md`:** that document described a much larger gap (billing, lead capture, revenue attribution, and the video engine all listed as "not built") as of its last update. `docs/CHECKLIST.md` shows all of those have since shipped. `docs/PRODUCT_ROADMAP.md` is stale rather than a current plan and should not be read as this project's roadmap; it is being retired rather than merged in, since merging stale content forward would misrepresent current scope.
+**Build history:** `docs/PRODUCT_ROADMAP.md` (retired as a separate file 2026-09-24) had mapped an 8-module PRD gap analysis and a four-phase build plan. Nearly everything it listed as "not built" — Stripe billing, lead capture, revenue attribution, the analytics engine, and the video engine — has since shipped per `docs/CHECKLIST.md`; only the items above remain genuinely open.
 
 ## Out of scope
 
@@ -56,7 +57,8 @@ UNKNOWN — no explicit "we will not build this" list exists in the repository. 
 
 - **Fair Housing compliance is enforced at publish time, not just at generation time.** A post tied to a campaign whose `copy.compliance_notes` array is non-empty cannot be published unless the caller explicitly passes `overrideCompliance: true`.
   Source: `lib/social/publish.ts` (`publishPost`)
-  **UNVERIFIED / flagged, not just cited:** the publish API route (`app/api/posts/[id]/publish/route.ts`) accepts `overrideCompliance` from the request body with no server-side check that the caller holds an admin/owner role — the code comment describes this as "admin acted on the flagged notes," but nothing in the route or `getOrgContext()` call enforces that. Any authenticated org member who can call this endpoint can currently override the gate. This is stated as a business-rule gap here and repeated as a finding in `SECURITY.md`; it was traced to the exact line, not inferred.
+
+  **⚠️ CRITICAL — Confirmed gap, not yet remediated:** the compliance override at `lib/social/publish.ts` and `app/api/posts/[id]/publish/route.ts` is not role-gated. Any authenticated org member can set `overrideCompliance: true` and bypass the Fair Housing publish check. Owner decision pending on fix timeline. The route accepts `overrideCompliance` from the request body with no server-side check that the caller holds an admin/owner role — the code comment describes this as "admin acted on the flagged notes," but nothing in the route or `getOrgContext()` call enforces that. This was traced to the exact lines, not inferred, and is the same finding stated with the same severity in `SECURITY.md`.
 - **No plan is unlimited.** Every paid plan has a finite AI-credit allowance and a finite included-seat count; usage beyond the block is either blocked or billed per additional seat.
   Source: `lib/billing/plans.ts`, `docs/PRICING.md` "Model"
 - **Pricing figures: UNVERIFIED which numbers are currently live.** `docs/PRICING.md` states the current model is Solo $59/mo, Team $399/mo base (10 seats) + $39/additional seat, Brokerage $899/mo base (25 seats) + $32/additional seat. `docs/CHECKLIST.md`, under owner setup tasks, lists creating those exact recurring Stripe prices as still unchecked, open work ("Pricing repackaged (action needed)... The old Starter/Pro/Team/Brokerage $49/$99/$249/$499 prices are superseded"). These two documents disagree on whether the new pricing is live in Stripe today or still pending setup. This document takes no position on which is correct — confirm directly against the Stripe dashboard (which prices exist and are attached to active subscriptions) before treating either figure as current.
@@ -85,4 +87,4 @@ UNKNOWN — no explicit "we will not build this" list exists in the repository. 
 
 ## Success criteria
 
-UNKNOWN — no explicit, measurable success criteria (target user count, revenue target, retention target) are documented in this repository. `docs/SCALABILITY.md` frames a specific question ("can Marquee handle ~100 users") and answers it affirmatively for browsing/CRUD load, which is a capacity finding, not a stated business success criterion.
+UNKNOWN — no explicit, measurable success criteria (target user count, revenue target, retention target) are documented in this repository. `ARCHITECTURE.md`'s Constraints section (merged from the former `docs/SCALABILITY.md`) frames a specific question ("can Marquee handle ~100 users") and answers it affirmatively for browsing/CRUD load, which is a capacity finding, not a stated business success criterion.

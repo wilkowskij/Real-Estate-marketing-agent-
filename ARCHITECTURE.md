@@ -96,17 +96,44 @@ Full detail, including the five cron jobs and their auth mechanism: `docs/DEPLOY
 
 ## Constraints
 
-- **Analytics query pattern doesn't scale past low data volume.** `docs/SCALABILITY.md` (2026-06-03 assessment) identifies `/analytics` as currently selecting all `posts` and all `social_metrics` rows with no limit and aggregating in JavaScript — fine at the volume measured then (2 orgs, 20 posts), flagged as the one query pattern needing a SQL-side rewrite (`count`/`sum` or a rolling window) before an org accumulates thousands of rows.
-- **RLS policy consolidation deferred.** The same assessment identifies `memberships`, `profiles`, and `social_accounts` as each running two permissive SELECT policies (a `FOR ALL` write policy plus a separate `FOR SELECT` read policy) where one would do; `memberships` and `profiles` are read on every authenticated request, making this the highest-value RLS tuning opportunity, deliberately deferred because rewriting live auth policies "warrants a careful, separately-tested change" after one prior RLS incident.
+**Everything in this section is merged from `docs/SCALABILITY.md` (retired as a separate file 2026-09-24), a load/capacity assessment dated 2026-06-03 answering one question: can the app handle roughly 100 users? Verdict at that time: yes, for browsing and CRUD load, with the specific caveats below. None of this was independently re-measured in this pass — treat the numbers as a point-in-time snapshot, now over three months old, not a live dashboard.**
+
+**Regression baseline at assessment time:** 66/66 unit tests passing (12 files), clean typecheck, a successful production build. (The current test suite, as of this standardization pass, is 103 tests across 17 files — the growth reflects real feature work since, not a discrepancy.)
+
+**Database (Supabase advisors, Postgres 17, region `us-east-2`):** volume at assessment time was tiny (2 orgs, 20 posts), so these were projections from the linter, not measured hot spots.
+- *Fixed already* (migration `0013`): covering indexes added for nine query/join-facing foreign keys; the `profiles_self_write` RLS init-plan fixed so `auth.uid()` evaluates once per query instead of once per row.
+- *Recommended, not yet applied — the RLS policy consolidation constraint below.*
+- Several unused indexes were flagged simply because traffic was low at assessment time; expected to be exercised as data grows, no action needed.
+- `SECURITY DEFINER` warnings on `is_org_member`/`is_org_admin`, `owns_membership`, and `increment_link_click` are by design — these helpers only return booleans about the *caller's own* membership, and the click-counter only increments a counter; `billing_events` having RLS-on/no-policy is intentional (a service-role-only audit table).
+- **One unapplied action item:** enable Leaked Password Protection (Supabase → Auth → Passwords). Not confirmed whether this has since been turned on.
+
+- **Analytics query pattern doesn't scale past low data volume.** `/analytics` was found selecting all `posts` and all `social_metrics` rows with no limit and aggregating in JavaScript — fine at the volume measured then, flagged as the one query pattern needing a SQL-side rewrite (`count`/`sum` or a rolling window) before an org accumulates thousands of rows.
+- **RLS policy consolidation deferred.** `memberships`, `profiles`, and `social_accounts` each run two permissive SELECT policies (a `FOR ALL` write policy plus a separate `FOR SELECT` read policy) where one would do; `memberships` and `profiles` are read on every authenticated request, making this the highest-value RLS tuning opportunity, deliberately deferred because rewriting live auth policies "warrants a careful, separately-tested change" after one prior RLS incident.
 - **Auth middleware calls `supabase.auth.getUser()` on every non-prefetch request**, a network hop to Supabase Auth on every page load — standard for server-rendered auth, acceptable at the scale measured, a candidate for JWT-verification caching at much larger scale.
-- **AI generation throughput is governed by the Anthropic/OpenAI account's own rate limits and credit balance**, not by anything in this application's code.
+- **`getOrgContext` runs on every page/route:** one membership query plus a `Promise.all` of three more (brand kits, profile, subscription) — roughly four light, indexed queries per request, assessed as fine at 100-user scale.
+- **Leads/campaigns/calendar queries are bounded** (`limit`, `in(ids)`, or naturally small per-org sets) — assessed as fine, unlike the analytics page above.
+- **Crons iterate per-account/per-post, best-effort** — assessed as trivial at 100-user scale.
+- **Image upload resizes client-side (≤2048px) before the 4.5 MB function-body limit** — assessed as fine.
+- **AI generation throughput is governed by the Anthropic/OpenAI account's own rate limits and credit balance**, not by anything in this application's code; this is the genuine throughput ceiling, not the app itself.
 - **Vercel Hobby plan caps cron frequency to daily.**
 
-Source: `docs/SCALABILITY.md` (carried forward into this file as of the 2026-06-03 assessment date; not independently re-measured in this pass)
+**Edge latency (measured at assessment time):** a 50-request, 10-concurrent burst against the production edge returned in roughly 0.5 seconds total (average 78ms, p95 113ms) — read-path performance was healthy at that load.
+
+**What the assessment recommended upgrading, in priority order, before serving ~100 real users:** (1) Vercel plan → Pro — the Hobby plan prohibits commercial use, caps cron to daily, and has lower concurrency limits; (2) resolve public access — anonymous requests to the raw `*.vercel.app` production URL returned HTTP 403 at assessment time due to Vercel Deployment Protection, meaning the public marketing homepage and lead-capture landing pages were not reachable by real visitors or QR scans behind that URL (this is carried into "Known architectural debt" below as unresolved); (3) Supabase plan → Pro — the free tier pauses on inactivity, has a small compute instance, and shorter backup retention; (4) raise Anthropic/OpenAI usage tiers to match expected concurrent generation volume; (5) the analytics query rewrite above; (6) the RLS consolidation above; (7) enable Leaked Password Protection.
+
+**Repeatable load test:** `load-test/k6-smoke.js` drives only the safe, unauthenticated-cost paths (homepage, a lead landing page, a tracked-link redirect, and an optional authenticated dashboard read via a session cookie) — it deliberately avoids the paid AI endpoints.
+```bash
+BASE_URL=https://your-domain.com VUS=100 DURATION=1m \
+  LEAD_SLUG=your-form-slug LINK_SLUG=your-link-slug \
+  k6 run load-test/k6-smoke.js
+```
+Thresholds used at assessment time: under 1% errors, p95 under 800ms.
+
+Source: `docs/SCALABILITY.md` as it existed before being retired into this section (2026-06-03 assessment date; not independently re-measured in this pass)
 
 ## Known architectural debt
 
 - **The Fair Housing override authorization gap** described above under Authentication and authorization — any org member can currently bypass the compliance gate, not just an admin, despite code comments implying otherwise.
 - **`ops-agents/` is documented as temporary residency** inside this repository (see decision 0005) but has not yet been extracted; until it is, this repository documents and enforces standards for two codebases with different lifecycles and different env surfaces.
 - **`scripts/check-env.mjs` does not check `ops-agents/`'s own env surface** — it's explicitly excluded to avoid false positives between two separate `.env.example` files; `ops-agents/.env.example` was manually verified against `ops-agents/src/` in this pass but has no automated check of its own yet.
-- **The public marketing homepage and lead-capture landing pages may be blocked by Vercel Deployment Protection** on the raw `*.vercel.app` production URL — `docs/SCALABILITY.md` recorded anonymous requests returning HTTP 403 there as of its assessment date, which would mean real visitors and QR scans can't reach lead capture through that URL. UNVERIFIED whether this has since been resolved (for example, by attaching a custom domain); not independently re-tested in this pass.
+- **The public marketing homepage and lead-capture landing pages may be blocked by Vercel Deployment Protection** on the raw `*.vercel.app` production URL — the 2026-06-03 assessment merged into this file's Constraints section above recorded anonymous requests returning HTTP 403 there, which would mean real visitors and QR scans can't reach lead capture through that URL. UNVERIFIED whether this has since been resolved (for example, by attaching a custom domain); not independently re-tested in this pass.
