@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "check:env": "node scripts/check-env.mjs",
     "build:testplan": "node scripts/build-doc-html.mjs docs/TEST_PLAN.md docs/TEST_PLAN.html \"Marquee — Product Test Plan\""
   },
   "dependencies": {
@@ -28,10 +29,13 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.1.0",
     "@types/node": "^20.16.11",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.35",
     "marked": "^18.0.4",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",

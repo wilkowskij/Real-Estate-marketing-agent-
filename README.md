@@ -27,9 +27,23 @@ flags tired real-estate clichés and copy with no local specificity — no extra
 LLM call.
 
 → **New here? Read [`docs/ONBOARDING.md`](docs/ONBOARDING.md)** for the company
-and agent walkthrough, [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for deploy +
+and agent walkthrough, [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for hosting +
 env setup, and [`docs/CHECKLIST.md`](docs/CHECKLIST.md) for the live open-items
 list.
+
+## Documentation
+
+| Read | For |
+| --- | --- |
+| [`AGENTS.md`](AGENTS.md) | Commands, rules, and approvals for AI agents (humans should read it too) |
+| [`PROJECT.md`](PROJECT.md) | What is being built and why |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | How it is built |
+| [`SECURITY.md`](SECURITY.md) | Security rules, including one confirmed authorization gap |
+| [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Entities and relationships |
+| [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | Every external service, setup, and failure behavior |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Hosting, environments, cron |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Monitoring and incident playbooks |
+| [`docs/decisions/`](docs/decisions/README.md) | Why major technical choices were made |
 
 ## Status
 
@@ -98,6 +112,11 @@ Required env (see `.env.example` for the full list):
 | `STRIPE_PRICE_TEAM_SEAT` / `_BROKERAGE_SEAT` | Per-additional-user price IDs (see [`docs/PRICING.md`](docs/PRICING.md)) |
 | `OPENAI_API_KEY` + `IMAGE_PROVIDER=openai` | Optional — AI image generation / enhancement |
 | `META_*` / `LINKEDIN_*` / `TWITTER_*` | Optional — live social posting (after platform approval) |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Optional — transactional email (leads, open-house packets); skips sending with no error if unset |
+| `NOTION_API_KEY` / `NOTION_FEEDBACK_DB_ID` | Optional — mirrors in-app feedback into a Notion database for triage |
+| `RENTCAST_API_KEY` | Optional — enables "Import from MLS" on Create |
+
+Full list, per-service setup, and failure behavior when a variable is left unset: [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md).
 
 Then sign up, complete (or import) your brand kit, and create a campaign at
 `/generate`.
@@ -131,6 +150,7 @@ Then sign up, complete (or import) your brand kit, and create a campaign at
 | `/api/cron/publish-queue` | daily | Publishes posts whose `scheduled_at` is due |
 | `/api/cron/refresh-tokens` | daily | Refreshes social OAuth tokens nearing expiry |
 | `/api/cron/refresh-metrics` | daily | Snapshots engagement for published posts (no-op until a platform's insights API is live) |
+| `/api/cron/refresh-listings` | daily | Refreshes price/status on previously-imported MLS listings |
 
 ## Deployment
 
@@ -145,34 +165,37 @@ only, not the running app). Full steps in
 
 Fair Housing is a first-class constraint, two layers deep: the marketing-agent
 prompt forbids steering language, and a **publish gate** blocks any post whose
-campaign carries unresolved compliance notes unless an admin explicitly
-overrides after review.
+campaign carries unresolved compliance notes unless `overrideCompliance` is
+explicitly set on the publish request. **Known gap:** that override is not
+currently role-gated in code — see [`SECURITY.md`](SECURITY.md) for the traced
+finding. Treat "an admin overrides after review" as the intended behavior, not
+the enforced one, until that's fixed.
 
 ## Roadmap
 
-Shipped pillars: AI content engine, AI imagery, multi-tenant brand, social OAuth
-+ queue, Stripe billing, Email + SMS, Campaign object, Analytics engine. Next, in
-order (see [`docs/CHECKLIST.md`](docs/CHECKLIST.md) and
-[`docs/PRODUCT_ROADMAP.md`](docs/PRODUCT_ROADMAP.md)):
+Shipped: AI content engine, AI imagery, multi-tenant brand, social OAuth +
+queue, Stripe billing, Email + SMS, Campaign object, Analytics engine, Lead
+capture / CRM, Revenue attribution, White-label theming, a brokerage-wide
+"who's connected" view, mobile sidebar nav, and a reel/video engine (storyboard
+today, real MP4 once a video provider is configured). See
+[`docs/CHECKLIST.md`](docs/CHECKLIST.md) for the exact shipped/open list — it's
+the current source of truth for what's built versus outstanding.
 
-- **Lead capture / CRM** — landing pages, forms, QR codes, open-house sign-in, a
-  `leads` table
-- **Revenue attribution** — post → click → lead → deal (`opportunities`, `deals`)
-- **Video marketing engine** — scene detection → clips → Reels
-- **Stories / Reels** publishing endpoints
-- **White-label theming** for brokerages + a brokerage-wide "who's connected" view
-- **Mobile sidebar nav** (currently desktop-only)
+Remaining: **Stories / Reels publishing endpoints**, blocked on Meta/LinkedIn
+app review, not a build gap. Full detail in [`PROJECT.md`](PROJECT.md#planned-functionality).
 
 External gates: live social posting awaits **Meta/LinkedIn app review**; the
-Analytics engagement metrics and Revenue attribution light up once that access
-lands.
+Analytics engagement metrics light up once that access lands.
 
 ## Verification
 
 ```bash
-npm run test     # 55 tests: brand resolver, token crypto, publish gate, calendar
-                 # scheduler, copy + email/SMS parsing, Stop Slop, analytics
-                 # summarizers, cost math, route auth
-npx tsc --noEmit
+npm run test       # 103 tests, 17 files: brand resolver, token crypto, publish
+                   # gate, calendar scheduler, copy + email/SMS parsing, Stop
+                   # Slop, analytics summarizers, cost math, route auth
+npm run typecheck
+npm run lint       # now runs non-interactively; see AGENTS.md for known
+                   # pre-existing findings not yet fixed
+npm run check:env
 npm run build
 ```

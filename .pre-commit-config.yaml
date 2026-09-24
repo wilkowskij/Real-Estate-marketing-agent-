@@ -1,0 +1,5 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2   # pin to a current release; check github.com/gitleaks/gitleaks/releases
+    hooks:
+      - id: gitleaks
